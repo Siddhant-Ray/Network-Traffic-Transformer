@@ -1,0 +1,3 @@
+[submodule "report-template"]
+	path = report-template
+	url = git@gitlab.ethz.ch:nsg/students/templates/report-template.git
