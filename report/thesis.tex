@@ -1,0 +1,77 @@
+\documentclass[11pt,oneside]{book}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{lscape}
+\usepackage{psfrag}
+\usepackage[usenames]{color}
+\usepackage{bbm}
+\usepackage[update]{epstopdf}
+\usepackage[bookmarks,pdfstartview=FitH,a4paper,pdfborder={0 0 0}]{hyperref}
+\usepackage{verbatim}
+\usepackage{listings}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{lipsum}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\newcommand{\hint}[1]{{\color{blue} \em #1}}
+
+\begin{document}
+
+% Update the Thesis inforation below!
+\begin{titlepage}
+    \centering
+    \includegraphics[width=\textwidth]{figures/eth-nsg-header}\\[60mm]
+    %
+    {\Huge\bf\sf{
+        Thesis Title %\\[5mm]
+        % Second Line of Thesis Title
+    }}\\[10mm]
+    {\Large\bf\sf Semester/Master Thesis}\\[3mm]
+    %
+    {\Large\bf\sf Author: Firstname Lastname} \\[5mm]
+    {\sf Tutor: Name of the tutor(s)}\\[5mm]
+    {\sf Supervisor: Prof. Dr. Laurent Vanbever}\\[30mm]
+    %
+    {\sf December 2019 to July 2020}
+\end{titlepage}
+
+\thispagestyle{empty}
+\newpage
+\pagenumbering{roman}
+\include{abstract}
+
+\clearpage
+\setcounter{tocdepth}{2}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+
+\include{introduction}
+\include{background}
+\include{design}
+\include{evaluation}
+\include{outlook}
+\include{summary}
+
+\clearpage
+
+\addcontentsline{toc}{chapter}{References}
+\bibliographystyle{acm}
+\bibliography{refs}
+
+\clearpage
+\appendix
+\pagenumbering{Roman}
+
+\include{appendix}
+
+\end{document}
