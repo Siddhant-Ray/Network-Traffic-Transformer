@@ -179,4 +179,6 @@ cython_debug/
 *.out
 *.app
 
+## VM management scripts 
+remote_*
 
