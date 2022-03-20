@@ -300,10 +300,12 @@ void SingleFlow(bool pcap) {
 	*/
 	p2pHR.SetDeviceAttribute("DataRate", StringValue(rateHR));
 	p2pHR.SetChannelAttribute("Delay", StringValue(latencyHR));
-	p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
+	// p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 	p2pRR.SetDeviceAttribute("DataRate", StringValue(rateRR));
 	p2pRR.SetChannelAttribute("Delay", StringValue(latencyRR));
-	p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
+	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
 	//Adding some errorrate
 	/*
@@ -407,6 +409,7 @@ void SingleFlow(bool pcap) {
 	uint port = 9000;
 	uint numPackets = 10000000;
 	std::string transferSpeed = "400Mbps";	
+    std::string ccalgo = "TcpVegas";
 
 	//TCP NewReno from H1 to H4
 	AsciiTraceHelper asciiTraceHelper;
@@ -414,7 +417,7 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h4_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h4_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h4_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, "TcpNewReno", senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
 
@@ -432,9 +435,9 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream2TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream2GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, "TcpNewReno", senders.Get(1), receivers.Get(1), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
-	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream2CWND, netDuration));
-	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream2PD, netDuration, 2));
+	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, ccalgo, senders.Get(1), receivers.Get(1), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream2CWND, netDuration));
+	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream2PD, netDuration, 2));
 
 	sink = "/NodeList/6/ApplicationList/0/$ns3::PacketSink/Rx";
 	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream2GP, netDuration));
@@ -447,9 +450,9 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream3PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h6_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream3TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h6_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream3GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h6_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, "TcpNewReno", senders.Get(2), receivers.Get(2), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
-	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream3CWND, netDuration));
-	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream3PD, netDuration, 3));
+	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, ccalgo, senders.Get(2), receivers.Get(2), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, netDuration));
+	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, netDuration, 3));
 
 	sink = "/NodeList/7/ApplicationList/0/$ns3::PacketSink/Rx";
 	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream3GP, netDuration));
@@ -488,7 +491,7 @@ void SingleFlow(bool pcap) {
 		if(t.sourceAddress == "10.1.0.1") {
 			if(mapDrop.find(1)==mapDrop.end())
 				mapDrop[1] = 0;
-			*stream1PD->GetStream() << "TcpNewReno Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+			*stream1PD->GetStream() << ccalgo << " Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 			*stream1PD->GetStream()  << "Net Packet Lost: " << i->second.lostPackets << "\n";
 			*stream1PD->GetStream()  << "Packet Lost due to buffer overflow: " << mapDrop[1] << "\n";
 			*stream1PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[1] << "\n";
@@ -496,7 +499,7 @@ void SingleFlow(bool pcap) {
 		} else if(t.sourceAddress == "10.1.1.1") {
 			if(mapDrop.find(2)==mapDrop.end())
 				mapDrop[2] = 0;
-			*stream2PD->GetStream() << "Tcp TcpNewReno Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+			*stream2PD->GetStream() << ccalgo << " Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 			*stream2PD->GetStream()  << "Net Packet Lost: " << i->second.lostPackets << "\n";
 			*stream2PD->GetStream()  << "Packet Lost due to buffer overflow: " << mapDrop[2] << "\n";
 			*stream2PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[2] << "\n";
@@ -504,7 +507,7 @@ void SingleFlow(bool pcap) {
 		} else if(t.sourceAddress == "10.1.2.1") {
 			if(mapDrop.find(3)==mapDrop.end())
 				mapDrop[3] = 0;
-			*stream3PD->GetStream() << "Tcp TcpNewReno Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+			*stream3PD->GetStream() << ccalgo << " Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 			*stream3PD->GetStream()  << "Net Packet Lost: " << i->second.lostPackets << "\n";
 			*stream3PD->GetStream()  << "Packet Lost due to buffer overflow: " << mapDrop[3] << "\n";
 			*stream3PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[3] << "\n";
