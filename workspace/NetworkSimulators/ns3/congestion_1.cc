@@ -160,7 +160,7 @@ static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint m
 	mapDrop[myId]++;
 }
 
-
+// Method to change rate during flow for later
 void IncRate(Ptr<APP> app, DataRate rate) {
 	app->ChangeRate(rate);
 	return;
@@ -203,6 +203,7 @@ void ReceivedPacketIPV4(Ptr<OutputStreamWrapper> stream, double startTime, std::
 	}
 }
 
+// Method to set the TCP CC method, add GetTypeID() for type of TCP protocol
 Ptr<Socket> uniFlow(Address sinkAddress, 
 					uint sinkPort, 
 					std::string tcpVariant, 
@@ -223,8 +224,9 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	} else if(tcpVariant.compare("TcpVegas") == 0) {
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpVegas::GetTypeId()));
 	} else {
-		fprintf(stderr, "Invalid TCP version\n");
-		exit(EXIT_FAILURE);
+        fprintf(stdout,"Default CC protocol for TCP flows\n");
+		// fprintf(stderr, "Invalid TCP version\n");
+		// exit(EXIT_FAILURE);
 	}
 	PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
 	ApplicationContainer sinkApps = packetSinkHelper.Install(sinkNode);
@@ -245,7 +247,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 
 void SingleFlow() {
 	NS_LOG_INFO("Sending single flows from senders to receivers...");
-	std::string rateHR = "10000Mbps";
+	std::string rateHR = "100Mbps";
 	std::string latencyHR = "20ms";
 	std::string rateRR = "10Mbps";
 	std::string latencyRR = "50ms";
@@ -332,7 +334,7 @@ void SingleFlow() {
 	NetDeviceContainer leftRouterDevices, rightRouterDevices, senderDevices, receiverDevices;
 
     //Adding links
-	std::cout << "Adding links" << std::endl;
+	NS_LOG_INFO("Adding links");
 	for(uint i = 0; i < numSender; ++i) {
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
 		leftRouterDevices.Add(cleft.Get(0));
@@ -350,7 +352,7 @@ void SingleFlow() {
 		For each node in the input container, aggregate implementations of 
 		the ns3::Ipv4, ns3::Ipv6, ns3::Udp, and, ns3::Tcp classes. 
 	*/
-	std::cout << "Install internet stack" << std::endl;
+	NS_LOG_INFO("Install internet stack");
 	InternetStackHelper stack;
 	stack.Install(routers);
 	stack.Install(senders);
@@ -358,7 +360,7 @@ void SingleFlow() {
 
 
 	//Adding IP addresses
-	std::cout << "Adding IP addresses" << std::endl;
+	NS_LOG_INFO("Adding IP addresses");
 	Ipv4AddressHelper routerIP = Ipv4AddressHelper("10.3.0.0", "255.255.255.0");	//(network, mask)
 	Ipv4AddressHelper senderIP = Ipv4AddressHelper("10.1.0.0", "255.255.255.0");
 	Ipv4AddressHelper receiverIP = Ipv4AddressHelper("10.2.0.0", "255.255.255.0");
@@ -415,7 +417,7 @@ void SingleFlow() {
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h1h4_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h1h4_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h1h4_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, "TcpNewReno", senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, "default", senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
 
@@ -433,7 +435,7 @@ void SingleFlow() {
 	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h2h5_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream2TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h2h5_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream2GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h2h5_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, "TcpNewReno", senders.Get(1), receivers.Get(1), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, "default", senders.Get(1), receivers.Get(1), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream2CWND, netDuration));
 	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream2PD, netDuration, 2));
 
@@ -448,7 +450,7 @@ void SingleFlow() {
 	Ptr<OutputStreamWrapper> stream3PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h3h6_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream3TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h3h6_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream3GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1_h3h6_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, "TcpNewReno", senders.Get(2), receivers.Get(2), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, "default", senders.Get(2), receivers.Get(2), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream3CWND, netDuration));
 	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream3PD, netDuration, 3));
 
