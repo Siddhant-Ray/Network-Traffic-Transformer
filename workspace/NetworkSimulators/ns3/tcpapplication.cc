@@ -150,6 +150,7 @@ int main(int argc, char *argv[])
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
+    pointToPoint.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue ("50p"));
 
     NetDeviceContainer devices;
     devices = pointToPoint.Install(nodes);
@@ -182,7 +183,7 @@ int main(int argc, char *argv[])
                                             MakeCallback(&CwndChange));
 
     Ptr<App> app = CreateObject<App>();
-    app->setup(ns3TcpSocket, sinkAddress, 1040, 1000, DataRate("1Mbps"));
+    app->setup(ns3TcpSocket, sinkAddress, 104000, 1, DataRate("1Mbps"));
     nodes.Get(0)->AddApplication(app);
     app->SetStartTime(Seconds(1.));
     app->SetStopTime(Seconds(20.));
