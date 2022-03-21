@@ -136,9 +136,10 @@ void APP::ScheduleTx() {
 	if (mRunning) {
 		Time tNext(Seconds(mPacketSize*8/static_cast<double>(mDataRate.GetBitRate())));
 		mSendEvent = Simulator::Schedule(tNext, &APP::SendPacket, this);
-		//double tVal = Simulator::Now().GetSeconds();
-		//if(tVal-int(tVal) >= 0.99)
-		//	std::cout << Simulator::Now ().GetSeconds () << "\t" << mPacketsSent << std::endl;
+		/// DEBUG!
+		double tVal = Simulator::Now().GetSeconds();
+		if(int(tVal)%10==0)
+		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;
 	}
 }
 
@@ -348,7 +349,6 @@ void SingleFlow(bool pcap) {
 		rightRouterDevices.Add(cright.Get(0));
 		receiverDevices.Add(cright.Get(1));
 		cright.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(em));
-        break;
 	}
 
 	//Install Internet Stack
@@ -394,7 +394,6 @@ void SingleFlow(bool pcap) {
 		receiverIFCs.Add(receiverIFC.Get(0));
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
-        break;
 	}
 
     /*
@@ -463,8 +462,8 @@ void SingleFlow(bool pcap) {
 		*/
 
         // Destination is also shown as source but no flow is sent, check this?
-        NS_LOG_INFO("The source IP Address is: ");
-        NS_LOG_INFO(t.sourceAddress);
+        // NS_LOG_INFO("The source IP Address is: ");
+        // NS_LOG_INFO(t.sourceAddress);
 		if(t.sourceAddress == "10.1.0.1") {
 			if(mapDrop.find(1)==mapDrop.end())
 				mapDrop[1] = 0;

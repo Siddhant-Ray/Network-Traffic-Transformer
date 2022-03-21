@@ -136,9 +136,10 @@ void APP::ScheduleTx() {
 	if (mRunning) {
 		Time tNext(Seconds(mPacketSize*8/static_cast<double>(mDataRate.GetBitRate())));
 		mSendEvent = Simulator::Schedule(tNext, &APP::SendPacket, this);
-		//double tVal = Simulator::Now().GetSeconds();
-		//if(tVal-int(tVal) >= 0.99)
-		//	std::cout << Simulator::Now ().GetSeconds () << "\t" << mPacketsSent << std::endl;
+        // DEBUG!
+		double tVal = Simulator::Now().GetSeconds();
+		if(int(tVal)%10==0)
+		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;
 	}
 }
 
