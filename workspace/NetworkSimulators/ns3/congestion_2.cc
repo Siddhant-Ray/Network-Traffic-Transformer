@@ -348,6 +348,7 @@ void SingleFlow(bool pcap) {
 		rightRouterDevices.Add(cright.Get(0));
 		receiverDevices.Add(cright.Get(1));
 		cright.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(em));
+        break;
 	}
 
 	//Install Internet Stack
@@ -393,6 +394,7 @@ void SingleFlow(bool pcap) {
 		receiverIFCs.Add(receiverIFC.Get(0));
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
+        break;
 	}
 
     /*
@@ -447,7 +449,7 @@ void SingleFlow(bool pcap) {
 	Simulator::Run();
 	flowmon->CheckForLostPackets();
 
-	//Ptr<OutputStreamWrapper> streamTP = asciiTraceHelper.CreateFileStream("application_1_a.tp");
+	Ptr<OutputStreamWrapper> streamTP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/reversecheck.tp");
 	Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
 	std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats();
 	for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i) {
@@ -459,6 +461,8 @@ void SingleFlow(bool pcap) {
 		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
 		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())/1024/1024  << " Mbps\n";	
 		*/
+
+        // Destination is also shown as source but no flow is sent, check this?
         NS_LOG_INFO("The source IP Address is: ");
         NS_LOG_INFO(t.sourceAddress);
 		if(t.sourceAddress == "10.1.0.1") {
@@ -470,6 +474,18 @@ void SingleFlow(bool pcap) {
 			*stream1PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[1] << "\n";
 			*stream1PD->GetStream() << "Max throughput: " << mapMaxThroughput["/NodeList/5/$ns3::Ipv4L3Protocol/Rx"] << std::endl;
 		} 
+        // DEBUG reverse flow check!
+        /*else if(t.sourceAddress == "10.2.0.1"){
+        *streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
+		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
+		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
+		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 /
+                                                        (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())
+                                                        /1024/1024  << " Mbps\n";	
+
+        }*/
+
 	}
 
 	//flowmon->SerializeToXmlFile("application_1_a.flowmon", true, true);
