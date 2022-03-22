@@ -12,6 +12,7 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/gnuplot.h"
+#include "ns3/node.h"
 
 
 // =================================================================
@@ -137,9 +138,9 @@ void APP::ScheduleTx() {
 		Time tNext(Seconds(mPacketSize*8/static_cast<double>(mDataRate.GetBitRate())));
 		mSendEvent = Simulator::Schedule(tNext, &APP::SendPacket, this);
 		/// DEBUG!
-		double tVal = Simulator::Now().GetSeconds();
+		/*double tVal = Simulator::Now().GetSeconds();
 		if(int(tVal)%10==0)
-		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;
+		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;*/
 	}
 }
 
@@ -340,6 +341,10 @@ void SingleFlow(bool pcap) {
     //Adding links
 	NS_LOG_INFO("Adding links");
 	for(uint i = 0; i < numSender; ++i) {
+        /* // !DEBUG
+        std::cout << "Sender node Id:" << senders.Get(i)->GetId() << std::endl;
+        std::cout << "Receiver node Id:" << receivers.Get(i)->GetId() << std::endl;*/
+
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
 		leftRouterDevices.Add(cleft.Get(0));
 		senderDevices.Add(cleft.Get(1));
@@ -424,10 +429,10 @@ void SingleFlow(bool pcap) {
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
 
 	// Measure PacketSinks
-	std::string sink = "/NodeList/5/ApplicationList/0/$ns3::PacketSink/Rx";
+	std::string sink = "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx";
 	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream1GP, netDuration));
 
-	std::string sink_ = "/NodeList/5/$ns3::Ipv4L3Protocol/Rx";
+	std::string sink_ = "/NodeList/3/$ns3::Ipv4L3Protocol/Rx";
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
 
 	netDuration += durationGap;
@@ -471,7 +476,7 @@ void SingleFlow(bool pcap) {
 			*stream1PD->GetStream()  << "Net Packet Lost: " << i->second.lostPackets << "\n";
 			*stream1PD->GetStream()  << "Packet Lost due to buffer overflow: " << mapDrop[1] << "\n";
 			*stream1PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[1] << "\n";
-			*stream1PD->GetStream() << "Max throughput: " << mapMaxThroughput["/NodeList/5/$ns3::Ipv4L3Protocol/Rx"] << std::endl;
+			*stream1PD->GetStream() << "Max throughput: " << mapMaxThroughput["/NodeList/3/$ns3::Ipv4L3Protocol/Rx"] << std::endl;
 		} 
         // DEBUG reverse flow check!
         /*else if(t.sourceAddress == "10.2.0.1"){

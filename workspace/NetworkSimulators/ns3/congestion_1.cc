@@ -12,6 +12,7 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/gnuplot.h"
+#include "ns3/node.h"
 
 
 // =================================================================
@@ -137,9 +138,9 @@ void APP::ScheduleTx() {
 		Time tNext(Seconds(mPacketSize*8/static_cast<double>(mDataRate.GetBitRate())));
 		mSendEvent = Simulator::Schedule(tNext, &APP::SendPacket, this);
         // DEBUG!
-		double tVal = Simulator::Now().GetSeconds();
+		/*double tVal = Simulator::Now().GetSeconds();
 		if(int(tVal)%10==0)
-		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;
+		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;*/
 	}
 }
 
@@ -339,6 +340,10 @@ void SingleFlow(bool pcap) {
     //Adding links
 	NS_LOG_INFO("Adding links");
 	for(uint i = 0; i < numSender; ++i) {
+        /*// !DEBUG
+        std::cout << "Sender node Id:" << senders.Get(i)->GetId()<<std::endl;
+        std::cout << "Receiver node Id:" << receivers.Get(i)->GetId()<<std::endl;*/
+
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
 		leftRouterDevices.Add(cleft.Get(0));
 		senderDevices.Add(cleft.Get(1));
