@@ -419,15 +419,17 @@ void SingleFlow(bool pcap) {
     /* Add queue callback on RR queue 
     */
     AsciiTraceHelper ascii;
-    
+
     Ptr<NetDeviceQueueInterface> interface = routerDevices.Get(0)->GetObject<NetDeviceQueueInterface>();
     Ptr<NetDeviceQueue> queueInterface = interface->GetTxQueue(0);
     Ptr<DynamicQueueLimits> queueLimits = StaticCast<DynamicQueueLimits>(queueInterface->GetQueueLimits());
 
-    Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
-    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream("outputs/congestion_1/bytesInQueue.txt");
+    Ptr<Queue<Packet>> queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
+    std::string file_name = "outputs/congestion_1/bytesInQueue_router_" + std::to_string(0) + ".txt";
+    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream(file_name);
     queue->TraceConnectWithoutContext("BytesInQueue",MakeBoundCallback(&BytesInQueueTrace, streamBytesInQueue));
-
+    
+    
     /*
 		Measuring Performance of each TCP variant
 	*/
