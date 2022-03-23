@@ -13,7 +13,8 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/gnuplot.h"
 #include "ns3/node.h"
-
+#include "ns3/traffic-control-module.h"
+#include "ns3/internet-apps-module.h"
 
 // =================================================================
 // Topology details :
@@ -149,6 +150,11 @@ void APP::ChangeRate(DataRate newrate) {
 	return;
 }
 
+void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal)
+{
+  *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
+}
+
 static void CwndChange(Ptr<OutputStreamWrapper> stream, double startTime, uint oldCwnd, uint newCwnd) {
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << newCwnd << std::endl;
 }
@@ -267,7 +273,7 @@ void SingleFlow(bool pcap) {
         strqueueSizeRR = strqueueSizeRR.append(packetFlag);
     }
 
-    // Test 
+    // Test queue sizes at device level 
     NS_LOG_INFO("Max Packets in the RR queue are ...");
     NS_LOG_INFO(strqueueSizeRR);
     NS_LOG_INFO("Max Packets in the HR queue are ...");
@@ -310,6 +316,16 @@ void SingleFlow(bool pcap) {
 	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
     p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
+    // Bottleneck link traffic control configuration
+    uint32_t queueDiscSize = 1000;
+    TrafficControlHelper tchRR;
+    tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
+                                    QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
+
+    // Test queue size at the traffic level
+    NS_LOG_INFO("Packets in the traffic level queue are....");
+    NS_LOG_INFO(std::to_string(queueDiscSize));                                
+
 	//Adding some errorrate
 	/*
 		Error rate model attributes
@@ -335,6 +351,7 @@ void SingleFlow(bool pcap) {
 		with the ns3::Node and ns3::PointToPointChannel.
 	*/
 	NetDeviceContainer routerDevices = p2pRR.Install(routers);
+    
 	//Empty netdevicecontatiners
 	NetDeviceContainer leftRouterDevices, rightRouterDevices, senderDevices, receiverDevices;
 
@@ -400,6 +417,19 @@ void SingleFlow(bool pcap) {
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
 	}
+
+    /* Add queue callback on RR queue 
+    */
+    AsciiTraceHelper ascii;
+    
+    Ptr<NetDeviceQueueInterface> interface = routerDevices.Get(0)->GetObject<NetDeviceQueueInterface>();
+    Ptr<NetDeviceQueue> queueInterface = interface->GetTxQueue(0);
+    Ptr<DynamicQueueLimits> queueLimits = StaticCast<DynamicQueueLimits>(queueInterface->GetQueueLimits());
+
+    Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
+    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream("outputs/congestion_2/bytesInQueue.txt");
+    queue->TraceConnectWithoutContext("BytesInQueue",MakeBoundCallback(&BytesInQueueTrace, streamBytesInQueue));
+
 
     /*
 		Measuring Performance of each TCP variant
