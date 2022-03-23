@@ -154,7 +154,14 @@ static void CwndChange(Ptr<OutputStreamWrapper> stream, double startTime, uint o
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << newCwnd << std::endl;
 }
 
+// TraceSource defined in parent class ns3::QueueBase, bytes in current queue
 void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal)
+{
+  *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
+}
+
+// TraceSource defined in parent class ns3::QueueBase, packets in current queue
+void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal)
 {
   *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
 }
@@ -425,10 +432,14 @@ void SingleFlow(bool pcap) {
     Ptr<DynamicQueueLimits> queueLimits = StaticCast<DynamicQueueLimits>(queueInterface->GetQueueLimits());
 
     Ptr<Queue<Packet>> queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
-    std::string file_name = "outputs/congestion_1/bytesInQueue_router_" + std::to_string(0) + ".txt";
-    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream(file_name);
+    std::string byte_file_name = "outputs/congestion_1/bytesInQueue_router_" + std::to_string(0) + ".txt";
+    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream(byte_file_name);
     queue->TraceConnectWithoutContext("BytesInQueue",MakeBoundCallback(&BytesInQueueTrace, streamBytesInQueue));
-    
+
+    std::string packet_file_name = "outputs/congestion_1/packetsInQueue_router_" + std::to_string(0) + ".txt";
+    Ptr<OutputStreamWrapper> streamPacketsInQueue = ascii.CreateFileStream(packet_file_name);
+    queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
+
     
     /*
 		Measuring Performance of each TCP variant

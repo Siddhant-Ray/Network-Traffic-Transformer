@@ -150,7 +150,14 @@ void APP::ChangeRate(DataRate newrate) {
 	return;
 }
 
+// TraceSource defined in parent class ns3::QueueBase, bytes in current queue
 void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal)
+{
+  *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
+}
+
+// TraceSource defined in parent class ns3::QueueBase, packets in current queue
+void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal)
 {
   *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
 }
@@ -422,16 +429,19 @@ void SingleFlow(bool pcap) {
     */
     AsciiTraceHelper ascii;
 
-   
     Ptr<NetDeviceQueueInterface> interface = routerDevices.Get(0)->GetObject<NetDeviceQueueInterface>();
     Ptr<NetDeviceQueue> queueInterface = interface->GetTxQueue(0);
     Ptr<DynamicQueueLimits> queueLimits = StaticCast<DynamicQueueLimits>(queueInterface->GetQueueLimits());
 
     Ptr<Queue<Packet>> queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
-    std::string file_name = "outputs/congestion_2/bytesInQueue_router_" + std::to_string(0) + ".txt";
-    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream(file_name);
+    std::string byte_file_name = "outputs/congestion_2/bytesInQueue_router_" + std::to_string(0) + ".txt";
+    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream(byte_file_name);
     queue->TraceConnectWithoutContext("BytesInQueue",MakeBoundCallback(&BytesInQueueTrace, streamBytesInQueue));
-    
+
+    std::string packet_file_name = "outputs/congestion_2/packetsInQueue_router_" + std::to_string(0) + ".txt";
+    Ptr<OutputStreamWrapper> streamPacketsInQueue = ascii.CreateFileStream(packet_file_name);
+    queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
+
     /*
 		Measuring Performance of each TCP variant
 	*/
