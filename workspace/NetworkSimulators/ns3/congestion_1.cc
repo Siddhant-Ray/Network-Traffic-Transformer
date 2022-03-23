@@ -423,23 +423,33 @@ void SingleFlow(bool pcap) {
 		receiverIP.NewNetwork();
 	}
 
+    // This is not needed it seems (tutorial says but maybe its for the old version)
+    // Currently need to set queue disc only once with SetRootQueueDisc
+    /*QueueDiscContainer qdiscs;
+    qdiscs = tchRR.Install(routerDevices);*/
+
     /* Add queue callback on RR queue 
     */
     AsciiTraceHelper ascii;
+    uint i = 0;
+    while(i < 2){
+        
+        Ptr<NetDeviceQueueInterface> interface = routerDevices.Get(i)->GetObject<NetDeviceQueueInterface>();
+        Ptr<NetDeviceQueue> queueInterface = interface->GetTxQueue(0);
+        Ptr<DynamicQueueLimits> queueLimits = StaticCast<DynamicQueueLimits>(queueInterface->GetQueueLimits());
 
-    Ptr<NetDeviceQueueInterface> interface = routerDevices.Get(0)->GetObject<NetDeviceQueueInterface>();
-    Ptr<NetDeviceQueue> queueInterface = interface->GetTxQueue(0);
-    Ptr<DynamicQueueLimits> queueLimits = StaticCast<DynamicQueueLimits>(queueInterface->GetQueueLimits());
+        Ptr<Queue<Packet>> queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(i))->GetQueue();
+        // std::string byte_file_name = "outputs/congestion_2/bytesInQueue_router_" + std::to_string(0) + ".txt";
+        Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream("outputs/congestion_1/bytesInQueue_router_"
+                                                                             + std::to_string(i) + ".txt");
+        queue->TraceConnectWithoutContext("BytesInQueue",MakeBoundCallback(&BytesInQueueTrace, streamBytesInQueue));
 
-    Ptr<Queue<Packet>> queue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
-    std::string byte_file_name = "outputs/congestion_1/bytesInQueue_router_" + std::to_string(0) + ".txt";
-    Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream(byte_file_name);
-    queue->TraceConnectWithoutContext("BytesInQueue",MakeBoundCallback(&BytesInQueueTrace, streamBytesInQueue));
-
-    std::string packet_file_name = "outputs/congestion_1/packetsInQueue_router_" + std::to_string(0) + ".txt";
-    Ptr<OutputStreamWrapper> streamPacketsInQueue = ascii.CreateFileStream(packet_file_name);
-    queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
-
+        // std::string packet_file_name = "outputs/congestion_2/packetsInQueue_router_" + std::to_string(0) + ".txt";
+        Ptr<OutputStreamWrapper> streamPacketsInQueue = ascii.CreateFileStream("outputs/congestion_1/packetsInQueue_router_"
+                                                                             + std::to_string(i) + ".txt");
+        queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
+        i++;
+    }
     
     /*
 		Measuring Performance of each TCP variant
