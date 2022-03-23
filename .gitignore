@@ -182,3 +182,6 @@ cython_debug/
 ## VM management scripts 
 remote_*
 
+## VSCODE stuff
+.vscode
+
