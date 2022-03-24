@@ -271,8 +271,8 @@ void SingleFlow(bool pcap) {
 	uint queueSizeHR = (100000*20)/ packetSize;
 	uint queueSizeRR = (10000*50)/ packetSize;
     
-    std::string strqueueSizeHR = std::to_string(queueSizeHR*1000);
-    std::string strqueueSizeRR = std::to_string(queueSizeRR*1000);
+    std::string strqueueSizeHR = std::to_string(queueSizeHR);
+    std::string strqueueSizeRR = std::to_string(queueSizeRR);
     std::string packetFlag = "p";
 
     if (packetFlag == "p"){
@@ -475,7 +475,7 @@ void SingleFlow(bool pcap) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 10;
+	double durationGap = 1000;
 	double netDuration = 0;
 	uint port = 9000;
 	uint numPackets = 10000000;
@@ -556,7 +556,7 @@ void SingleFlow(bool pcap) {
 
 	}
 
-	//flowmon->SerializeToXmlFile("application_1_a.flowmon", true, true);
+	flowmon->SerializeToXmlFile("outputs/congestion_2/full.flowmon", true, true);
 	NS_LOG_INFO("Simulation finished");
 	Simulator::Destroy();
 
