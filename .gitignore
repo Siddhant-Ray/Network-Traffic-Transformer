@@ -185,3 +185,5 @@ remote_*
 ## VSCODE stuff
 .vscode
 
+## Outputs from NS3 
+outputs/
