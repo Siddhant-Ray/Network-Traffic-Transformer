@@ -162,8 +162,21 @@ void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint3
   *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
 }
 
+// TraceSource for CwndChange
 static void CwndChange(Ptr<OutputStreamWrapper> stream, double startTime, uint oldCwnd, uint newCwnd) {
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << newCwnd << std::endl;
+}
+
+// TraceSource for RxDrops
+static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{
+    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds();
+}
+
+// TraceSource for TxDrops
+static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{
+    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds();
 }
 
 std::map<uint, uint> mapDrop;
@@ -317,14 +330,14 @@ void SingleFlow(bool pcap) {
 	p2pHR.SetDeviceAttribute("DataRate", StringValue(rateHR));
 	p2pHR.SetChannelAttribute("Delay", StringValue(latencyHR));
 	// p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeRR)));
 	p2pRR.SetDeviceAttribute("DataRate", StringValue(rateRR));
 	p2pRR.SetChannelAttribute("Delay", StringValue(latencyRR));
 	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
     p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 1000;
+    uint32_t queueDiscSize = 1;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -452,6 +465,15 @@ void SingleFlow(bool pcap) {
         Ptr<OutputStreamWrapper> streamPacketsInQueue = ascii.CreateFileStream("outputs/congestion_2/packetsInQueue_router_"
                                                                              + std::to_string(i) + ".txt");
         queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
+        
+        Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_router_"
+                                                                             + std::to_string(i) + ".txt");
+        routerDevices.Get(i)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops));
+
+        Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_router_"
+                                                                             + std::to_string(i) + ".txt");
+        routerDevices.Get(i)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
+
         i++;
     }
 
@@ -475,10 +497,10 @@ void SingleFlow(bool pcap) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 1000;
+	double durationGap = 500;
 	double netDuration = 0;
 	uint port = 9000;
-	uint numPackets = 10000000;
+	uint numPackets = 1000000000;
 	std::string transferSpeed = "400Mbps";	
     std::string ccalgo = "TcpVegas";
 
