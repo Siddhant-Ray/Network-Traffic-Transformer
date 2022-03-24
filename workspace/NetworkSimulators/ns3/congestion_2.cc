@@ -271,8 +271,8 @@ void SingleFlow(bool pcap) {
 	uint queueSizeHR = (100000*20)/ packetSize;
 	uint queueSizeRR = (10000*50)/ packetSize;
     
-    std::string strqueueSizeHR = std::to_string(queueSizeHR);
-    std::string strqueueSizeRR = std::to_string(queueSizeRR);
+    std::string strqueueSizeHR = std::to_string(queueSizeHR*1000);
+    std::string strqueueSizeRR = std::to_string(queueSizeRR*1000);
     std::string packetFlag = "p";
 
     if (packetFlag == "p"){
@@ -391,6 +391,13 @@ void SingleFlow(bool pcap) {
 	stack.Install(senders);
 	stack.Install(receivers);
 
+    // This is not needed it seems (tutorial says but maybe its for the old version)
+    // Currently need to set queue disc only once with SetRootQueueDisc
+    // This should now work!
+
+    QueueDiscContainer qdiscs;
+    qdiscs = tchRR.Install(routerDevices);
+    // tchRR.Install(routerDevices.Get(0));
 
 	//Adding IP addresses
 	NS_LOG_INFO("Adding IP addresses");
@@ -425,11 +432,6 @@ void SingleFlow(bool pcap) {
 		receiverIP.NewNetwork();
 	}
 
-    // This is not needed it seems (tutorial says but maybe its for the old version)
-    // Currently need to set queue disc only once with SetRootQueueDisc
-    /*QueueDiscContainer qdiscs;
-    qdiscs = tchRR.Install(routerDevices);*/
-
     /* Add queue callback on RR queue 
     */
     AsciiTraceHelper ascii;
@@ -453,6 +455,16 @@ void SingleFlow(bool pcap) {
         i++;
     }
 
+    // Full ASCII traces on routers!!!
+    uint j = 0;
+    while (j < 2){
+        Ptr<NetDevice> dev = routerDevices.Get(j);
+        Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream("outputs/congestion_2/router" +
+                                                                    std::to_string(j) + ".tr");
+        p2pRR.EnableAscii(stream, dev);
+        j++;
+    }
+
     /*
 		Measuring Performance of each TCP variant
 	*/
@@ -463,7 +475,7 @@ void SingleFlow(bool pcap) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 100;
+	double durationGap = 10;
 	double netDuration = 0;
 	uint port = 9000;
 	uint numPackets = 10000000;
