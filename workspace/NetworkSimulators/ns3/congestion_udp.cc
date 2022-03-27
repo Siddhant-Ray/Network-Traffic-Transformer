@@ -4,6 +4,8 @@
 #include <fstream>
 #include <cstdlib>
 #include <map>
+#include <chrono>
+#include <ctime>    
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
@@ -263,7 +265,7 @@ Ptr<Socket> uniUDPFlow(Address sinkAddress,
 }
 
 void SingleFlow(bool pcap, std::string algo) {
-	NS_LOG_INFO("Sending single flow from single sender to signle receiver...");
+	NS_LOG_INFO("Sending single flow from single sender to single receiver...");
 	std::string rateHR = "100Mbps";
 	std::string latencyHR = "20ms";
 	std::string rateRR = "10Mbps";
@@ -489,7 +491,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	double durationGap = 100;
 	double netDuration = 0;
 	uint port = 9000;
-	uint numPackets = 1000000;
+	uint numPackets = 10000000;
 	std::string transferSpeed = "400Mbps";	
     std::string txalgo = algo;
 
@@ -531,12 +533,13 @@ void SingleFlow(bool pcap, std::string algo) {
 	std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats();
 	for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i) {
 		Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(i->first);
-		// DEBUG!
+		 // DEBUG reverse flow check!
 		*streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
 		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
 		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
-		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())/1024/1024  << " Mbps\n";	
+		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds() - 
+													i->second.timeFirstTxPacket.GetSeconds())/1024/1024  << " Mbps\n";	
 		
 
         // Destination is also shown as source but no flow is sent, check this?
@@ -551,17 +554,6 @@ void SingleFlow(bool pcap, std::string algo) {
 			*stream1PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[1] << "\n";
 			*stream1PD->GetStream() << "Max throughput: " << mapMaxThroughput["/NodeList/3/$ns3::Ipv4L3Protocol/Rx"] << std::endl;
 		} 
-        // DEBUG reverse flow check!
-        else if(t.sourceAddress == "10.2.0.1"){
-        *streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
-		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
-		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
-		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
-		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 /
-                                                        (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())
-                                                        /1024/1024  << " Mbps\n";	
-
-        }
 
 	}
 
@@ -579,7 +571,20 @@ int main(int argc, char **argv) {
     CommandLine cmd;
     cmd.Parse(argc, argv);
 
-	SingleFlow(pcap, algo);
+	auto start = std::chrono::system_clock::now();
+	std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+
+	std::cout << "Started computation at " << std::ctime(&start_time);
+
+    SingleFlow(pcap, algo);
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+    std::cout << "finished computation at " << std::ctime(&end_time)
+              << "elapsed time: " << elapsed_seconds.count() << "s\n";
+	
 }
 
 

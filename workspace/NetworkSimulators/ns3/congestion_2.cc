@@ -4,6 +4,8 @@
 #include <fstream>
 #include <cstdlib>
 #include <map>
+#include <chrono>
+#include <ctime> 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
@@ -273,8 +275,8 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	return ns3TcpSocket;
 }
 
-void SingleFlow(bool pcap) {
-	NS_LOG_INFO("Sending single flow from single sender to signle receiver...");
+void SingleFlow(bool pcap, std::string algo) {
+	NS_LOG_INFO("Sending single flow from single sender to single receiver...");
 	std::string rateHR = "100Mbps";
 	std::string latencyHR = "20ms";
 	std::string rateRR = "10Mbps";
@@ -305,7 +307,7 @@ void SingleFlow(bool pcap) {
 
 	// set droptail queue mode as packets i.e. to use maxpackets as queuesize metric not bytes
 	// this can only be done with the StringValue in the new ns3, with adding "p" for packets
-    Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("1000p"));
+    Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("10p"));
 
     /* THIS DOES NOT WORK!!!!!!!
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(queuesize));
@@ -337,7 +339,7 @@ void SingleFlow(bool pcap) {
     p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 1;
+    uint32_t queueDiscSize = 10;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -497,12 +499,12 @@ void SingleFlow(bool pcap) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 500;
+	double durationGap = 100;
 	double netDuration = 0;
 	uint port = 9000;
-	uint numPackets = 1000000000;
-	std::string transferSpeed = "400Mbps";	
-    std::string ccalgo = "TcpVegas";
+	uint numPackets = 10000000;
+	std::string transferSpeed = "400Mbps";		
+    std::string ccalgo = algo;
 
 	//TCP NewReno from H1 to H2 via R1----R2 link
 	AsciiTraceHelper asciiTraceHelper;
@@ -544,13 +546,14 @@ void SingleFlow(bool pcap) {
 	std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats();
 	for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i) {
 		Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(i->first);
-		/* DEBUG!
+		// DEBUG reverse flow check!
 		*streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
 		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
 		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
-		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())/1024/1024  << " Mbps\n";	
-		*/
+		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds() - 
+                                                    i->second.timeFirstTxPacket.GetSeconds())/1024/1024  << " Mbps\n";	
+		
 
         // Destination is also shown as source but no flow is sent, check this?
         // NS_LOG_INFO("The source IP Address is: ");
@@ -564,21 +567,10 @@ void SingleFlow(bool pcap) {
 			*stream1PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[1] << "\n";
 			*stream1PD->GetStream() << "Max throughput: " << mapMaxThroughput["/NodeList/3/$ns3::Ipv4L3Protocol/Rx"] << std::endl;
 		} 
-        // DEBUG reverse flow check!
-        /*else if(t.sourceAddress == "10.2.0.1"){
-        *streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
-		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
-		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
-		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
-		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 /
-                                                        (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())
-                                                        /1024/1024  << " Mbps\n";	
-
-        }*/
 
 	}
 
-	flowmon->SerializeToXmlFile("outputs/congestion_2/full.flowmon", true, true);
+	// flowmon->SerializeToXmlFile("outputs/congestion_2/full.flowmon", true, true);
 	NS_LOG_INFO("Simulation finished");
 	Simulator::Destroy();
 
@@ -587,11 +579,24 @@ void SingleFlow(bool pcap) {
 int main(int argc, char **argv) {
 
 	bool pcap = false;
+    std::string ccalgo = "TcpVegas";
 
     CommandLine cmd;
     cmd.Parse (argc, argv);
 
-	SingleFlow(pcap);
+    auto start = std::chrono::system_clock::now();
+	std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+	
+	std::cout << "Started computation at " << std::ctime(&start_time);
+
+	SingleFlow(pcap, ccalgo);
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+    std::cout << "finished computation at " << std::ctime(&end_time)
+              << "elapsed time: " << elapsed_seconds.count() << "s\n";
 }
 
 
