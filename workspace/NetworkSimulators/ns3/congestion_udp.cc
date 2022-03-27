@@ -17,6 +17,8 @@
 #include "ns3/node.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/internet-apps-module.h"
+#include "ns3/queue-disc.h"
+#include "ns3/type-id.h"
 
 // =================================================================
 // Topology details :
@@ -556,6 +558,12 @@ void SingleFlow(bool pcap, std::string algo) {
 		} 
 
 	}
+	Ptr<OutputStreamWrapper> streamLP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/lostpackets.lp");
+	QueueSize queuesize = qdiscs.Get(0)->GetMaxSize();
+    *streamLP->GetStream() <<"Max size of queue is "<< queuesize << " packets";
+	QueueDisc::Stats st = qdiscs.Get(0)->GetStats();
+	*streamLP->GetStream() << st;
+	
 
 	// flowmon->SerializeToXmlFile("outputs/congestion_udp/full.flowmon", true, true);
 	NS_LOG_INFO("Simulation finished");
@@ -582,8 +590,8 @@ int main(int argc, char **argv) {
     std::chrono::duration<double> elapsed_seconds = end-start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
-    std::cout << "finished computation at " << std::ctime(&end_time)
-              << "elapsed time: " << elapsed_seconds.count() << "s\n";
+    std::cout << "Finished computation at " << std::ctime(&end_time)
+              << "Elapsed time: " << elapsed_seconds.count() << "s\n";
 	
 }
 
