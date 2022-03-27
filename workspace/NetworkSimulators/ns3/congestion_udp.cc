@@ -168,19 +168,20 @@ void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint3
 }*/
 
 // TraceSource for RxDrops
-static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {
+	NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
     *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds();
 }
 
 // TraceSource for TxDrops
-static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void TxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {
     *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds();
 }
 
-/* std::map<uint, uint> mapDrop;
-static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint myId) {
+std::map<uint, uint> mapDrop;
+/*static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint myId) {
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << std::endl;
 	if(mapDrop.find(myId) == mapDrop.end()) {
 		mapDrop[myId] = 0;
@@ -231,7 +232,7 @@ void ReceivedPacketIPV4(Ptr<OutputStreamWrapper> stream, double startTime, std::
 	}
 }
 
-// Method to set the TCP CC method, add GetTypeID() for type of TCP protocol
+// Method to set the UDP flow method, add GetTypeID() for type of UDP
 Ptr<Socket> uniUDPFlow(Address sinkAddress, 
 					uint sinkPort, 
 					Ptr<Node> hostNode, 
@@ -261,7 +262,7 @@ Ptr<Socket> uniUDPFlow(Address sinkAddress,
 	return ns3UdpSocket;
 }
 
-void SingleFlow(bool pcap) {
+void SingleFlow(bool pcap, std::string algo) {
 	NS_LOG_INFO("Sending single flow from single sender to signle receiver...");
 	std::string rateHR = "100Mbps";
 	std::string latencyHR = "20ms";
@@ -293,7 +294,7 @@ void SingleFlow(bool pcap) {
 
 	// set droptail queue mode as packets i.e. to use maxpackets as queuesize metric not bytes
 	// this can only be done with the StringValue in the new ns3, with adding "p" for packets
-    Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("100p"));
+    Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("10p"));
 
     /* THIS DOES NOT WORK!!!!!!!
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(queuesize));
@@ -325,7 +326,7 @@ void SingleFlow(bool pcap) {
     p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 100;
+    uint32_t queueDiscSize = 10;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -456,11 +457,11 @@ void SingleFlow(bool pcap) {
         
         Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_udp/RxDrops_router_"
                                                                              + std::to_string(i) + ".txt");
-        routerDevices.Get(i)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops));
+        routerDevices.Get(i)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&RxDrop, streamRxDrops));
 
         Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_udp/TxDrops_router_"
                                                                              + std::to_string(i) + ".txt");
-        routerDevices.Get(i)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
+        routerDevices.Get(i)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&TxDrop, streamTxDrops));
 
         i++;
     }
@@ -490,7 +491,7 @@ void SingleFlow(bool pcap) {
 	uint port = 9000;
 	uint numPackets = 1000000;
 	std::string transferSpeed = "400Mbps";	
-    std::string ccalgo = "TcpVegas";
+    std::string txalgo = algo;
 
 	//TCP NewReno from H1 to H2 via R1----R2 link
 	AsciiTraceHelper asciiTraceHelper;
@@ -499,15 +500,13 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/h1h2_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/h1h2_singleflow.gp");
 	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
-	// ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
-	// ns3UdpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
-
+	
 	// Measure PacketSinks
 	std::string sink = "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx";
-	// Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream1GP, netDuration));
+	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream1GP, netDuration));
 
 	std::string sink_ = "/NodeList/3/$ns3::Ipv4L3Protocol/Rx";
-	// Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
+	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
 
 	netDuration += durationGap;
 
@@ -527,12 +526,12 @@ void SingleFlow(bool pcap) {
 	Simulator::Run();
 	flowmon->CheckForLostPackets();
 
-	/*Ptr<OutputStreamWrapper> streamTP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/reversecheck.tp");
+	Ptr<OutputStreamWrapper> streamTP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/reversecheck.tp");
 	Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
 	std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats();
 	for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i) {
 		Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(i->first);
-		DEBUG!
+		// DEBUG!
 		*streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
 		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
@@ -546,7 +545,7 @@ void SingleFlow(bool pcap) {
 		if(t.sourceAddress == "10.1.0.1") {
 			if(mapDrop.find(1)==mapDrop.end())
 				mapDrop[1] = 0;
-			*stream1PD->GetStream() << ccalgo << " Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+			*stream1PD->GetStream() << txalgo << " Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 			*stream1PD->GetStream()  << "Net Packet Lost: " << i->second.lostPackets << "\n";
 			*stream1PD->GetStream()  << "Packet Lost due to buffer overflow: " << mapDrop[1] << "\n";
 			*stream1PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[1] << "\n";
@@ -566,7 +565,7 @@ void SingleFlow(bool pcap) {
 
 	}
 
-	flowmon->SerializeToXmlFile("outputs/congestion_udp/full.flowmon", true, true);*/
+	// flowmon->SerializeToXmlFile("outputs/congestion_udp/full.flowmon", true, true);
 	NS_LOG_INFO("Simulation finished");
 	Simulator::Destroy();
 
@@ -575,11 +574,12 @@ void SingleFlow(bool pcap) {
 int main(int argc, char **argv) {
 
 	bool pcap = false;
-
+	std::string algo = "Udp";
+	
     CommandLine cmd;
-    cmd.Parse (argc, argv);
+    cmd.Parse(argc, argv);
 
-	SingleFlow(pcap);
+	SingleFlow(pcap, algo);
 }
 
 
