@@ -171,17 +171,29 @@ void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint3
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << newCwnd << std::endl;
 }*/
 
-// TraceSource for RxDrops
+// TraceSource for RxDrops 
 static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
-{
-	// NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
-    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds()<< "\n";;
+{      
+    // NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds()<< "\n";
+    p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
 }
 
-// TraceSource for TxDrops
+// TraceSource for TxDrops 
 static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
-{
-    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds()<< "\n";;
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds()<< "\n";
+}
+
+// TraceSource for TxDrops 
+static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Rx received at: "<< Simulator::Now().GetSeconds()<< "\n";
+    p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
 }
 
 std::map<uint, uint> mapDrop;
@@ -514,6 +526,11 @@ void SingleFlow(bool pcap, std::string algo) {
     Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_udp/TxDrops_router_"
                                                                             + std::to_string(0) + ".txt");
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
+
+	Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_udp/RxRevd_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds));
+
 
     if (pcap)
     {
