@@ -187,11 +187,20 @@ static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
     *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds()<< "\n";
 }
 
-// TraceSource for TxDrops 
+// TraceSource for Rx packets successfully
 static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {   
     // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
     *stream->GetStream() << "Rx received at: "<< Simulator::Now().GetSeconds()<< "\n";
+    p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
+}
+
+// TraceSource for Tx packets successfully
+static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Tx sent at: "<< Simulator::Now().GetSeconds()<< "\n";
     p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";
 }
@@ -546,6 +555,10 @@ void SingleFlow(bool pcap, std::string algo) {
     Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_2/RxRevd_router_"
                                                                             + std::to_string(0) + ".txt");
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds));
+
+    Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
       
     
 	
