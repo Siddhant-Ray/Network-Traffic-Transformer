@@ -125,7 +125,7 @@ void App::ScheduleTx(void)
 {
     if(m_running)
     {
-        Time tNext(Seconds(m_packetSize * 16 / static_cast<double>(m_dataRate.GetBitRate())));
+        Time tNext(Seconds(m_packetSize * 8 / static_cast<double>(m_dataRate.GetBitRate())));
         m_sendEvent = Simulator::Schedule(tNext, &App::SendPacket, this);
     }
 }
@@ -135,9 +135,10 @@ static void CwndChange(uint32_t oldCwnd, uint32_t newCwnd)
     NS_LOG_INFO(Simulator::Now().GetSeconds()<<"\t"<<newCwnd);
 }
 
-static void RxDrop(Ptr<const Packet>p)
+static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {
     NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds();
 }
 
 // Main program
@@ -188,7 +189,9 @@ int main(int argc, char *argv[])
     app->SetStartTime(Seconds(1.));
     app->SetStopTime(Seconds(20.));
 
-    devices.Get(1)->TraceConnectWithoutContext("PhyRxDrop", MakeCallback(&RxDrop));
+    AsciiTraceHelper ascii; 
+    Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/RxDrops_tcpbasic.txt");
+    devices.Get(1)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&RxDrop, streamRxDrops));
 
     Simulator::Stop(Seconds(20));
     Simulator::Run();

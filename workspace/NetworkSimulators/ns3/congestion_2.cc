@@ -171,16 +171,18 @@ static void CwndChange(Ptr<OutputStreamWrapper> stream, double startTime, uint o
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << newCwnd << std::endl;
 }
 
-// TraceSource for RxDrops
+// TraceSource for RxDrops 
 static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
-{
-    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds();
+{   
+    // NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds()<< "\n";
 }
 
-// TraceSource for TxDrops
+// TraceSource for TxDrops 
 static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
-{
-    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds();
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds()<< "\n";
 }
 
 std::map<uint, uint> mapDrop;
@@ -470,14 +472,6 @@ void SingleFlow(bool pcap, std::string algo) {
                                                                              + std::to_string(i) + ".txt");
         queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
         
-        Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_router_"
-                                                                             + std::to_string(i) + ".txt");
-        routerDevices.Get(i)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops));
-
-        Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_router_"
-                                                                             + std::to_string(i) + ".txt");
-        routerDevices.Get(i)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
-
         i++;
     }
 
@@ -514,7 +508,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0), receivers.Get(0),
+                                        netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
 
@@ -525,8 +520,19 @@ void SingleFlow(bool pcap, std::string algo) {
 	std::string sink_ = "/NodeList/3/$ns3::Ipv4L3Protocol/Rx";
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
 
-	netDuration += durationGap;
+    netDuration += durationGap;
+ 
+    Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops));
 
+    Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
+      
+    
+
+	
     if (pcap)
     {
         p2pHR.EnablePcapAll("outputs/congestion_2/pcap/singleflow");

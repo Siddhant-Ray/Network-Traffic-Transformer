@@ -172,16 +172,16 @@ void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint3
 }*/
 
 // TraceSource for RxDrops
-static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {
-	NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
-    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds();
+	// NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds()<< "\n";;
 }
 
 // TraceSource for TxDrops
-static void TxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {
-    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds();
+    *stream->GetStream() << "Tx drop at: "<< Simulator::Now().GetSeconds()<< "\n";;
 }
 
 std::map<uint, uint> mapDrop;
@@ -459,14 +459,6 @@ void SingleFlow(bool pcap, std::string algo) {
                                                                              + std::to_string(i) + ".txt");
         queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
         
-        Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_udp/RxDrops_router_"
-                                                                             + std::to_string(i) + ".txt");
-        routerDevices.Get(i)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&RxDrop, streamRxDrops));
-
-        Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_udp/TxDrops_router_"
-                                                                             + std::to_string(i) + ".txt");
-        routerDevices.Get(i)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&TxDrop, streamTxDrops));
-
         i++;
     }
 
@@ -503,7 +495,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/h1h2_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/h1h2_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_udp/h1h2_singleflow.gp");
-	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(0), receivers.Get(0),
+											netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	
 	// Measure PacketSinks
 	std::string sink = "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx";
@@ -513,6 +506,14 @@ void SingleFlow(bool pcap, std::string algo) {
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
 
 	netDuration += durationGap;
+
+	Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_udp/RxDrops_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops));
+
+    Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_udp/TxDrops_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
 
     if (pcap)
     {
