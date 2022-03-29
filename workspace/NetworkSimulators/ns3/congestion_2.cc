@@ -205,6 +205,12 @@ static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
     *stream->GetStream() << "\n";
 }
 
+// Trace source to monitor drops in TC layer
+static void TcDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{
+    *stream->GetStream() << "TC drop at "<< Simulator::Now().GetSeconds()<< "\n";
+}
+
 
 std::map<uint, uint> mapDrop;
 static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint myId) {
@@ -332,7 +338,7 @@ void SingleFlow(bool pcap, std::string algo) {
 
 	// set droptail queue mode as packets i.e. to use maxpackets as queuesize metric not bytes
 	// this can only be done with the StringValue in the new ns3, with adding "p" for packets
-    Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("10p"));
+    // Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("10p"));
 
     /* THIS DOES NOT WORK!!!!!!!
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(queuesize));
@@ -357,11 +363,11 @@ void SingleFlow(bool pcap, std::string algo) {
 	p2pHR.SetDeviceAttribute("DataRate", StringValue(rateHR));
 	p2pHR.SetChannelAttribute("Delay", StringValue(latencyHR));
 	// p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeRR)));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 	p2pRR.SetDeviceAttribute("DataRate", StringValue(rateRR));
 	p2pRR.SetChannelAttribute("Delay", StringValue(latencyRR));
 	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
+    p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 
     // Bottleneck link traffic control configuration
     uint32_t queueDiscSize = 10;
@@ -437,8 +443,7 @@ void SingleFlow(bool pcap, std::string algo) {
 
     QueueDiscContainer qdiscs;
     qdiscs = tchRR.Install(routerDevices);
-    // tchRR.Install(routerDevices.Get(0));
-
+    
 	//Adding IP addresses
 	NS_LOG_INFO("Adding IP addresses");
 	Ipv4AddressHelper routerIP = Ipv4AddressHelper("10.3.0.0", "255.255.255.0");	//(network, mask)
@@ -472,6 +477,10 @@ void SingleFlow(bool pcap, std::string algo) {
 		receiverIP.NewNetwork();
 	}
 
+    // tchRR.Uninstall(routerDevices);
+    // tchRR.Uninstall(senderDevices);
+    // tchRR.Uninstall(receiverDevices);
+
     /* Add queue callback on RR queue 
     */
     AsciiTraceHelper ascii;
@@ -492,7 +501,7 @@ void SingleFlow(bool pcap, std::string algo) {
         Ptr<OutputStreamWrapper> streamPacketsInQueue = ascii.CreateFileStream("outputs/congestion_2/packetsInQueue_router_"
                                                                              + std::to_string(i) + ".txt");
         queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
-        
+
         i++;
     }
 
@@ -559,9 +568,11 @@ void SingleFlow(bool pcap, std::string algo) {
     Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_router_"
                                                                             + std::to_string(0) + ".txt");
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
-      
-    
-	
+
+    Ptr<OutputStreamWrapper> streamTcDrop = ascii.CreateFileStream("outputs/congestion_2/TcDrop_router_"
+                                                                            + std::to_string(0) + ".txt");
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("TcDrop", MakeBoundCallback(&TcDrop, streamTcDrop));
+
     if (pcap)
     {
         p2pHR.EnablePcapAll("outputs/congestion_2/pcap/singleflow");
@@ -609,9 +620,14 @@ void SingleFlow(bool pcap, std::string algo) {
 
     Ptr<OutputStreamWrapper> streamLP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/lostpackets.lp");
     QueueSize queuesize = qdiscs.Get(0)->GetMaxSize();
-    *streamLP->GetStream() <<"Max size of queue is "<< queuesize << " packets";
+    *streamLP->GetStream() <<"Max size of queue is "<< queuesize << " packets"<<std::endl;
+    std::size_t num = qdiscs.Get(0)->GetNQueueDiscClasses();
+    *streamLP->GetStream() <<"Classes in queuedisc is"<<  num<<std::endl;
 	QueueDisc::Stats st = qdiscs.Get(0)->GetStats();
-	*streamLP->GetStream() << st;
+	*streamLP->GetStream() << st <<std::endl;
+    Ptr< const QueueDiscItem > peek =  qdiscs.Get(0)->Peek();
+    *streamLP->GetStream() << peek << std::endl;
+
 
 	// flowmon->SerializeToXmlFile("outputs/congestion_2/full.flowmon", true, true);
 	NS_LOG_INFO("Simulation finished");

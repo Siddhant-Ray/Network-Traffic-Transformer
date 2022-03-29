@@ -319,7 +319,7 @@ void SingleFlow(bool pcap, std::string algo) {
 
 	// set droptail queue mode as packets i.e. to use maxpackets as queuesize metric not bytes
 	// this can only be done with the StringValue in the new ns3, with adding "p" for packets
-    Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("10p"));
+    // Config::SetDefault("ns3::QueueBase::MaxSize", StringValue("10p"));
 
     /* THIS DOES NOT WORK!!!!!!!
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(queuesize));
@@ -344,14 +344,14 @@ void SingleFlow(bool pcap, std::string algo) {
 	p2pHR.SetDeviceAttribute("DataRate", StringValue(rateHR));
 	p2pHR.SetChannelAttribute("Delay", StringValue(latencyHR));
 	// p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeRR)));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 	p2pRR.SetDeviceAttribute("DataRate", StringValue(rateRR));
 	p2pRR.SetChannelAttribute("Delay", StringValue(latencyRR));
 	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
+    p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 10;
+    uint32_t queueDiscSize = 10000000;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
