@@ -172,10 +172,14 @@ static void CwndChange(Ptr<OutputStreamWrapper> stream, double startTime, uint o
 }
 
 // TraceSource for RxDrops 
-static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, Ptr<const Packet>p)
 {      
-    // NS_LOG_INFO("RxDrop at "<<Simulator::Now().GetSeconds());
-    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds()<< "\n";
+    std::size_t size = queue->GetNPackets();
+    std::size_t num = queue->GetTotalDroppedPacketsBeforeEnqueue();
+    *stream->GetStream() << "Rx drop at: "<< Simulator::Now().GetSeconds()<< "\n"
+                         << "Queue size is currently "<< size << std::endl
+                         << "Packets dropped till now "<< num << std::endl;
+
     p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";
 }
@@ -188,10 +192,12 @@ static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 }
 
 // TraceSource for Rx packets successfully
-static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, Ptr<const Packet>p)
 {   
-    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
-    *stream->GetStream() << "Rx received at: "<< Simulator::Now().GetSeconds()<< "\n";
+    std::size_t size = queue->GetNPackets();
+    *stream->GetStream() << "Rx received at: "<< Simulator::Now().GetSeconds()<< "\n"
+                         << "Queue size is currently "<< size << std::endl;
+
     p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";
 }
@@ -204,13 +210,6 @@ static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
     p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";
 }
-
-// Trace source to monitor drops in TC layer
-static void TcDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
-{
-    *stream->GetStream() << "TC drop at "<< Simulator::Now().GetSeconds()<< "\n";
-}
-
 
 std::map<uint, uint> mapDrop;
 static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint myId) {
@@ -476,6 +475,8 @@ void SingleFlow(bool pcap, std::string algo) {
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
 	}
+    // p2pHR.DisableFlowControl();
+	// p2pRR.DisableFlowControl();
 
     // tchRR.Uninstall(routerDevices);
     // tchRR.Uninstall(senderDevices);
@@ -515,7 +516,6 @@ void SingleFlow(bool pcap, std::string algo) {
         j++;
     }
 
-    
     /*
 		Measuring Performance of each TCP variant
 	*/
@@ -552,27 +552,41 @@ void SingleFlow(bool pcap, std::string algo) {
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
 
     netDuration += durationGap;
- 
+
+    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(leftRouterDevices.Get(0))->GetQueue();
+
+    // Log Rx drops on the router 0 
     Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_router_"
                                                                             + std::to_string(0) + ".txt");
-    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops));
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops, rqueue));
 
+    // Log Tx drops on the router 0 
     Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_router_"
                                                                             + std::to_string(0) + ".txt");
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
 
+    // Log Rx packets on router 0 
     Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_2/RxRevd_router_"
                                                                             + std::to_string(0) + ".txt");
-    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds));
+    leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue));
 
+    // Log Tx packets sent from router 0
     Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_router_"
                                                                             + std::to_string(0) + ".txt");
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
 
-    Ptr<OutputStreamWrapper> streamTcDrop = ascii.CreateFileStream("outputs/congestion_2/TcDrop_router_"
+    // Log Tx packets sent from sender 0, this must be the same as packets received on router 0 (it is!!)
+    Ptr<OutputStreamWrapper> streamSTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_sender_"
                                                                             + std::to_string(0) + ".txt");
-    leftRouterDevices.Get(0)->TraceConnectWithoutContext("TcDrop", MakeBoundCallback(&TcDrop, streamTcDrop));
+    senderDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamSTxEnds));
 
+    // Log Tx drops on the sender 0 
+    Ptr<OutputStreamWrapper> streamSTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_sender_"
+                                                                            + std::to_string(0) + ".txt");
+    senderDevices.Get(0)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamSTxDrops));
+
+
+    
     if (pcap)
     {
         p2pHR.EnablePcapAll("outputs/congestion_2/pcap/singleflow");
@@ -620,9 +634,9 @@ void SingleFlow(bool pcap, std::string algo) {
 
     Ptr<OutputStreamWrapper> streamLP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/lostpackets.lp");
     QueueSize queuesize = qdiscs.Get(0)->GetMaxSize();
-    *streamLP->GetStream() <<"Max size of queue is "<< queuesize << " packets"<<std::endl;
+    *streamLP->GetStream() <<"Max size of queue is "<< queuesize << " packets "<<std::endl;
     std::size_t num = qdiscs.Get(0)->GetNQueueDiscClasses();
-    *streamLP->GetStream() <<"Classes in queuedisc is"<<  num<<std::endl;
+    *streamLP->GetStream() <<"Classes in queuedisc is "<<  num<<std::endl;
 	QueueDisc::Stats st = qdiscs.Get(0)->GetStats();
 	*streamLP->GetStream() << st <<std::endl;
     Ptr< const QueueDiscItem > peek =  qdiscs.Get(0)->Peek();
