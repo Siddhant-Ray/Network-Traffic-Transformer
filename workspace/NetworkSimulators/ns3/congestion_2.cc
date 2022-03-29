@@ -553,7 +553,7 @@ void SingleFlow(bool pcap, std::string algo) {
 
     netDuration += durationGap;
 
-    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(leftRouterDevices.Get(0))->GetQueue();
+    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
 
     // Log Rx drops on the router 0 
     Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_router_"
