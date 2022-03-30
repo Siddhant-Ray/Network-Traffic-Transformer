@@ -547,7 +547,7 @@ void SingleFlow(bool pcap, std::string algo) {
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
 
     // Log Rx packets on router 0 
-    Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_2/RxRevd_router_"
+    Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_udp/RxRevd_router_"
                                                                             + std::to_string(0) + ".txt");
     leftRouterDevices.Get(0)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue));
 
