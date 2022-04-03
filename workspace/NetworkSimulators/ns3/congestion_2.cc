@@ -188,10 +188,10 @@ static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue,
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
     
 
-    p->Print(*stream->GetStream());
+    /*p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";
     p->PrintPacketTags(*stream->GetStream());
-    *stream->GetStream() << "\n";
+    *stream->GetStream() << "\n";*/
 
 }
 
@@ -218,8 +218,8 @@ static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, 
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
 
-    p->Print(*stream->GetStream());
-    *stream->GetStream() << "\n";
+   /* p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";*/
 }
 
 // TraceSource for Tx packets successfully
@@ -232,8 +232,8 @@ static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
 
-    p->Print(*stream->GetStream());
-    *stream->GetStream() << "\n";
+    /*p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";*/
 }
 
 std::map<uint, uint> mapDrop;
