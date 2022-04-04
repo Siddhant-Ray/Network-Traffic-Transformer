@@ -236,6 +236,22 @@ static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
     *stream->GetStream() << "\n";*/
 }
 
+/*// TraceSource for Tx packets successfully
+static void PhyTxBegin(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Tx sent at:, "<< Simulator::Now().GetSeconds()<< ", ";
+    FlowIdTag flowid;
+    *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
+    *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+
+    p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n"; 
+}*/
+
+
+
 std::map<uint, uint> mapDrop;
 static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint myId) {
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << std::endl;
@@ -286,6 +302,36 @@ void ReceivedPacketIPV4(Ptr<OutputStreamWrapper> stream, double startTime, std::
 		if(mapMaxThroughput[context] < kbps_)
 			mapMaxThroughput[context] = kbps_;
 	}
+}
+
+// Method to set the UDP flow method, add GetTypeID() for type of UDP
+Ptr<Socket> uniUDPFlow(Address sinkAddress, 
+					uint sinkPort, 
+					Ptr<Node> hostNode, 
+					Ptr<Node> sinkNode, 
+					double startTime, 
+					double stopTime,
+					uint packetSize,
+					uint numPackets,
+					std::string dataRate,
+					double appStartTime,
+					double appStopTime) {
+
+	PacketSinkHelper packetSinkHelper("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
+	ApplicationContainer sinkApps = packetSinkHelper.Install(sinkNode);
+	sinkApps.Start(Seconds(startTime));
+	sinkApps.Stop(Seconds(stopTime));
+
+	Ptr<Socket> ns3UdpSocket = Socket::CreateSocket(hostNode, UdpSocketFactory::GetTypeId());
+	
+
+	Ptr<APP> app = CreateObject<APP>();
+	app->Setup(ns3UdpSocket, sinkAddress, packetSize, numPackets, DataRate(dataRate));
+	hostNode->AddApplication(app);
+	app->SetStartTime(Seconds(appStartTime));
+	app->SetStopTime(Seconds(appStopTime));
+
+	return ns3UdpSocket;
 }
 
 // Method to set the TCP CC method, add GetTypeID() for type of TCP protocol
@@ -357,7 +403,7 @@ void SingleFlow(bool pcap, std::string algo) {
     NS_LOG_INFO(strqueueSizeHR);
 
     // JUST ONE SENDER AND RECEIVER FOR ISOLATION
-	uint numSender = 1;
+	uint numSender = 2;
 	double errorP = ERROR;
 
 	// set droptail queue mode as packets i.e. to use maxpackets as queuesize metric not bytes
@@ -417,7 +463,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	//Create n nodes and append pointers to them to the end of this NodeContainer. 
 	routers.Create(2);
 	senders.Create(numSender);
-	receivers.Create(numSender);
+	receivers.Create(numSender - 1);
 
 	/*
 		p2pHelper.Install:
@@ -435,16 +481,16 @@ void SingleFlow(bool pcap, std::string algo) {
     //Adding links
 	NS_LOG_INFO("Adding links");
 	for(uint i = 0; i < numSender; ++i) {
-        /* // !DEBUG
+        // !DEBUG
         std::cout << "Sender node Id:" << senders.Get(i)->GetId() << std::endl;
-        std::cout << "Receiver node Id:" << receivers.Get(i)->GetId() << std::endl;*/
+        std::cout << "Receiver node Id:" << receivers.Get(0)->GetId() << std::endl;
 
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
 		leftRouterDevices.Add(cleft.Get(0));
 		senderDevices.Add(cleft.Get(1));
 		cleft.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(em));
 
-		NetDeviceContainer cright = p2pHR.Install(routers.Get(1), receivers.Get(i));
+		NetDeviceContainer cright = p2pHR.Install(routers.Get(1), receivers.Get(0));
 		rightRouterDevices.Add(cright.Get(0));
 		receiverDevices.Add(cright.Get(1));
 		cright.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(em));
@@ -493,8 +539,8 @@ void SingleFlow(bool pcap, std::string algo) {
 		senderIP.NewNetwork();
 
 		NetDeviceContainer receiverDevice;
-		receiverDevice.Add(receiverDevices.Get(i));
-		receiverDevice.Add(rightRouterDevices.Get(i));
+		receiverDevice.Add(receiverDevices.Get(0));
+		receiverDevice.Add(rightRouterDevices.Get(0));
 		Ipv4InterfaceContainer receiverIFC = receiverIP.Assign(receiverDevice);
 		receiverIFCs.Add(receiverIFC.Get(0));
 		rightRouterIFCs.Add(receiverIFC.Get(1));
@@ -552,7 +598,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	std::string transferSpeed = "400Mbps";		
     std::string ccalgo = algo;
 
-	//TCP NewReno from H1 to H2 via R1----R2 link
+	//TCP Vegas from H1 to H2 via R1----R2 link
 	AsciiTraceHelper asciiTraceHelper;
 	Ptr<OutputStreamWrapper> stream1CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.cwnd");
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.congestion_loss");
@@ -564,11 +610,30 @@ void SingleFlow(bool pcap, std::string algo) {
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
 
 	// Measure PacketSinks
-	std::string sink = "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx";
+	std::string sink = "/NodeList/4/ApplicationList/0/$ns3::PacketSink/Rx";
 	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream1GP, netDuration));
 
-	std::string sink_ = "/NodeList/3/$ns3::Ipv4L3Protocol/Rx";
+	std::string sink_ = "/NodeList/4/$ns3::Ipv4L3Protocol/Rx";
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
+
+    double udpdurationGap = 20;
+	double udpnetDuration = 0;
+	uint udpnumPackets = 1000000;
+	std::string udptransferSpeed = "40Mbps";	
+
+    //UDP from H3 to H2 R1----R2 link
+	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.cwnd");
+	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.congestion_loss");
+	Ptr<OutputStreamWrapper> stream2TP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.tp");
+	Ptr<OutputStreamWrapper> stream2GP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.gp");
+	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(1), receivers.Get(0),
+                                    udpnetDuration, udpnetDuration + udpdurationGap, packetSize, udpnumPackets, udptransferSpeed,
+                                    udpnetDuration, udpnetDuration + udpdurationGap);
+
+	sink = "/NodeList/4/ApplicationList/0/$ns3::PacketSink/Rx";
+	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream2GP, udpnetDuration));
+	sink_ = "/NodeList/4/$ns3::Ipv4L3Protocol/Rx";
+	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream2TP, udpnetDuration));
 
     netDuration += durationGap;
 
