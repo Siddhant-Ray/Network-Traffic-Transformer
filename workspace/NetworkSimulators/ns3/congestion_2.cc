@@ -218,7 +218,7 @@ static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, 
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
 
-   /* p->Print(*stream->GetStream());
+   /*p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";*/
 }
 
@@ -440,10 +440,10 @@ void SingleFlow(bool pcap, std::string algo) {
     p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 10;
+    uint32_t queueDiscSize = 1000;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
-                                    QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
+                                   QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
 
     // Test queue size at the traffic level
     NS_LOG_INFO("Packets in the traffic level queue are....");
@@ -546,7 +546,7 @@ void SingleFlow(bool pcap, std::string algo) {
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
 	}
-    
+
     /* Add queue callback on RR queue 
     */
     AsciiTraceHelper ascii;
@@ -619,7 +619,7 @@ void SingleFlow(bool pcap, std::string algo) {
     double udpdurationGap = 20;
 	double udpnetDuration = 0;
 	uint udpnumPackets = 1000000;
-	std::string udptransferSpeed = "40Mbps";	
+	std::string udptransferSpeed = "400Mbps";	
 
     //UDP from H3 to H2 R1----R2 link
 	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.cwnd");
