@@ -236,8 +236,8 @@ static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
     *stream->GetStream() << "\n";*/
 }
 
-/*// TraceSource for Tx packets successfully
-static void PhyTxBegin(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+// TraceSource for Tx packets successfully
+/*static void PhyTxBegin(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 {   
     // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
     *stream->GetStream() << "Tx sent at:, "<< Simulator::Now().GetSeconds()<< ", ";
@@ -463,7 +463,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	//Create n nodes and append pointers to them to the end of this NodeContainer. 
 	routers.Create(2);
 	senders.Create(numSender);
-	receivers.Create(numSender - 1);
+	receivers.Create(numSender);
 
 	/*
 		p2pHelper.Install:
@@ -483,14 +483,14 @@ void SingleFlow(bool pcap, std::string algo) {
 	for(uint i = 0; i < numSender; ++i) {
         // !DEBUG
         std::cout << "Sender node Id:" << senders.Get(i)->GetId() << std::endl;
-        std::cout << "Receiver node Id:" << receivers.Get(0)->GetId() << std::endl;
+        std::cout << "Receiver node Id:" << receivers.Get(i)->GetId() << std::endl;
 
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
 		leftRouterDevices.Add(cleft.Get(0));
 		senderDevices.Add(cleft.Get(1));
 		cleft.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(em));
 
-		NetDeviceContainer cright = p2pHR.Install(routers.Get(1), receivers.Get(0));
+		NetDeviceContainer cright = p2pHR.Install(routers.Get(1), receivers.Get(i));
 		rightRouterDevices.Add(cright.Get(0));
 		receiverDevices.Add(cright.Get(1));
 		cright.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(em));
@@ -539,13 +539,16 @@ void SingleFlow(bool pcap, std::string algo) {
 		senderIP.NewNetwork();
 
 		NetDeviceContainer receiverDevice;
-		receiverDevice.Add(receiverDevices.Get(0));
-		receiverDevice.Add(rightRouterDevices.Get(0));
+		receiverDevice.Add(receiverDevices.Get(i));
+		receiverDevice.Add(rightRouterDevices.Get(i));
 		Ipv4InterfaceContainer receiverIFC = receiverIP.Assign(receiverDevice);
 		receiverIFCs.Add(receiverIFC.Get(0));
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
 	}
+
+    //Turning on Static Global Routing
+	Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     /* Add queue callback on RR queue 
     */
@@ -604,7 +607,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h1h2_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0), receivers.Get(0),
+
+    Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0), receivers.Get(0),
                                         netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
@@ -616,23 +620,29 @@ void SingleFlow(bool pcap, std::string algo) {
 	std::string sink_ = "/NodeList/4/$ns3::Ipv4L3Protocol/Rx";
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
 
-    double udpdurationGap = 20;
-	double udpnetDuration = 0;
+    double udpdurationGap = 2;
+	double udpnetDuration = 10;
 	uint udpnumPackets = 1000000;
 	std::string udptransferSpeed = "400Mbps";	
 
     //UDP from H3 to H2 R1----R2 link
-	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.congestion_loss");
-	Ptr<OutputStreamWrapper> stream2TP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.tp");
-	Ptr<OutputStreamWrapper> stream2GP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h2_singleflow.gp");
-	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(1), receivers.Get(0),
+	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h4_singleflow.cwnd");
+	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h4_singleflow.congestion_loss");
+	Ptr<OutputStreamWrapper> stream2TP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h4_singleflow.tp");
+	Ptr<OutputStreamWrapper> stream2GP = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h4_singleflow.gp");
+
+    while (udpnetDuration < durationGap){
+
+    
+	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(0), receivers.Get(0),
                                     udpnetDuration, udpnetDuration + udpdurationGap, packetSize, udpnumPackets, udptransferSpeed,
                                     udpnetDuration, udpnetDuration + udpdurationGap);
+    udpnetDuration += 10;
+    }
 
-	sink = "/NodeList/4/ApplicationList/0/$ns3::PacketSink/Rx";
+	sink = "/NodeList/5/ApplicationList/0/$ns3::PacketSink/Rx";
 	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream2GP, udpnetDuration));
-	sink_ = "/NodeList/4/$ns3::Ipv4L3Protocol/Rx";
+	sink_ = "/NodeList/5/$ns3::Ipv4L3Protocol/Rx";
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream2TP, udpnetDuration));
 
     netDuration += durationGap;
@@ -687,9 +697,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	    p2pRR.EnablePcapAll("outputs/congestion_2/pcap/RR_singleflow");
     }
 
-	//Turning on Static Global Routing
-	Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
+	
 	Ptr<FlowMonitor> flowmon;
 	FlowMonitorHelper flowmonHelper;
 	flowmon = flowmonHelper.InstallAll();
