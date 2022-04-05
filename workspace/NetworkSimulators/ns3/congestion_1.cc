@@ -4,6 +4,8 @@
 #include <fstream>
 #include <cstdlib>
 #include <map>
+#include <chrono>
+#include <ctime>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
@@ -166,6 +168,69 @@ void PacketsInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint3
   *stream->GetStream() << Simulator::Now().GetSeconds()<< " " <<newVal<<std::endl;
 }
 
+// TraceSource for RxDrops 
+static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, Ptr<const Packet>p)
+{      
+    std::size_t size = queue->GetNPackets();
+    std::size_t num = queue->GetTotalDroppedPackets();
+    *stream->GetStream() << "Rx drop at:, "<< Simulator::Now().GetSeconds()<< ", "
+                         << "Queue size is currently, "<< size << ", "
+                         << "Packets dropped till now, "<< num << ", ";
+
+    FlowIdTag flowid;
+    *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
+    *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+    
+
+    p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
+    /*p->PrintPacketTags(*stream->GetStream());
+    *stream->GetStream() << "\n";*/
+
+}
+
+// TraceSource for TxDrops 
+static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Tx drop at:, "<< Simulator::Now().GetSeconds()<< ", ";
+    FlowIdTag flowid;
+    *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
+    *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+}
+
+// TraceSource for Rx packets successfully
+static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, Ptr<const Packet>p)
+{   
+    std::size_t size = queue->GetNPackets();
+    *stream->GetStream() << "Rx received at:, "<< Simulator::Now().GetSeconds()<< ", "
+                         << "Queue size is currently, "<< size << ", ";
+    
+    FlowIdTag flowid;
+    *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
+    *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+
+   p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
+}
+
+// TraceSource for Tx packets successfully
+static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+{   
+    // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
+    *stream->GetStream() << "Tx sent at:, "<< Simulator::Now().GetSeconds()<< ", ";
+    FlowIdTag flowid;
+    *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
+    *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+
+    /*p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";*/
+}
+
 std::map<uint, uint> mapDrop;
 static void packetDrop(Ptr<OutputStreamWrapper> stream, double startTime, uint myId) {
 	*stream->GetStream() << Simulator::Now().GetSeconds() - startTime << "\t" << std::endl;
@@ -260,7 +325,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	return ns3TcpSocket;
 }
 
-void SingleFlow(bool pcap) {
+void SingleFlow(bool pcap, std::string algo) {
 	NS_LOG_INFO("Sending single flows from senders to receivers...");
 	std::string rateHR = "100Mbps";
 	std::string latencyHR = "20ms";
@@ -450,6 +515,17 @@ void SingleFlow(bool pcap) {
         queue->TraceConnectWithoutContext("PacketsInQueue",MakeBoundCallback(&PacketsInQueueTrace, streamPacketsInQueue));
         i++;
     }
+
+    uint j = 0;
+    while (j < 2){
+        Ptr<NetDevice> dev = routerDevices.Get(j);
+        Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream("outputs/congestion_1/router" +
+                                                                    std::to_string(j) + ".tr");
+        p2pRR.EnableAscii(stream, dev);
+        j++;
+    }
+
+    
     
     /*
 		Measuring Performance of each TCP variant
@@ -461,12 +537,14 @@ void SingleFlow(bool pcap) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 100;
-	double netDuration = 0;
+	double durationGap = 10;
+	double oneFlowStart = 0;
+	double otherFlowStart = 2;
+    double netDuration = otherFlowStart + durationGap;
 	uint port = 9000;
 	uint numPackets = 10000000;
 	std::string transferSpeed = "400Mbps";	
-    std::string ccalgo = "TcpVegas";
+    std::string ccalgo = algo;
 
 	//TCP NewReno from H1 to H4
 	AsciiTraceHelper asciiTraceHelper;
@@ -474,7 +552,9 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h4_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream1TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h4_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream1GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h4_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0), receivers.Get(0), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0),
+                                                        receivers.Get(0), oneFlowStart, oneFlowStart+durationGap, packetSize,
+                                                         numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap);
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
 
@@ -492,7 +572,9 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream2TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream2GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, ccalgo, senders.Get(1), receivers.Get(1), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, ccalgo, senders.Get(1),
+                                                        receivers.Get(1), otherFlowStart, otherFlowStart+durationGap, packetSize,
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
 	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream2CWND, netDuration));
 	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream2PD, netDuration, 2));
 
@@ -507,7 +589,9 @@ void SingleFlow(bool pcap) {
 	Ptr<OutputStreamWrapper> stream3PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h6_singleflow.congestion_loss");
 	Ptr<OutputStreamWrapper> stream3TP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h6_singleflow.tp");
 	Ptr<OutputStreamWrapper> stream3GP = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h6_singleflow.gp");
-	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, ccalgo, senders.Get(2), receivers.Get(2), netDuration, netDuration+durationGap, packetSize, numPackets, transferSpeed, netDuration, netDuration+durationGap);
+	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, ccalgo, senders.Get(2),
+                                                        receivers.Get(2), otherFlowStart, otherFlowStart+durationGap, packetSize,
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
 	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, netDuration));
 	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, netDuration, 3));
 
@@ -515,7 +599,51 @@ void SingleFlow(bool pcap) {
 	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream3GP, netDuration));
 	sink_ = "/NodeList/7/$ns3::Ipv4L3Protocol/Rx";
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream3TP, netDuration));
-	netDuration += durationGap;
+
+    uint routerNum = 0;
+    while(routerNum < 1){
+
+    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(routerDevices.Get(routerNum))->GetQueue();
+
+    // Log Rx drops on the router  
+    Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_1/RxDrops_lrouter_"
+                                                                            + std::to_string(routerNum) + ".csv");
+    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops, rqueue));
+
+    // Log Tx drops on the router 
+    Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_1/TxDrops_lrouter_"
+                                                                            + std::to_string(routerNum) + ".csv");
+    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamTxDrops));
+
+    // Log Rx packets on router  
+    Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_1/RxRevd_lrouter_"
+                                                                            + std::to_string(routerNum) + ".csv");
+    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue));
+
+    // Log Tx packets sent from router 
+    Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_1/TxSent_lrouter_"
+                                                                            + std::to_string(routerNum) + ".csv");
+    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
+
+    routerNum++;
+    }
+
+    uint senderNum = 0;
+    while(senderNum < numSender){
+
+    // Log Tx packets sent from senders , this must be the same as packets received on router 0 (it is!!)
+    Ptr<OutputStreamWrapper> streamSTxEnds = ascii.CreateFileStream("outputs/congestion_1/TxSent_sender_"
+                                                                            + std::to_string(senderNum) + ".csv");
+    senderDevices.Get(senderNum)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamSTxEnds));
+
+    // Log Tx drops on the sender 0 
+    Ptr<OutputStreamWrapper> streamSTxDrops = ascii.CreateFileStream("outputs/congestion_1/TxDrops_sender_"
+                                                                            + std::to_string(senderNum) + ".csv");
+    senderDevices.Get(senderNum)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamSTxDrops));
+
+    senderNum++;
+    }
+	
 
     if (pcap)
     {
@@ -529,7 +657,7 @@ void SingleFlow(bool pcap) {
 	Ptr<FlowMonitor> flowmon;
 	FlowMonitorHelper flowmonHelper;
 	flowmon = flowmonHelper.InstallAll();
-	Simulator::Stop(Seconds(netDuration));
+	Simulator::Stop(Seconds(otherFlowStart+durationGap));
 	Simulator::Run();
 	flowmon->CheckForLostPackets();
 
@@ -584,8 +712,21 @@ int main(int argc, char **argv) {
 
     CommandLine cmd;
     cmd.Parse (argc, argv);
+    std::string ccalgo = "TcpVegas";
 
-	SingleFlow(pcap);
+    auto start = std::chrono::system_clock::now();
+	std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+	
+	std::cout << "Started computation at " << std::ctime(&start_time);
+
+	SingleFlow(pcap, ccalgo);
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+    std::cout << "Finished computation at " << std::ctime(&end_time)
+              << "Elapsed time: " << elapsed_seconds.count() << "s\n";
 }
 
 
