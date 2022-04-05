@@ -440,7 +440,7 @@ void SingleFlow(bool pcap, std::string algo) {
     p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 1000;
+    uint32_t queueDiscSize = 10;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                    QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -482,8 +482,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	NS_LOG_INFO("Adding links");
 	for(uint i = 0; i < numSender; ++i) {
         // !DEBUG
-        std::cout << "Sender node Id:" << senders.Get(i)->GetId() << std::endl;
-        std::cout << "Receiver node Id:" << receivers.Get(i)->GetId() << std::endl;
+        /*std::cout << "Sender node Id:" << senders.Get(i)->GetId() << std::endl;
+        std::cout << "Receiver node Id:" << receivers.Get(i)->GetId() << std::endl;*/
 
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
 		leftRouterDevices.Add(cleft.Get(0));
@@ -584,6 +584,11 @@ void SingleFlow(bool pcap, std::string algo) {
         j++;
     }
 
+	// !DEBUG
+	/*std::cout<<"No of devices in leftrouter container "<< leftRouterDevices.GetN()<<std::endl;
+    std::cout<< leftRouterDevices.Get(0)<<std::endl;
+    std::cout<< leftRouterDevices.Get(1)<<std::endl;*/
+
     /*
 		Measuring Performance of each TCP variant
 	*/
@@ -634,7 +639,7 @@ void SingleFlow(bool pcap, std::string algo) {
     while (udpnetDuration < durationGap){
 
     
-	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, senders.Get(0), receivers.Get(0),
+	Ptr<Socket> ns3UdpSocket1 = uniUDPFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, senders.Get(1), receivers.Get(1),
                                     udpnetDuration, udpnetDuration + udpdurationGap, packetSize, udpnumPackets, udptransferSpeed,
                                     udpnetDuration, udpnetDuration + udpdurationGap);
     udpnetDuration += 10;
@@ -647,10 +652,12 @@ void SingleFlow(bool pcap, std::string algo) {
 
     netDuration += durationGap;
 
-    uint routerNum = 0;
-    while(routerNum < 1){
+    
 
-    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(routerDevices.Get(routerNum))->GetQueue();
+    uint routerNum = 0;
+    while(routerNum <= 1){
+
+    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
 
     // Log Rx drops on the router  
     Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_lrouter_"
@@ -667,13 +674,15 @@ void SingleFlow(bool pcap, std::string algo) {
                                                                             + std::to_string(routerNum) + ".csv");
     leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue));
 
-    // Log Tx packets sent from router 
-    Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_lrouter_"
-                                                                            + std::to_string(routerNum) + ".csv");
-    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
-
     routerNum++;
     }
+
+	// Log Tx packets sent from router 
+    Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_router_"
+                                                                            + std::to_string(0) + ".csv");
+    routerDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
+
+
 
     uint senderNum = 0;
     while(senderNum < numSender){

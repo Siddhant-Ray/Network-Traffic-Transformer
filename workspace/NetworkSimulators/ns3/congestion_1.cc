@@ -183,9 +183,9 @@ static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue,
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
     
 
-    p->Print(*stream->GetStream());
+    /*p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";
-    /*p->PrintPacketTags(*stream->GetStream());
+    p->PrintPacketTags(*stream->GetStream());
     *stream->GetStream() << "\n";*/
 
 }
@@ -213,8 +213,8 @@ static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, 
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
 
-   p->Print(*stream->GetStream());
-    *stream->GetStream() << "\n";
+   /*p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";*/
 }
 
 // TraceSource for Tx packets successfully
@@ -388,7 +388,7 @@ void SingleFlow(bool pcap, std::string algo) {
     p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 1000;
+    uint32_t queueDiscSize = 10;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -428,8 +428,8 @@ void SingleFlow(bool pcap, std::string algo) {
     //Adding links
 	NS_LOG_INFO("Adding links");
 	for(uint i = 0; i < numSender; ++i) {
-        /*// !DEBUG
-        std::cout << "Sender node Id:" << senders.Get(i)->GetId()<<std::endl;
+        // !DEBUG
+        /*std::cout << "Sender node Id:" << senders.Get(i)->GetId()<<std::endl;
         std::cout << "Receiver node Id:" << receivers.Get(i)->GetId()<<std::endl;*/
 
 		NetDeviceContainer cleft = p2pHR.Install(routers.Get(0), senders.Get(i));
@@ -525,8 +525,11 @@ void SingleFlow(bool pcap, std::string algo) {
         j++;
     }
 
+    /*// !DEBUG
+    std::cout<<"No of devices in router device container "<< routerDevices.GetN()<<std::endl;
+    std::cout<< routerDevices.Get(0)<<std::endl;*/
     
-    
+
     /*
 		Measuring Performance of each TCP variant
 	*/
@@ -537,9 +540,9 @@ void SingleFlow(bool pcap, std::string algo) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 10;
+	double durationGap = 100;
 	double oneFlowStart = 0;
-	double otherFlowStart = 2;
+	double otherFlowStart = 20;
     double netDuration = otherFlowStart + durationGap;
 	uint port = 9000;
 	uint numPackets = 10000000;
@@ -601,9 +604,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream3TP, netDuration));
 
     uint routerNum = 0;
-    while(routerNum < 1){
-
-    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(routerDevices.Get(routerNum))->GetQueue();
+    while(routerNum <= 2){
+    Ptr<Queue<Packet>> rqueue = StaticCast<PointToPointNetDevice>(routerDevices.Get(0))->GetQueue();
 
     // Log Rx drops on the router  
     Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_1/RxDrops_lrouter_"
@@ -620,14 +622,15 @@ void SingleFlow(bool pcap, std::string algo) {
                                                                             + std::to_string(routerNum) + ".csv");
     leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue));
 
-    // Log Tx packets sent from router 
-    Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_1/TxSent_lrouter_"
-                                                                            + std::to_string(routerNum) + ".csv");
-    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
-
     routerNum++;
     }
 
+    // Log Tx packets sent from router 
+    Ptr<OutputStreamWrapper> rstreamTxEnds = ascii.CreateFileStream("outputs/congestion_1/TxSent_router_"
+                                                                            + std::to_string(0) + ".csv");
+    routerDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, rstreamTxEnds));
+
+    
     uint senderNum = 0;
     while(senderNum < numSender){
 
