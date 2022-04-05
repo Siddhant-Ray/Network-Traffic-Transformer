@@ -1,70 +1,124 @@
 import os
 import pandas as pd
+import numpy as np
+import argparse
 
 print("Current directory is:", os.getcwd())
 print("Generate combined csv for TCP congestion data")
 
-path = "/local/home/sidray/packet_transformer/outputs/congestion_2/"
+def generate_combined_csv(path, n_senders):
 
-df_cols = ["Timestamp", "Queue Size", "Packets dropped", "Flow ID", "Packet ID", "Packet Size"]
-cols_to_drop = [0,2,4,6,8,10]
+    PATH = path
 
-router_drop_df = pd.read_csv(path+"RxDrops_lrouter_0.csv")
-router_drop_descol = router_drop_df.iloc[1][0].split(" ")
-router_drop_descol_value = ( " ".join(router_drop_descol[0:2]))
-router_drop_df.drop(router_drop_df.columns[cols_to_drop],axis=1,inplace=True)
-router_drop_df.columns = df_cols
-router_drop_df["Decision"] = router_drop_descol_value
-print(router_drop_df.head())
-print(router_drop_df.shape)
+    # Two senders create two interfaces on the router (only bottleneck router considered)
+    num_router_intfs = 0 
+    num_senders = n_senders
 
-df_cols = ["Timestamp", "Queue Size", "Flow ID", "Packet ID", "Packet Size"]
-cols_to_drop = [0,2,4,6,8]
-router_revd_df = pd.read_csv(path+"RxRevd_lrouter_0.csv")
-router_revd_descol = router_revd_df.iloc[1][0].split(" ")
-router_revd_descol_value = ( " ".join(router_revd_descol[0:2]))
-router_revd_df.drop(router_revd_df.columns[cols_to_drop], axis=1, inplace=True)
-router_revd_df.columns = df_cols
-router_revd_df["Decision"] = router_revd_descol_value
+    df_drop_cols = ["Timestamp", "Queue Size", "Packets dropped", "Flow ID", "Packet ID", "Packet Size", "Interface ID"]
+    df_drop_cols_to_drop = [0,2,4,6,8,10,12]
 
-print(router_revd_df.head())
-print(router_revd_df.shape)
+    df_revd_cols = ["Timestamp", "Queue Size", "Flow ID", "Packet ID", "Packet Size", "Interface ID"]
+    df_revd_cols_to_drop = [0,2,4,6,8,10]
 
-df_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size"]
-cols_to_drop = [0,2,4,6]
-router_sent_df = pd.read_csv(path+"TxSent_lrouter_0.csv")
-router_sent_descol = router_sent_df.iloc[1][0].split(" ")
-router_sent_descol_value = (" ".join(router_sent_descol[0:2]))
-router_sent_df.drop(router_sent_df.columns[cols_to_drop], axis=1, inplace=True)
-router_sent_df.columns = df_cols
-router_sent_df["Decision"] = router_sent_descol_value
-print(router_sent_df.head())
-print(router_sent_df.shape)
+    df_sent_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size", "Interface ID"]
+    df_sent_cols_to_drop = [0,2,4,6,8]
 
-router_drop_df.drop(columns=["Queue Size", "Packets dropped"], inplace=True)
-router_revd_df.drop(columns=["Queue Size"], inplace=True)
+    temp = pd.DataFrame(columns = df_sent_cols)
 
-test = pd.concat([router_drop_df, router_revd_df, router_sent_df], ignore_index=True)
-test = test.sort_values(by=['Timestamp'], ascending=True)
-test = test.reset_index(drop=True)
-print(test.head())
-test.to_csv(path+"combined_lrouter_0.csv")
+    while num_router_intfs < num_senders:
 
-numsenders = 1
-currentsender = 0
+        router_drop_df = pd.read_csv(path+"RxDrops_lrouter_" + str(num_router_intfs) + ".csv")
+        router_drop_df = pd.DataFrame(np.vstack([router_drop_df.columns, router_drop_df]))
+        # print(router_drop_df.head())
+        router_drop_descol = router_drop_df.iloc[1][0].split(" ")
+        router_drop_descol_value = ( " ".join(router_drop_descol[0:2]))
+        router_drop_df.drop(router_drop_df.columns[df_drop_cols_to_drop],axis=1,inplace=True)
+        router_drop_df.columns = df_drop_cols
+        router_drop_df["Decision"] = router_drop_descol_value
+        # print(router_drop_df.head())
+        # print(router_drop_df.shape)
 
-while (currentsender < numsenders):
-    sender_id = str(currentsender)
-    sender_sent_df = pd.read_csv(path+"TxSent_sender_" + sender_id + ".csv")
-    df_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size"]
-    cols_to_drop = [0,2,4,6]
-    sender_sent_descol = sender_sent_df.iloc[1][0].split(" ")
-    sender_sent_descol_value = (" ".join(sender_sent_descol[0:2]))
-    sender_sent_df.drop(sender_sent_df.columns[cols_to_drop], axis=1, inplace=True)
-    sender_sent_df.columns = df_cols
-    sender_sent_df["Decision"] = sender_sent_descol_value
-    print(sender_sent_df.head())
-    sender_sent_df.to_csv(path+"combined_sender" + sender_id + ".csv")
-    currentsender+=1
+        router_drop_df.drop(columns=["Queue Size", "Packets dropped"], inplace=True)
 
-print("preliminary test done...")
+        temp = pd.concat([temp, router_drop_df], ignore_index=True, copy = False)
+        
+        router_revd_df = pd.read_csv(path+"RxRevd_lrouter_" + str(num_router_intfs) + ".csv")
+        router_revd_df = pd.DataFrame(np.vstack([router_revd_df.columns, router_revd_df]))
+        # print(router_revd_df.head())
+        router_revd_descol = router_revd_df.iloc[1][0].split(" ")
+        router_revd_descol_value = ( " ".join(router_revd_descol[0:2]))
+        router_revd_df.drop(router_revd_df.columns[df_revd_cols_to_drop], axis=1, inplace=True)
+        router_revd_df.columns = df_revd_cols
+        router_revd_df["Decision"] = router_revd_descol_value
+
+        # print(router_revd_df.head())
+        # print(router_revd_df.shape)
+        router_revd_df.drop(columns=["Queue Size"], inplace=True)
+
+        temp = pd.concat([temp, router_revd_df], ignore_index=True)
+
+        num_router_intfs += 1
+
+    # print(temp.head())
+    # print("Temp shape is ")
+    # print(temp.shape)
+
+    num_bottle_neckrouters = 1
+    num_router_intfs = 0
+    while num_router_intfs < num_bottle_neckrouters:
+
+        router_sent_df = pd.read_csv(path+"TxSent_router_" + str(num_router_intfs) + ".csv")
+        router_sent_df = pd.DataFrame(np.vstack([router_sent_df.columns, router_sent_df]))
+
+        router_sent_descol = router_sent_df.iloc[1][0].split(" ")
+        router_sent_descol_value = (" ".join(router_sent_descol[0:2]))
+        router_sent_df.drop(router_sent_df.columns[df_sent_cols_to_drop], axis=1, inplace=True)
+        router_sent_df.columns = df_sent_cols
+        router_sent_df["Decision"] = router_sent_descol_value
+        # print(router_sent_df.head())
+        # print(router_sent_df.shape)
+
+        temp = pd.concat([temp, router_sent_df], ignore_index=True)
+
+        num_router_intfs += 1
+
+    print(temp.head())
+    print("Temp shape is ")
+    print(temp.shape)
+
+    temp['Timestamp'] = temp['Timestamp'].astype(float)
+
+    final_router_info = temp.sort_values(by=['Timestamp'], ascending=True)
+    final_router_info = final_router_info.reset_index(drop=True)
+    print("Final router is: ")
+    print(final_router_info.head())
+    print(final_router_info.shape)
+
+    final_router_info.to_csv(path+"combined_router_0.csv")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-mod", "--model",
+                        help = "choose CC model for creating congestion",
+                        required = True)
+    parser.add_argument("-nsend", "--numsenders",
+                        help = "choose path for different topologies",
+                        required = True)
+    args = parser.parse_args()
+    print(args)
+
+    if args.model == "tcponly":
+        path  = "/local/home/sidray/packet_transformer/outputs/congestion_1/"
+    elif args.model == "tcpandudp":
+        path = "/local/home/sidray/packet_transformer/outputs/congestion_2/"
+    else:
+        print("ERROR: CONGESTION MODEL NOT CORRECT....")
+        exit()
+
+    n_senders = int(args.numsenders)
+    
+    generate_combined_csv(path, n_senders)
+
+if __name__== '__main__':
+    main()
+
