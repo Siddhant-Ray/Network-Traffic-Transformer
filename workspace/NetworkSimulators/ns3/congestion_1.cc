@@ -560,17 +560,17 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0),
                                                         receivers.Get(0), oneFlowStart, oneFlowStart+durationGap, packetSize,
                                                          numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap);
-	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, netDuration));
-	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, netDuration, 1));
+	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, 0));
+	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, 0, 1));
 
 	// Measure PacketSinks
 	std::string sink = "/NodeList/5/ApplicationList/0/$ns3::PacketSink/Rx";
-	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream1GP, netDuration));
+	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream1GP, 0));
 
 	std::string sink_ = "/NodeList/5/$ns3::Ipv4L3Protocol/Rx";
-	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, netDuration));
+	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream1TP, 0));
 
-	netDuration += durationGap;
+	// netDuration += durationGap;
 
 	//TCP NewReno from H2 to H5
 	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h5_singleflow.cwnd");
@@ -580,13 +580,13 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, ccalgo, senders.Get(1),
                                                         receivers.Get(1), otherFlowStart, otherFlowStart+durationGap, packetSize,
                                                          numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
-	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream2CWND, netDuration));
-	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream2PD, netDuration, 2));
+	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream2CWND, 0));
+	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream2PD, 0, 2));
 
 	sink = "/NodeList/6/ApplicationList/0/$ns3::PacketSink/Rx";
-	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream2GP, netDuration));
+	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream2GP, 0));
 	sink_ = "/NodeList/6/$ns3::Ipv4L3Protocol/Rx";
-	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream2TP, netDuration));
+	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream2TP, 0));
 	netDuration += durationGap;
 
 	//TCP NewReno from H3 to H6
@@ -597,13 +597,13 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, ccalgo, senders.Get(2),
                                                         receivers.Get(2), otherFlowStart, otherFlowStart+durationGap, packetSize,
                                                          numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
-	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, netDuration));
-	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, netDuration, 3));
+	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, 0));
+	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, 0, 3));
 
 	sink = "/NodeList/7/ApplicationList/0/$ns3::PacketSink/Rx";
-	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream3GP, netDuration));
+	Config::Connect(sink, MakeBoundCallback(&ReceivedPacket, stream3GP, 0));
 	sink_ = "/NodeList/7/$ns3::Ipv4L3Protocol/Rx";
-	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream3TP, netDuration));
+	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream3TP, 0));
 
     uint routerNum = 0;
     while(routerNum <= 2){
