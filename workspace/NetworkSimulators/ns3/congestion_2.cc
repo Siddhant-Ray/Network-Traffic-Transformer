@@ -175,7 +175,7 @@ static void CwndChange(Ptr<OutputStreamWrapper> stream, double startTime, uint o
 }
 
 // TraceSource for RxDrops 
-static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, Ptr<const Packet>p)
+static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, uint intfID, Ptr<const Packet>p)
 {      
     std::size_t size = queue->GetNPackets();
     std::size_t num = queue->GetTotalDroppedPackets();
@@ -186,7 +186,8 @@ static void PhyRxDrop(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue,
     FlowIdTag flowid;
     *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
-    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << ", ";
+	*stream->GetStream()<< "Interface id is, "<< intfID << "\n";
     
 
     /*p->Print(*stream->GetStream());
@@ -208,7 +209,7 @@ static void PhyTxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
 }
 
 // TraceSource for Rx packets successfully
-static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, Ptr<const Packet>p)
+static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, uint intfID, Ptr<const Packet>p)
 {   
     std::size_t size = queue->GetNPackets();
     *stream->GetStream() << "Rx received at:, "<< Simulator::Now().GetSeconds()<< ", "
@@ -217,21 +218,22 @@ static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, 
     FlowIdTag flowid;
     *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
-    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
-
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << ", ";
+	*stream->GetStream()<< "Interface id is, "<< intfID << "\n";
    /*p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";*/
 }
 
 // TraceSource for Tx packets successfully
-static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, Ptr<const Packet>p)
+static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, uint intfID, Ptr<const Packet>p)
 {   
     // NS_LOG_INFO("TxDrop at "<<Simulator::Now().GetSeconds());
     *stream->GetStream() << "Tx sent at:, "<< Simulator::Now().GetSeconds()<< ", ";
     FlowIdTag flowid;
     *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
-    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << "\n";
+    *stream->GetStream()<< "Packet size is, "<< p->GetSize() << ", ";
+	*stream->GetStream()<< "Interface id is, "<< intfID << "\n";
 
     /*p->Print(*stream->GetStream());
     *stream->GetStream() << "\n";*/
@@ -661,7 +663,8 @@ void SingleFlow(bool pcap, std::string algo) {
     // Log Rx drops on the router  
     Ptr<OutputStreamWrapper> streamRxDrops = ascii.CreateFileStream("outputs/congestion_2/RxDrops_lrouter_"
                                                                             + std::to_string(routerNum) + ".csv");
-    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops, rqueue));
+    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&PhyRxDrop, streamRxDrops, rqueue,
+																routerNum));
 
     // Log Tx drops on the router 
     Ptr<OutputStreamWrapper> streamTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_lrouter_"
@@ -671,15 +674,17 @@ void SingleFlow(bool pcap, std::string algo) {
     // Log Rx packets on router  
     Ptr<OutputStreamWrapper> streamRxEnds = ascii.CreateFileStream("outputs/congestion_2/RxRevd_lrouter_"
                                                                             + std::to_string(routerNum) + ".csv");
-    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue));
+    leftRouterDevices.Get(routerNum)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRxEnds, rqueue,
+																routerNum));
 
     routerNum++;
     }
 
-	// Log Tx packets sent from router 
+	// Log Tx packets sent from router , output interface is on different container so numSenders + 1, indexed from 0.
     Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_router_"
                                                                             + std::to_string(0) + ".csv");
-    routerDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
+    routerDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds, 1 + 
+													numSender - 1));
 
     uint senderNum = 0;
     while(senderNum < numSender){
@@ -687,7 +692,7 @@ void SingleFlow(bool pcap, std::string algo) {
     // Log Tx packets sent from senders , this must be the same as packets received on router 0 (it is!!)
     Ptr<OutputStreamWrapper> streamSTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_sender_"
                                                                             + std::to_string(senderNum) + ".csv");
-    senderDevices.Get(senderNum)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamSTxEnds));
+    senderDevices.Get(senderNum)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamSTxEnds, 0));
 
     // Log Tx drops on the sender 0 
     Ptr<OutputStreamWrapper> streamSTxDrops = ascii.CreateFileStream("outputs/congestion_2/TxDrops_sender_"
