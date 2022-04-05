@@ -187,3 +187,7 @@ remote_*
 
 ## Outputs from NS3 
 outputs/
+
+## Evaluations from NS3
+evaluations
+
