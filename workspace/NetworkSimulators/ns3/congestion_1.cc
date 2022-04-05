@@ -129,6 +129,9 @@ void APP::StopApplication() {
 
 void APP::SendPacket() {
 	Ptr<Packet> packet = Create<Packet>(mPacketSize);
+    // FlowIdTag flowid;
+	// flowid.SetFlowId(5);
+    // packet->AddPacketTag(flowid);
 	mSocket->Send(packet);
 
 	if(++mPacketsSent < mNPackets) {
@@ -381,11 +384,11 @@ void SingleFlow(bool pcap, std::string algo) {
 	p2pHR.SetDeviceAttribute("DataRate", StringValue(rateHR));
 	p2pHR.SetChannelAttribute("Delay", StringValue(latencyHR));
 	// p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 	p2pRR.SetDeviceAttribute("DataRate", StringValue(rateRR));
 	p2pRR.SetChannelAttribute("Delay", StringValue(latencyRR));
 	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
+    p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 
     // Bottleneck link traffic control configuration
     uint32_t queueDiscSize = 10;
@@ -454,6 +457,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	stack.Install(senders);
 	stack.Install(receivers);
 
+    QueueDiscContainer qdiscs;
+    qdiscs = tchRR.Install(routerDevices);
 
 	//Adding IP addresses
 	NS_LOG_INFO("Adding IP addresses");
@@ -487,11 +492,6 @@ void SingleFlow(bool pcap, std::string algo) {
 		rightRouterIFCs.Add(receiverIFC.Get(1));
 		receiverIP.NewNetwork();
 	}
-
-    // This is not needed it seems (tutorial says but maybe its for the old version)
-    // Currently need to set queue disc only once with SetRootQueueDisc
-    /*QueueDiscContainer qdiscs;
-    qdiscs = tchRR.Install(routerDevices);*/
 
     /* Add queue callback on RR queue 
     */

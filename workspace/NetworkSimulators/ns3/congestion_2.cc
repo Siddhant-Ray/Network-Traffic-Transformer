@@ -131,8 +131,9 @@ void APP::StopApplication() {
 
 void APP::SendPacket() {
 	Ptr<Packet> packet = Create<Packet>(mPacketSize);
-    FlowIdTag flowid;
-    packet->AddPacketTag(flowid);
+    // FlowIdTag flowid;
+	// flowid.SetFlowId(5);
+    // packet->AddPacketTag(flowid);
 	mSocket->Send(packet);
 
 	if(++mPacketsSent < mNPackets) {
@@ -440,7 +441,7 @@ void SingleFlow(bool pcap, std::string algo) {
     p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 10;
+    uint32_t queueDiscSize = 1000;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                    QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -628,7 +629,7 @@ void SingleFlow(bool pcap, std::string algo) {
     double udpdurationGap = 2;
 	double udpnetDuration = 10;
 	uint udpnumPackets = 1000000;
-	std::string udptransferSpeed = "400Mbps";	
+	std::string udptransferSpeed = "4Mbps";	
 
     //UDP from H3 to H2 R1----R2 link
 	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_2/h3h4_singleflow.cwnd");
@@ -651,8 +652,6 @@ void SingleFlow(bool pcap, std::string algo) {
 	Config::Connect(sink_, MakeBoundCallback(&ReceivedPacketIPV4, stream2TP, udpnetDuration));
 
     netDuration += durationGap;
-
-    
 
     uint routerNum = 0;
     while(routerNum <= 1){
@@ -681,8 +680,6 @@ void SingleFlow(bool pcap, std::string algo) {
     Ptr<OutputStreamWrapper> streamTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_router_"
                                                                             + std::to_string(0) + ".csv");
     routerDevices.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&PhyTxEnd, streamTxEnds));
-
-
 
     uint senderNum = 0;
     while(senderNum < numSender){
