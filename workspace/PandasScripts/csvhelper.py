@@ -96,6 +96,20 @@ def generate_combined_csv(path, n_senders):
 
     return final_router_info
 
+def generate_packet_delays_from_csv(input_dataframe):
+    
+    input_dataframe = input_dataframe[input_dataframe["Packet Size"].astype(float) >= 100]
+    pack_ids = sorted(input_dataframe['Packet ID'].astype(float).unique())
+ 
+    list_of_delay_ts = []
+    for value in pack_ids:
+        df_temp = input_dataframe.loc[input_dataframe['Packet ID'].astype(float) == float(value)]
+        print(df_temp.tail())
+        print(df_temp.shape)
+        delay = df_temp
+        break
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-mod", "--model",
@@ -119,6 +133,8 @@ def main():
     
     csv_to_save = generate_combined_csv(path, n_senders)
     csv_to_save.to_csv(path+"combined_router_0.csv")
+
+    generate_packet_delays_from_csv(csv_to_save)
 
 if __name__== '__main__':
     main()
