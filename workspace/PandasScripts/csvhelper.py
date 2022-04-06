@@ -8,7 +8,7 @@ print("Generate combined csv for TCP congestion data")
 
 def generate_combined_csv(path, n_senders):
 
-    PATH = path
+    path = path
 
     # Two senders create two interfaces on the router (only bottleneck router considered)
     num_router_intfs = 0 
@@ -94,7 +94,7 @@ def generate_combined_csv(path, n_senders):
     print(final_router_info.head())
     print(final_router_info.shape)
 
-    final_router_info.to_csv(path+"combined_router_0.csv")
+    return final_router_info
 
 def main():
     parser = argparse.ArgumentParser()
@@ -117,7 +117,8 @@ def main():
 
     n_senders = int(args.numsenders)
     
-    generate_combined_csv(path, n_senders)
+    csv_to_save = generate_combined_csv(path, n_senders)
+    csv_to_save.to_csv(path+"combined_router_0.csv")
 
 if __name__== '__main__':
     main()
