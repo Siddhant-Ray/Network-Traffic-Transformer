@@ -133,8 +133,17 @@ void APP::SendPacket() {
     // FlowIdTag flowid;
 	// flowid.SetFlowId(5);
     // packet->AddPacketTag(flowid);
-	mSocket->Send(packet);
 
+	// !DEBUG
+	/*double tVal = Simulator::Now().GetSeconds();
+	AsciiTraceHelper asc;
+	ofstream std::cout("outputs/congestion_1/size.txt");
+	if(int(tVal)%20==0){
+	std::cout << "packetsize" << Simulator::Now().GetSeconds() << "\t" << packet->GetSize() <<"\n";
+	}*/
+	
+	mSocket->Send(packet);
+	
 	if(++mPacketsSent < mNPackets) {
 		ScheduleTx();
 	}
@@ -147,7 +156,8 @@ void APP::ScheduleTx() {
         // DEBUG!
 		/*double tVal = Simulator::Now().GetSeconds();
 		if(int(tVal)%10==0)
-		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;*/
+		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketsSent << std::endl;
+		std::cout << "time:stamp" << Simulator::Now().GetSeconds() << "\t" << mPacketSize << std::endl;*/
 	}
 }
 
@@ -370,6 +380,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 
 	Ptr<APP> app = CreateObject<APP>();
 	app->Setup(ns3TcpSocket, sinkAddress, packetSize, numPackets, DataRate(dataRate));
+	// std::cout<<packetSize<<std::endl;
 	hostNode->AddApplication(app);
 	app->SetStartTime(Seconds(appStartTime));
 	app->SetStopTime(Seconds(appStopTime));
@@ -433,14 +444,14 @@ void SingleFlow(bool pcap, std::string algo) {
 	p2pHR.SetDeviceAttribute("DataRate", StringValue(rateHR));
 	p2pHR.SetChannelAttribute("Delay", StringValue(latencyHR));
 	// p2pHR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeHR));
-    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
+    p2pHR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 	p2pRR.SetDeviceAttribute("DataRate", StringValue(rateRR));
 	p2pRR.SetChannelAttribute("Delay", StringValue(latencyRR));
 	// p2pRR.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue(strqueueSizeRR));
-    p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize("10p")));
+    p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 10;
+    uint32_t queueDiscSize = 1000;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
