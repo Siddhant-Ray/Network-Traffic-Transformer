@@ -354,6 +354,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpWestwood::GetTypeId()));
 	} else if(tcpVariant.compare("TcpVegas") == 0) {
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpVegas::GetTypeId()));
+		Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1380));
 	} else {
         fprintf(stdout,"Default CC protocol for TCP flows\n");
 		// fprintf(stderr, "Invalid TCP version\n");
@@ -383,7 +384,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	std::string rateRR = "10Mbps";
 	std::string latencyRR = "50ms";
 
-	uint packetSize = 1.2*1024;		// 1.2KB packet size
+	uint packetSize = 120;		// 1.2KB packet size
 	uint queueSizeHR = (100000*20)/ packetSize;
 	uint queueSizeRR = (10000*50)/ packetSize;
     
