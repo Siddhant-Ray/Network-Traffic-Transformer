@@ -360,8 +360,10 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 
 	if(tcpVariant.compare("TcpNewReno") == 0) {
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpNewReno::GetTypeId()));
+		Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(2500));
 	} else if(tcpVariant.compare("TcpWestwood") == 0) {
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpWestwood::GetTypeId()));
+		Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(2500));
 	} else if(tcpVariant.compare("TcpVegas") == 0) {
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpVegas::GetTypeId()));
 		Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1380));
@@ -722,8 +724,11 @@ void SingleFlow(bool pcap, std::string algo) {
 	
     if (pcap)
     {
-        p2pHR.EnablePcapAll("outputs/congestion_1/pcap/singleflow");
-	    p2pRR.EnablePcapAll("outputs/congestion_1/pcap/RR_singleflow");
+		
+		p2pHR.EnablePcap("outputs/congestion_1/pcap/first_sender", senders.Get(0)->GetId(), 0);
+		p2pHR.EnablePcap("outputs/congestion_1/pcap/second_sender", senders.Get(1)->GetId(), 0);
+		p2pHR.EnablePcap("outputs/congestion_1/pcap/third_sender", senders.Get(2)->GetId(), 0);
+        
     }
 
 	//Turning on Static Global Routing
@@ -783,7 +788,7 @@ void SingleFlow(bool pcap, std::string algo) {
 
 int main(int argc, char **argv) {
 
-	bool pcap = false;
+	bool pcap = true;
 
     CommandLine cmd;
     cmd.Parse (argc, argv);
