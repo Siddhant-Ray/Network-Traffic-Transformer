@@ -219,9 +219,32 @@ static void PhyRxEnd(Ptr<OutputStreamWrapper> stream, Ptr<Queue<Packet>> queue, 
     *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << ", ";
-	*stream->GetStream()<< "Interface id is, "<< intfID << "\n";
-   /*p->Print(*stream->GetStream());
-    *stream->GetStream() << "\n";*/
+	*stream->GetStream()<< "Interface id is, "<< intfID << ", ";
+
+	
+	Ptr<Packet> copy = p->Copy();
+	// Headers must be removed in the order they're present.
+    PppHeader pppHeader;
+	copy->RemoveHeader(pppHeader);
+    Ipv4Header ipHeader;
+    copy->RemoveHeader(ipHeader);
+	*stream->GetStream() << "IP ID is "<< ipHeader.GetIdentification() << ", ";
+	*stream->GetStream() << "DSCP is "<< ipHeader.GetDscp() << ", ";
+	*stream->GetStream() << "ECN is "<< ipHeader.GetEcn() << ", ";
+	// *stream->GetStream() << "TTL is "<< ipHeader.GetTtl() << ", ";
+	*stream->GetStream() << "Payload size is "<< ipHeader.GetPayloadSize() << ", ";
+	// *stream->GetStream() << "Protocol is "<< ipHeader.GetProtocol() << ", ";
+	*stream->GetStream() << "Source IP is "<< ipHeader.GetSource() << ", ";
+	*stream->GetStream() << "Destination IP is "<< ipHeader.GetDestination() << ", ";
+	TcpHeader tcpHeader;
+    copy->RemoveHeader(tcpHeader);
+	*stream->GetStream() << "TCP source port is "<< tcpHeader.GetSourcePort() << ", ";
+	*stream->GetStream() << "TCP destination port is "<< tcpHeader.GetDestinationPort() << ", ";
+	*stream->GetStream() << "TCP sequence num is "<< tcpHeader.GetSequenceNumber() << ", ";
+	*stream->GetStream() << "TCP current window size is "<< tcpHeader.GetWindowSize() << "\n ";
+
+   	p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
 }
 
 // TraceSource for Tx packets successfully
@@ -233,10 +256,32 @@ static void PhyTxEnd(Ptr<OutputStreamWrapper> stream, uint intfID, Ptr<const Pac
     *stream->GetStream()<< "Flow id is, "<< p->PeekPacketTag(flowid) << ", ";
     *stream->GetStream()<< "Packet uid is, "<< p->GetUid() << ", ";
     *stream->GetStream()<< "Packet size is, "<< p->GetSize() << ", ";
-	*stream->GetStream()<< "Interface id is, "<< intfID << "\n";
+	*stream->GetStream()<< "Interface id is, "<< intfID << ",";
 
-    /*p->Print(*stream->GetStream());
-    *stream->GetStream() << "\n";*/
+	Ptr<Packet> copy = p->Copy();
+	// Headers must be removed in the order they're present.
+    PppHeader pppHeader;
+	copy->RemoveHeader(pppHeader);
+    Ipv4Header ipHeader;
+    copy->RemoveHeader(ipHeader);
+	*stream->GetStream() << "IP ID is "<< ipHeader.GetIdentification() << ", ";
+	*stream->GetStream() << "DSCP is "<< ipHeader.GetDscp() << ", ";
+	*stream->GetStream() << "ECN is "<< ipHeader.GetEcn() << ", ";
+	// *stream->GetStream() << "TTL is "<< ipHeader.GetTtl() << ", ";
+	*stream->GetStream() << "Payload size is "<< ipHeader.GetPayloadSize() << ", ";
+	// *stream->GetStream() << "Protocol is "<< ipHeader.GetProtocol() << ", ";
+	*stream->GetStream() << "Source IP is "<< ipHeader.GetSource() << ", ";
+	*stream->GetStream() << "Destination IP is "<< ipHeader.GetDestination() << ", ";
+	TcpHeader tcpHeader;
+    copy->RemoveHeader(tcpHeader);
+	*stream->GetStream() << "TCP source port is "<< tcpHeader.GetSourcePort() << ", ";
+	*stream->GetStream() << "TCP destination port is "<< tcpHeader.GetDestinationPort() << ", ";
+	*stream->GetStream() << "TCP sequence num is "<< tcpHeader.GetSequenceNumber() << ", ";
+	*stream->GetStream() << "TCP current window size is "<< tcpHeader.GetWindowSize() << ", ";
+
+   	p->Print(*stream->GetStream());
+    *stream->GetStream() << "\n";
+
 }
 
 // TraceSource for Tx packets successfully
