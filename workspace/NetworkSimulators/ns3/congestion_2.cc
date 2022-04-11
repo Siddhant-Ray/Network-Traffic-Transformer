@@ -687,7 +687,8 @@ void SingleFlow(bool pcap, std::string algo) {
 													numSender - 1));
 
     uint senderNum = 0;
-    while(senderNum < numSender){
+	uint receiverNum = 0;
+    while((senderNum < numSender) && (receiverNum < numSender)){
 
     // Log Tx packets sent from senders , this must be the same as packets received on router 0 (it is!!)
     Ptr<OutputStreamWrapper> streamSTxEnds = ascii.CreateFileStream("outputs/congestion_2/TxSent_sender_"
@@ -699,8 +700,17 @@ void SingleFlow(bool pcap, std::string algo) {
                                                                             + std::to_string(senderNum) + ".csv");
     senderDevices.Get(senderNum)->TraceConnectWithoutContext("PhyTxDrop", MakeBoundCallback(&PhyTxDrop, streamSTxDrops));
 
-    senderNum++;
-    }
+    
+	Ptr<Queue<Packet>> revqueue = StaticCast<PointToPointNetDevice>(receiverDevices.Get(receiverNum))->GetQueue();
+
+	// Log Rx packets received on receivers , this must be the same as packets received on router 0 (it is!!)
+    Ptr<OutputStreamWrapper> streamRRxEnds = ascii.CreateFileStream("outputs/congestion_2/RxRevd_receiver_"
+                                                                            + std::to_string(receiverNum) + ".csv");
+    receiverDevices.Get(receiverNum)->TraceConnectWithoutContext("PhyRxEnd", MakeBoundCallback(&PhyRxEnd, streamRRxEnds,
+																	revqueue, 0));
+	senderNum++;
+	receiverNum++;
+	}
     
     if (pcap)
     {
