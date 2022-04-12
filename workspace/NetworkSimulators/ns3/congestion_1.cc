@@ -607,7 +607,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	double otherFlowStart = 20;
     double netDuration = otherFlowStart + durationGap;
 	uint port = 9000;
-	uint numPackets = 10000000;
+	uint numPackets = 100000000;
 	std::string transferSpeed = "400Mbps";	
     std::string ccalgo = algo;
 
