@@ -49,6 +49,13 @@ def generate_senders_csv(path, n_senders):
         
         sender_tx_df.drop(sender_tx_df.columns[df_sent_cols_to_drop],axis=1,inplace=True)
         sender_tx_df.columns = df_sent_cols
+        sender_tx_df["Packet ID"].iloc[0] = 0
+        sender_tx_df["Flow ID"].iloc[0] = sender_tx_df["Flow ID"].iloc[1]
+        sender_tx_df["Interface ID"].iloc[0] = 0
+        sender_tx_df["IP ID"].iloc[0] = 0
+        sender_tx_df["DSCP"].iloc[0] = 0
+        sender_tx_df["ECN"].iloc[0] = 0
+        sender_tx_df["TCP Sequence Number"].iloc[0] = 0
         sender_tx_df["TTL"] = sender_tx_df.apply(lambda row: extract_TTL(row['Extra']), axis = 1)
         sender_tx_df["Proto"] = sender_tx_df.apply(lambda row: extract_protocol(row['Extra']), axis = 1)
         sender_tx_df["Flow ID"] = [sender_num for i in range(sender_tx_df.shape[0])]
@@ -60,11 +67,11 @@ def generate_senders_csv(path, n_senders):
         sender_tx_df = sender_tx_df[df_sent_cols_new]
         # sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
         temp = pd.concat([temp, sender_tx_df], ignore_index=True, copy = False)
-
+        
         sender_num += 1
    
     temp.drop(['Extra'],axis = 1, inplace=True)
-    print(temp.head())
+    print(temp.tail())
     print(temp.columns)
     print(temp.shape)  
 
@@ -97,6 +104,13 @@ def generate_receivers_csv(path, n_receivers):
         receiver_rx_df = pd.DataFrame(np.vstack([receiver_rx_df.columns,  receiver_rx_df]))
         receiver_rx_df.drop(receiver_rx_df.columns[df_revd_cols_to_drop],axis=1,inplace=True)
         receiver_rx_df.columns = df_revd_cols
+        receiver_rx_df["Packet ID"].iloc[0] = 0
+        receiver_rx_df["Flow ID"].iloc[0] = receiver_rx_df["Flow ID"].iloc[1]
+        receiver_rx_df["Interface ID"].iloc[0] = 0
+        receiver_rx_df["IP ID"].iloc[0] = 0
+        receiver_rx_df["DSCP"].iloc[0] = 0
+        receiver_rx_df["ECN"].iloc[0] = 0
+        receiver_rx_df["TCP Sequence Number"].iloc[0] = 0
         receiver_rx_df["TTL"] = receiver_rx_df.apply(lambda row: extract_TTL(row['Extra']), axis = 1)
         receiver_rx_df["Proto"] = receiver_rx_df.apply(lambda row: extract_protocol(row['Extra']), axis = 1)
         receiver_rx_df["Flow ID"] = [receiver_num for i in range(receiver_rx_df.shape[0])]
