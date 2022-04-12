@@ -67,11 +67,12 @@ def generate_senders_csv(path, n_senders):
         sender_tx_df = sender_tx_df[df_sent_cols_new]
         # sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
         temp = pd.concat([temp, sender_tx_df], ignore_index=True, copy = False)
-        
+        sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
+        sender_tx_df.to_csv(path+"sender_" + str(sender_num) + "_final.csv", index=False)
         sender_num += 1
    
     temp.drop(['Extra'],axis = 1, inplace=True)
-    print(temp.tail())
+    print(temp.head())
     print(temp.columns)
     print(temp.shape)  
 
@@ -122,6 +123,8 @@ def generate_receivers_csv(path, n_receivers):
         receiver_rx_df = receiver_rx_df[df_revd_cols_new]
 
         rtemp = pd.concat([rtemp, receiver_rx_df], ignore_index=True, copy = False)
+        receiver_rx_df.drop(['Queue Size', 'Extra'],axis = 1, inplace=True)
+        receiver_rx_df.to_csv(path+"receiver_" + str(receiver_num) + "_final.csv", index=False)
         
         receiver_num += 1
 
@@ -133,36 +136,6 @@ def generate_receivers_csv(path, n_receivers):
    
     return rtemp
 
-
-def generate_packet_delays_from_csv(input_dataframe1, input_dataframe2):
-    
-    input_dataframe1 = input_dataframe1[input_dataframe1["Packet Size"].astype(float) >= 100]
-    input_dataframe2 = input_dataframe2[input_dataframe2["Packet Size"].astype(float) >= 100]
-    
-    pack_ids1 = sorted(input_dataframe1['Packet ID'].astype(float).unique())
-    pack_ids2 = sorted(input_dataframe2['Packet ID'].astype(float).unique())
-    print(len(pack_ids1))
-    print(len(pack_ids2))
-    pack_ids1.pop()
-    assert(pack_ids1 == pack_ids2)
- 
-    list_of_delay_ts = []
-    for value in pack_ids1:
-        df_temp_s = input_dataframe1.loc[input_dataframe1['Packet ID'].astype(float) == float(value)]
-        first_ts = df_temp_s.head(1)['Timestamp'].reset_index(drop=True)
-    
-        df_temp_r = input_dataframe2.loc[input_dataframe2['Packet ID'].astype(float) == float(value)]
-        last_ts = df_temp_r.tail(1)['Timestamp'].reset_index(drop=True)
-
-        # print(last_ts.iloc[0])
-        # print(first_ts.iloc[0])
-
-        delay_ts = last_ts.iloc[0] - first_ts.iloc[0]
-        list_of_delay_ts.append(delay_ts)
-
-
-    print(list_of_delay_ts)   
-    print(len(list_of_delay_ts))
 
 def main():
     parser = argparse.ArgumentParser()
@@ -189,9 +162,8 @@ def main():
     sender_csv = generate_senders_csv(path, n_senders)
     receiver_csv = generate_receivers_csv(path, n_receivers)
 
-    sender_csv.to_csv(path+"combined_sender.csv")
+    sender_csv.to_csv(path+"combined_sender.csv", index=False)
     
-    generate_packet_delays_from_csv(sender_csv, receiver_csv)
 
 if __name__== '__main__':
     main()
