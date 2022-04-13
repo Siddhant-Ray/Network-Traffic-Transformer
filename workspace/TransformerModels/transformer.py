@@ -11,7 +11,15 @@ import pytorch_lightning as pl
 from tqdm import tqdm
 import copy
 
-from utils import *
+from sklearn.model_selection import train_test_split
+
+from utils import get_data_from_csv, ipaddress_to_number, vectorize_features_to_numpy
+from utils import sliding_window_features, sliding_window_delay
+from utils import PacketDataset
+
+random.seed(0)
+np.random.seed(0)
+torch.manual_seed(0)
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -59,11 +67,21 @@ def main():
     sl_win_size = 10
     sl_win_shift = 1
 
-    arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
-    print(len(arr))
-    arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
-    print(len(arr))
-    print(arr[-1])
+    feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
+    target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
+    print(len(feature_arr), len(target_arr))
+
+    train_vectors, val_vectors, train_labels, val_labels = train_test_split(feature_arr, target_arr, test_size = 0.1,
+                                                            shuffle = False)
+    # print(len(train_vectors), len(train_labels))
+    # print(len(val_vectors), len(val_labels))
+
+    train_dataset = PacketDataset(train_vectors, train_labels)
+    val_dataset = PacketDataset(val_vectors, val_labels)
+    # print(train_dataset.__getitem__(0))
+    
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=True)
     
     
 if __name__== '__main__':
