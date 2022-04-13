@@ -29,7 +29,7 @@ def vectorize_features_to_numpy(data_frame):
 
     return feature_frame, label_frame
 
-def sliding_window(df_series, start, size, step):
+def sliding_window_features(df_series, start, size, step):
     final_arr =[]
     pos = start
     assert(step <= size)
@@ -59,6 +59,44 @@ def sliding_window(df_series, start, size, step):
             excess_size = size - remain_size
             for iter in range(excess_size):
                 empty_arr = np.zeros(df_series.iloc[value].shape[0])
+                n_rem_arr = np.concatenate((n_rem_arr, empty_arr))
+            
+            # print(n_rem_arr.shape)
+            final_arr.append(n_rem_arr)
+            break
+   
+    return final_arr
+
+def sliding_window_delay(df_series, start, size, step):
+    final_arr =[]
+    pos = start
+    assert(step <= size)
+
+    while start < df_series.shape[0]:
+        arr= []
+        for value in range(pos, pos+size):
+            # print(value)
+           arr.append(df_series.iloc[value])
+
+        pos += step
+        start += 1
+        narr = np.array(arr).flatten()
+        # print(narr.shape)
+        final_arr.append(narr)
+
+        ## Treat the remaining features in the sliding window
+        ## when the last sequence length is shorter , pad it with zeros
+        if pos > df_series.shape[0] - size:
+            rem_arr = []
+            remain_size = df_series.shape[0] - pos
+            for value in range(pos, pos+remain_size):
+                rem_arr.append(df_series.iloc[value])
+            n_rem_arr = np.array(rem_arr).flatten()
+            # print(n_rem_arr.shape)
+
+            excess_size = size - remain_size
+            for iter in range(excess_size):
+                empty_arr = np.zeros(1)
                 n_rem_arr = np.concatenate((n_rem_arr, empty_arr))
             
             # print(n_rem_arr.shape)

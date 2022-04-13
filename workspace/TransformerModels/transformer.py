@@ -57,11 +57,13 @@ def main():
 
     sl_win_start = 0 
     sl_win_size = 10
-    sl_win_shift = 2
-    
-    arr = sliding_window(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
-    # print(len(arr))
-    # print(arr[-1])
+    sl_win_shift = 1
+
+    arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
+    print(len(arr))
+    arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
+    print(len(arr))
+    print(arr[-1])
     
     
 if __name__== '__main__':
