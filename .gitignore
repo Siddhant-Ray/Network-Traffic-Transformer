@@ -116,6 +116,7 @@ celerybeat.pid
 .venv
 env/
 venv/
+venv_tensorboard/
 ENV/
 env.bak/
 venv.bak/
@@ -191,3 +192,5 @@ outputs/
 ## Evaluations from NS3
 evaluations
 
+## Logs
+lightning_logs
