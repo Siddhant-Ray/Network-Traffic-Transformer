@@ -134,7 +134,9 @@ class BaseTransformer(pl.LightningModule):
         return loss
 
     def training_epoch_end(self,outputs):
-        self.log('avg_loss_per_epoch', outputs.mean())
+        loss_tensor_list = [item['loss'].to('cpu').numpy() for item in outputs]
+        # print(loss_tensor_list, len(loss_tensor_list))
+        self.log('avg_loss_per_epoch', np.mean(np.array(loss_tensor_list)))
 
 
 def main():
