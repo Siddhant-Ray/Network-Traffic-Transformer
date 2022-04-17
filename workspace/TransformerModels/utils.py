@@ -18,7 +18,7 @@ class PacketDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         feature = self.encodings[idx]
-        label = torch.tensor(self.labels[idx])
+        label = self.labels[idx]
         return feature, label
 
     def __len__(self):
