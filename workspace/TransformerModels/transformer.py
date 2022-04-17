@@ -22,6 +22,8 @@ random.seed(0)
 np.random.seed(0)
 torch.manual_seed(0)
 
+torch.set_default_dtype(torch.float64)
+
 # Hyper parameters
 # TODO: Move to YAML/TOML config later
 
@@ -100,9 +102,9 @@ class BaseTransformer(pl.LightningModule):
 
     def forward(self, input, target):
         # used for the forward pass of the model
-        x = self.encoderin(input)
-        trgt = self.decoderin(trgt)
-        enc = self.encoder(input)
+        scaled_input = self.encoderin(input.double())
+        target = self.decoderin(target.double())
+        enc = self.encoder(scaled_input)
         out = self.decoderpred(self.decoder(target, enc))
         return out
 
