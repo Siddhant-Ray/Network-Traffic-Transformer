@@ -186,10 +186,10 @@ def main():
 
     if NUM_GPUS > 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                         callbacks=[EarlyStopping(monitor="val_loss", patience=5)])
+                         callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(precision=16, gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                         callbacks=[EarlyStopping(monitor="val_loss", patience=5)])
+                         callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
 
     trainer.fit(model, train_loader, val_loader)    
     print("Finished training at:")
