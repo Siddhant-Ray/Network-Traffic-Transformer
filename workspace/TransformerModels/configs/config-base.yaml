@@ -8,4 +8,5 @@ num_layers: 2
 epochs: 10
 batch_size: 64
 linear_size: 256 
+loss_function: huber
 eof: eof_str'''

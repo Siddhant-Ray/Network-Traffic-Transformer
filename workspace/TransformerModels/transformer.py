@@ -1,8 +1,8 @@
 import random, os, pathlib
 from ipaddress import ip_address
 import pandas as pd, numpy as np
-import json, copy
-import yaml, time
+import json, copy, math
+import yaml, time as t
 from datetime import datetime
 
 import argparse
@@ -45,6 +45,15 @@ LAYERS = int(config['num_layers'])
 EPOCHS = int(config['epochs'])  
 BATCHSIZE = int(config['batch_size'])  
 LINEARSIZE = int(config['linear_size'])
+LOSSFUNCTION = nn.MSELoss()
+
+if 'loss_function' in config.keys():
+    if config['loss_function'] == "huber":
+        LOSSFUNCTION = nn.HuberLoss()
+    if config['loss_function'] == "smoothl1":
+        LOSSFUNCTION = nn.SmoothL1Loss()
+    if config['loss_function'] == "kldiv":
+        LOSSFUNCTION = nn.KLDivLoss()
 
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
@@ -104,7 +113,7 @@ class PositionalEncoding(nn.Module):
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class BaseTransformer(pl.LightningModule):
 
-    def __init__(self,input_size, target_size):
+    def __init__(self,input_size, target_size, loss_function):
         super(BaseTransformer, self).__init__()
 
         self.step = [0]
@@ -121,7 +130,7 @@ class BaseTransformer(pl.LightningModule):
         self.decoderpred= nn.Linear(LINEARSIZE, target_size)
         self.model = nn.ModuleList([self.encoder, self.decoder, self.encoderin, self.decoderin, self.decoderpred])
 
-        self.loss_func = nn.MSELoss()
+        self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
                          "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
@@ -150,7 +159,7 @@ class BaseTransformer(pl.LightningModule):
         loss = 0
         self.lr_update()
         prediction = self.forward(X, y)
-        loss = F.mse_loss(prediction, y)
+        loss = self.loss_func(prediction, y)
         self.log('Train loss', loss)
         return loss
 
@@ -158,7 +167,7 @@ class BaseTransformer(pl.LightningModule):
         X, y = val_batch
         loss = 0
         prediction = self.forward(X, y)
-        loss = F.mse_loss(prediction, y)
+        loss = self.loss_func(prediction, y)
         self.log('Val loss', loss)
         return loss
 
@@ -212,7 +221,7 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    model = BaseTransformer(train_vectors[0].shape[0], train_labels[0].shape[0])
+    model = BaseTransformer(train_vectors[0].shape[0], train_labels[0].shape[0], LOSSFUNCTION)
     print("Started training at:")
     time = datetime.now()
     print(time)
@@ -237,7 +246,7 @@ def main():
         torch.save(model.model, f"./trained_transformer_{name}")
 
     if MAKE_EPOCH_PLOT:
-        time.sleep(5)
+        t.sleep(5)
         log_dir = "lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
@@ -245,11 +254,14 @@ def main():
         event_accumulator.Reload()
 
         steps = {x.step for x in event_accumulator.Scalars("epoch")}
+        epoch_vals = list({x.value for x in event_accumulator.Scalars("epoch")})
+        epoch_vals.pop()
+
         x = list(range(len(steps)))
         y = [x.value for x in event_accumulator.Scalars(y_key) if x.step in steps]
-
+        
         fig, ax = plt.subplots()
-        ax.plot(x, y)
+        ax.plot(epoch_vals, y)
         ax.set_xlabel("epoch")
         ax.set_ylabel(y_key)
         fig.savefig("lossplot_perepoch.png")
