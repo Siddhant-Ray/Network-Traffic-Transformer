@@ -2,7 +2,8 @@ import random, os, pathlib
 from ipaddress import ip_address
 import pandas as pd, numpy as np
 import json, copy
-import yaml, datetime
+import yaml
+from datetime import datetime
 
 import argparse
 
@@ -183,17 +184,19 @@ def main():
     model = BaseTransformer(train_vectors[0].shape[0], train_labels[0].shape[0])
     print("Started training at:")
     time = datetime.now()
+    print(time)
 
     if NUM_GPUS > 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                          callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
-        trainer = pl.Trainer(precision=16, gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
+        trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
                          callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
 
     trainer.fit(model, train_loader, val_loader)    
     print("Finished training at:")
     time = datetime.now()
+    print(time)
 
     if SAVE_MODEL:
         name = config['name']
