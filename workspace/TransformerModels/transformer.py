@@ -2,7 +2,7 @@ import random, os, pathlib
 from ipaddress import ip_address
 import pandas as pd, numpy as np
 import json, copy
-import yaml
+import yaml, time
 from datetime import datetime
 
 import argparse
@@ -18,6 +18,9 @@ import pytorch_lightning as pl
 from torch.nn import functional as F
 
 from sklearn.model_selection import train_test_split
+
+import matplotlib.pyplot as plt
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from utils import get_data_from_csv, ipaddress_to_number, vectorize_features_to_numpy
 from utils import sliding_window_features, sliding_window_delay
@@ -43,7 +46,13 @@ EPOCHS = int(config['epochs'])
 BATCHSIZE = int(config['batch_size'])  
 LINEARSIZE = int(config['linear_size'])
 
+# Params for the sliding window on the packet data 
+SLIDING_WINDOW_START = 0
+SLIDING_WINDOW_STEP = 1
+SLIDING_WINDOW_SIZE = 10
+
 SAVE_MODEL = False
+MAKE_EPOCH_PLOT = True
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -52,6 +61,7 @@ else:
     print("ERROR: NO CUDA DEVICE FOUND")
     NUM_GPUS = 0 
 
+# DO NOT USE (AS OF NOW)
 class AbsPosEmb1DAISummer(nn.Module):
     """
     Given query q of shape [batch heads tokens dim] we multiply
@@ -73,6 +83,25 @@ class AbsPosEmb1DAISummer(nn.Module):
     def forward(self, q):
         return einsum('b h i d, j d -> b h i j', q, self.abs_pos_emb)
 
+# DO NOT USE (AS OF NOW)
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model, dropout=DROPOUT, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
+
+# TRANSFOMER CLASS TO PREDICT DELAYS
 class BaseTransformer(pl.LightningModule):
 
     def __init__(self,input_size, target_size):
@@ -116,7 +145,7 @@ class BaseTransformer(pl.LightningModule):
         out = self.decoderpred(self.decoder(target, enc))
         return out
 
-    def training_step(self, train_batch, batch_idx):
+    def training_step(self, train_batch, train_idx):
         X, y = train_batch
         loss = 0
         self.lr_update()
@@ -136,7 +165,7 @@ class BaseTransformer(pl.LightningModule):
     def training_epoch_end(self,outputs):
         loss_tensor_list = [item['loss'].to('cpu').numpy() for item in outputs]
         # print(loss_tensor_list, len(loss_tensor_list))
-        self.log('avg_loss_per_epoch', np.mean(np.array(loss_tensor_list)))
+        self.log('Avg loss per epoch', np.mean(np.array(loss_tensor_list)), on_step=False, on_epoch=True)
 
 
 def main():
@@ -151,9 +180,9 @@ def main():
     print(feature_df.head(), feature_df.shape)
     print(label_df.head())
 
-    sl_win_start = 0 
-    sl_win_size = 10
-    sl_win_shift = 1
+    sl_win_start = SLIDING_WINDOW_START
+    sl_win_size = SLIDING_WINDOW_SIZE
+    sl_win_shift = SLIDING_WINDOW_STEP
 
     feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
     target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
@@ -188,6 +217,9 @@ def main():
     time = datetime.now()
     print(time)
 
+    print("Removing old logs:")
+    os.system("rm -rf lightning_logs/*")
+
     if NUM_GPUS > 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                          callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
@@ -203,6 +235,24 @@ def main():
     if SAVE_MODEL:
         name = config['name']
         torch.save(model.model, f"./trained_transformer_{name}")
+
+    if MAKE_EPOCH_PLOT:
+        time.sleep(5)
+        log_dir = "lightning_logs/version_0"
+        y_key = "Avg loss per epoch"
+
+        event_accumulator = EventAccumulator(log_dir)
+        event_accumulator.Reload()
+
+        steps = {x.step for x in event_accumulator.Scalars("epoch")}
+        x = list(range(len(steps)))
+        y = [x.value for x in event_accumulator.Scalars(y_key) if x.step in steps]
+
+        fig, ax = plt.subplots()
+        ax.plot(x, y)
+        ax.set_xlabel("epoch")
+        ax.set_ylabel(y_key)
+        fig.savefig("lossplot_perepoch.png")
 
 if __name__== '__main__':
     main()
