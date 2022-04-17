@@ -1,15 +1,17 @@
+import random, os, pathlib
+from ipaddress import ip_address
+import pandas as pd, numpy as np
+import json, copy
+import yaml
+
+from tqdm import tqdm
+
 import torch
 from pytorch_lightning.callbacks import ProgressBar
 from torch import nn, optim, einsum
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-import random, os, pathlib
-from ipaddress import ip_address
-import pandas as pd, numpy as np
-import json
 import pytorch_lightning as pl
-from tqdm import tqdm
-import copy
 from torch.nn import functional as F
 
 from sklearn.model_selection import train_test_split
@@ -24,18 +26,19 @@ torch.manual_seed(0)
 
 torch.set_default_dtype(torch.float64)
 
-# Hyper parameters
-# TODO: Move to YAML/TOML config later
+# Hyper parameters from config file
 
-WEIGHTDECAY = 1e-5
-LEARNINGRATE = 1e-4            
-DROPOUT = 0.2                   
-NHEAD = 8                      
-LAYERS = 2                      
-EPOCHS = 50
-BATCHSIZE = 64
-LINEARSIZE = 256
+with open('configs/config-base.yaml') as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
 
+WEIGHTDECAY = float(config['weight_decay'])      
+LEARNINGRATE = float(config['learning_rate'])         
+DROPOUT = float(config['dropout'])                      
+NHEAD = int(config['num_heads'])    
+LAYERS = int(config['num_layers'])             
+EPOCHS = int(config['epochs'])  
+BATCHSIZE = int(config['batch_size'])  
+LINEARSIZE = int(config['linear_size'])
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -151,8 +154,8 @@ def main():
     # print(len(train_vectors), len(train_labels))
     # print(len(val_vectors), len(val_labels))
 
-    print(train_vectors[0].shape[0])
-    print(train_labels[0].shape[0])
+    # print(train_vectors[0].shape[0])
+    # print(train_labels[0].shape[0])
 
     train_dataset = PacketDataset(train_vectors, train_labels)
     val_dataset = PacketDataset(val_vectors, val_labels)
@@ -161,6 +164,7 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False)
 
+    # print one dataloader item!!!!
     train_features, train_labels = next(iter(train_loader))
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")

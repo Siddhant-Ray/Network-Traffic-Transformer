@@ -1,0 +1,10 @@
+config_base = ''' learning_rate: 0.1
+weight_decay: 1e-5
+learning_rate: 1e-4            
+dropout: 0.2                   
+num_heads: 8                      
+num_layers: 2                      
+epochs: 50
+batch_size: 64
+linear_size: 256 
+eof: eof_str'''
