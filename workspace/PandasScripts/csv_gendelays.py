@@ -77,6 +77,7 @@ def main():
    
     temp = temp.sort_values(by=['Timestamp'], ascending=True) 
     print(temp.head())  
+    print(temp.shape)
     temp.to_csv(path+"endtoenddelay.csv", index=False)
 
 if __name__== '__main__':
