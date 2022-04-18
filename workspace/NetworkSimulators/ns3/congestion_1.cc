@@ -341,6 +341,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	// We introduce random behaviout at flow creation time, so that we don't have to worry when sending flows!
 
 	// Check seed once!
+	RngSeedManager::SetSeed(1);
 	// std::cout<< RngSeedManager::GetSeed() << std::endl;
 
 	// For packet size
