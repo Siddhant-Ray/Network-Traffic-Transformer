@@ -377,17 +377,17 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	
 	PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
 	ApplicationContainer sinkApps = packetSinkHelper.Install(sinkNode);
-	sinkApps.Start(Seconds(startTime));
+	sinkApps.Start(Seconds(startTime+shifted));
 	sinkApps.Stop(Seconds(stopTime+shifted));
 
 	Ptr<Socket> ns3TcpSocket = Socket::CreateSocket(hostNode, TcpSocketFactory::GetTypeId());
 	
 
 	Ptr<APP> app = CreateObject<APP>();
-	app->Setup(ns3TcpSocket, sinkAddress, packetSize, numPackets, DataRate(dataRate));
+	app->Setup(ns3TcpSocket, sinkAddress, incPackSize + packetSize, incNum + numPackets, DataRate(dataRate));
 	// std::cout<<packetSize<<std::endl;
 	hostNode->AddApplication(app);
-	app->SetStartTime(Seconds(appStartTime));
+	app->SetStartTime(Seconds(appStartTime+shifted));
 	app->SetStopTime(Seconds(appStopTime+shifted));
 
 	return ns3TcpSocket;
@@ -756,7 +756,8 @@ void SingleFlow(bool pcap, std::string algo) {
 	Ptr<FlowMonitor> flowmon;
 	FlowMonitorHelper flowmonHelper;
 	flowmon = flowmonHelper.InstallAll();
-	Simulator::Stop(Seconds(otherFlowStart+durationGap));
+	// Run simulator for shifted flow durations (max possible shift)
+	Simulator::Stop(Seconds(otherFlowStart+durationGap + 50));
 	Simulator::Run();
 	flowmon->CheckForLostPackets();
 
