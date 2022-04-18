@@ -18,6 +18,8 @@
 #include "ns3/traffic-control-module.h"
 #include "ns3/internet-apps-module.h"
 #include "ns3/ipv4-header.h"
+#include "ns3/random-variable-stream.h"
+#include "ns3/rng-seed-manager.h"
 
 // =================================================================
 // Topology details :
@@ -335,10 +337,48 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 		// fprintf(stderr, "Invalid TCP version\n");
 		// exit(EXIT_FAILURE);
 	}
+
+	// We introduce random behaviout at flow creation time, so that we don't have to worry when sending flows!
+
+	// Check seed once!
+	// std::cout<< RngSeedManager::GetSeed() << std::endl;
+
+	// For packet size
+	double minChangePack = 50.0;
+	double maxChangePack = 2000.0;
+	
+	Ptr<UniformRandomVariable> changePack = CreateObject<UniformRandomVariable>();
+	changePack->SetAttribute("Min", DoubleValue(minChangePack));
+	changePack->SetAttribute("Max", DoubleValue(maxChangePack));
+	uint incPackSize = changePack->GetInteger();
+	std::cout<< "Old packet size "<< packetSize <<
+	" New packet size " << incPackSize + packetSize << std::endl;
+
+	// For num packets
+	double minChangeNum = 50000000.0;
+	double maxChangeNum = 75000000.0;
+	
+	Ptr<UniformRandomVariable> changeNum = CreateObject<UniformRandomVariable>();
+	changeNum->SetAttribute("Min", DoubleValue(minChangeNum));
+	changeNum->SetAttribute("Max", DoubleValue(maxChangeNum));
+	uint incNum = changeNum->GetInteger();
+	std::cout<< "Old num packs "<< numPackets <<
+	" New num packs " << incNum + numPackets << std::endl;
+
+	// For sending times
+	double minTimeShift = 2.0;
+	double maxTimeShift = 50.0;
+	
+	Ptr<UniformRandomVariable> timeShift = CreateObject<UniformRandomVariable>();
+	timeShift->SetAttribute("Min", DoubleValue(minTimeShift));
+	timeShift->SetAttribute("Max", DoubleValue(maxTimeShift));
+	double shifted = timeShift->GetValue();
+	std::cout<< "Flow is shifted by " << shifted <<std::endl;
+	
 	PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
 	ApplicationContainer sinkApps = packetSinkHelper.Install(sinkNode);
 	sinkApps.Start(Seconds(startTime));
-	sinkApps.Stop(Seconds(stopTime));
+	sinkApps.Stop(Seconds(stopTime+shifted));
 
 	Ptr<Socket> ns3TcpSocket = Socket::CreateSocket(hostNode, TcpSocketFactory::GetTypeId());
 	
@@ -348,7 +388,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	// std::cout<<packetSize<<std::endl;
 	hostNode->AddApplication(app);
 	app->SetStartTime(Seconds(appStartTime));
-	app->SetStopTime(Seconds(appStopTime));
+	app->SetStopTime(Seconds(appStopTime+shifted));
 
 	return ns3TcpSocket;
 }
@@ -585,7 +625,6 @@ void SingleFlow(bool pcap, std::string algo) {
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, 0));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, 0, 1));
 
-	
 	// netDuration += durationGap;
 
 	//TCP NewReno from H2 to H5
