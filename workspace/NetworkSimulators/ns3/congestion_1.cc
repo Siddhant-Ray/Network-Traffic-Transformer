@@ -375,6 +375,29 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	timeShift->SetAttribute("Max", DoubleValue(maxTimeShift));
 	double shifted = timeShift->GetValue();
 	std::cout<< "Flow is shifted by " << shifted <<std::endl;
+
+	// TODO: Add randomness for datarate and queue size
+	/*std::string rate = dataRate;
+
+	if (!rate.empty()){
+		rate.pop_back();
+		rate.pop_back();
+		rate.pop_back();
+		rate.pop_back();
+	}
+
+	std::cout<< rate << std::endl;
+
+	// For datarate
+	double minRateChange = 20.0;
+	double maxRateChange = 200.0;
+	
+	Ptr<UniformRandomVariable> cngrate = CreateObject<UniformRandomVariable>();
+	cngrate->SetAttribute("Min", DoubleValue(minRateChange));
+	cngrate->SetAttribute("Max", DoubleValue(maxRateChange));
+	double changerateby = cngrate->GetValue();
+	std::cout<< "Change rate by " << changerateby <<std::endl;*/
+	
 	
 	PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
 	ApplicationContainer sinkApps = packetSinkHelper.Install(sinkNode);
@@ -382,7 +405,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	sinkApps.Stop(Seconds(stopTime+shifted));
 
 	Ptr<Socket> ns3TcpSocket = Socket::CreateSocket(hostNode, TcpSocketFactory::GetTypeId());
-	
+
 
 	Ptr<APP> app = CreateObject<APP>();
 	app->Setup(ns3TcpSocket, sinkAddress, incPackSize + packetSize, incNum + numPackets, DataRate(dataRate));
@@ -606,7 +629,7 @@ void SingleFlow(bool pcap, std::string algo) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 100;
+	double durationGap = 1000;
 	double oneFlowStart = 0;
 	double otherFlowStart = 20;
     double netDuration = otherFlowStart + durationGap;
