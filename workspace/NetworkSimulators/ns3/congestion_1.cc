@@ -321,7 +321,8 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 					uint numPackets,
 					std::string dataRate,
 					double appStartTime,
-					double appStopTime) {
+					double appStopTime,
+					uint seed) {
 
 	if(tcpVariant.compare("TcpNewReno") == 0) {
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpNewReno::GetTypeId()));
@@ -341,7 +342,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	// We introduce random behaviout at flow creation time, so that we don't have to worry when sending flows!
 
 	// Check seed once!
-	RngSeedManager::SetSeed(1);
+	RngSeedManager::SetSeed(seed);
 	// std::cout<< RngSeedManager::GetSeed() << std::endl;
 
 	// For packet size
@@ -384,19 +385,19 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 		rate.pop_back();
 		rate.pop_back();
 		rate.pop_back();
-	}
+	}*/
 
-	std::cout<< rate << std::endl;
-
+	
 	// For datarate
-	double minRateChange = 20.0;
-	double maxRateChange = 200.0;
+	double minRateChange = 100.0;
+	double maxRateChange = 600.0;
 	
 	Ptr<UniformRandomVariable> cngrate = CreateObject<UniformRandomVariable>();
 	cngrate->SetAttribute("Min", DoubleValue(minRateChange));
 	cngrate->SetAttribute("Max", DoubleValue(maxRateChange));
-	double changerateby = cngrate->GetValue();
-	std::cout<< "Change rate by " << changerateby <<std::endl;*/
+	uint getnewrate = cngrate->GetInteger();
+	std::string strnewrate = std::to_string(getnewrate).append("Mbps");
+	std::cout<< "Old rate " << dataRate <<" New rate " << strnewrate <<std::endl;
 	
 	
 	PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
@@ -408,7 +409,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 
 
 	Ptr<APP> app = CreateObject<APP>();
-	app->Setup(ns3TcpSocket, sinkAddress, incPackSize + packetSize, incNum + numPackets, DataRate(dataRate));
+	app->Setup(ns3TcpSocket, sinkAddress, incPackSize + packetSize, incNum + numPackets, DataRate(strnewrate));
 	// std::cout<<packetSize<<std::endl;
 	hostNode->AddApplication(app);
 	app->SetStartTime(Seconds(appStartTime+shifted));
@@ -417,7 +418,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 	return ns3TcpSocket;
 }
 
-void SingleFlow(bool pcap, std::string algo) {
+void SingleFlow(bool pcap, std::string algo, uint seed) {
 	NS_LOG_INFO("Sending single flows from senders to receivers...");
 	std::string rateHR = "100Mbps";
 	std::string latencyHR = "20ms";
@@ -629,9 +630,9 @@ void SingleFlow(bool pcap, std::string algo) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 1000;
+	double durationGap = 100;
 	double oneFlowStart = 0;
-	double otherFlowStart = 20;
+	double otherFlowStart = 0;
     double netDuration = otherFlowStart + durationGap;
 	uint port = 9000;
 	uint numPackets = 100000000;
@@ -645,7 +646,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	
 	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0),
                                                         receivers.Get(0), oneFlowStart, oneFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap);
+                                                         numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap, seed);
 	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, 0));
 	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, 0, 1));
 
@@ -657,7 +658,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	
 	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, ccalgo, senders.Get(1),
                                                         receivers.Get(1), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
 	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream2CWND, 0));
 	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream2PD, 0, 2));
 
@@ -669,7 +670,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	
 	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, ccalgo, senders.Get(2),
                                                         receivers.Get(2), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
 	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, 0));
 	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, 0, 3));
 
@@ -679,7 +680,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	
 	Ptr<Socket> ns3TcpSocket4 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(3), port), port, ccalgo, senders.Get(3),
                                                         receivers.Get(3), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
 	ns3TcpSocket4->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream4CWND, 0));
 	ns3TcpSocket4->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream4PD, 0, 4));
 
@@ -689,7 +690,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	
 	Ptr<Socket> ns3TcpSocket5 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(4), port), port, ccalgo, senders.Get(4),
                                                         receivers.Get(4), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
 	ns3TcpSocket5->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream5CWND, 0));
 	ns3TcpSocket5->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream5PD, 0, 5));
 
@@ -699,7 +700,7 @@ void SingleFlow(bool pcap, std::string algo) {
 	
 	Ptr<Socket> ns3TcpSocket6 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(5), port), port, ccalgo, senders.Get(5),
                                                         receivers.Get(5), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap);
+                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
 	ns3TcpSocket6->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, 0));
 	ns3TcpSocket6->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, 0, 6));
 
@@ -837,13 +838,14 @@ int main(int argc, char **argv) {
     CommandLine cmd;
     cmd.Parse (argc, argv);
     std::string ccalgo = "TcpVegas";
+	uint seed = 1;
 
     auto start = std::chrono::system_clock::now();
 	std::time_t start_time = std::chrono::system_clock::to_time_t(start);
 	
 	std::cout << "Started computation at " << std::ctime(&start_time);
 
-	SingleFlow(pcap, ccalgo);
+	SingleFlow(pcap, ccalgo, seed);
 
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
