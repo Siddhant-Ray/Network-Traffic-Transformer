@@ -425,9 +425,24 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 	std::string rateRR = "10Mbps";
 	std::string latencyRR = "50ms";
 
-	uint packetSize = 120;		// 1.2KB packet size
-	uint queueSizeHR = (100000*20)/ packetSize;
-	uint queueSizeRR = (10000*50)/ packetSize;
+	uint packetSize = 120;		// Base packet size, changed at flow creation time
+	/* uint queueSizeHR = (1000*20)/ packetSize;
+	uint queueSizeRR = (1000*50)/ packetSize;*/
+
+	RngSeedManager::SetSeed(seed);
+
+	double minQueue = 300;
+	double maxQueue = 600;
+	
+	Ptr<UniformRandomVariable> devQueue = CreateObject<UniformRandomVariable>();
+	devQueue->SetAttribute("Min", DoubleValue(minQueue));
+	devQueue->SetAttribute("Max", DoubleValue(maxQueue));
+	
+	uint devQueueValue = devQueue->GetInteger();
+	uint routQueueValue = devQueueValue / 3;
+
+	uint queueSizeHR = devQueueValue;
+	uint queueSizeRR = routQueueValue;
     
     std::string strqueueSizeHR = std::to_string(queueSizeHR);
     std::string strqueueSizeRR = std::to_string(queueSizeRR);
@@ -481,7 +496,16 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
     p2pRR.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize(strqueueSizeHR)));
 
     // Bottleneck link traffic control configuration
-    uint32_t queueDiscSize = 1000;
+	double minQueueDisc = 750;
+	double maxQueueDisc = 1500;
+	
+	Ptr<UniformRandomVariable> qDisc = CreateObject<UniformRandomVariable>();
+	qDisc->SetAttribute("Min", DoubleValue(minQueueDisc));
+	qDisc->SetAttribute("Max", DoubleValue(maxQueueDisc));
+	
+	uint qDiscValue = qDisc->GetInteger();
+
+    uint32_t queueDiscSize = qDiscValue;
     TrafficControlHelper tchRR;
     tchRR.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueDiscSize)));
@@ -753,7 +777,7 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 
     
 	Ptr<Queue<Packet>> revqueue = StaticCast<PointToPointNetDevice>(receiverDevices.Get(receiverNum))->GetQueue();
-
+	
 	// Log Rx packets received on receivers , this must be the same as packets received on router 0 (it is!!)
     Ptr<OutputStreamWrapper> streamRRxEnds = ascii.CreateFileStream("outputs/congestion_1/RxRevd_receiver_"
                                                                             + std::to_string(receiverNum) + ".csv");
@@ -824,6 +848,12 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 
 		}
 	}
+	// !DEBUG
+	Ptr<Queue<Packet>> squeue = StaticCast<PointToPointNetDevice>(senderDevices.Get(0))->GetQueue();
+	std::cout << "Max queue size is "<< squeue->GetMaxSize() << " packets "<<std::endl;
+
+	QueueSize queuesize = qdiscs.Get(0)->GetMaxSize();
+    std::cout <<"Max size of queuedisc is "<< queuesize << " packets "<<std::endl;
 
 	//flowmon->SerializeToXmlFile("application_1_a.flowmon", true, true);
 	NS_LOG_INFO("Simulation finished");
@@ -834,12 +864,12 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 int main(int argc, char **argv) {
 
 	bool pcap = true;
+	std::string ccalgo = "TcpVegas";
+	uint seed = 1;
 
     CommandLine cmd;
     cmd.Parse (argc, argv);
-    std::string ccalgo = "TcpVegas";
-	uint seed = 1;
-
+    
     auto start = std::chrono::system_clock::now();
 	std::time_t start_time = std::chrono::system_clock::to_time_t(start);
 	
