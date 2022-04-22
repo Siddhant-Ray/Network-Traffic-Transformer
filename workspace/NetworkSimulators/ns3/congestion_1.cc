@@ -654,7 +654,7 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 500;
+	double durationGap = 100;
 	double oneFlowStart = 0;
 	double otherFlowStart = 0;
     double netDuration = otherFlowStart + durationGap;
@@ -663,72 +663,27 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 	std::string transferSpeed = "400Mbps";	
     std::string ccalgo = algo;
 
-	//TCP NewReno from H1 to H4
-	AsciiTraceHelper asciiTraceHelper;
-	Ptr<OutputStreamWrapper> stream1CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h7_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream1PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h1h7_singleflow.congestion_loss");
-	
-	Ptr<Socket> ns3TcpSocket1 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(0), port), port, ccalgo, senders.Get(0),
-                                                        receivers.Get(0), oneFlowStart, oneFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap, seed);
-	ns3TcpSocket1->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, stream1CWND, 0));
-	ns3TcpSocket1->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, stream1PD, 0, 1));
+	uint hostNum = 0;
 
-	// netDuration += durationGap;
+	while(hostNum < numSender){
 
-	//TCP NewReno from H2 to H5
-	Ptr<OutputStreamWrapper> stream2CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h8_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream2PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h2h8_singleflow.congestion_loss");
-	
-	Ptr<Socket> ns3TcpSocket2 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(1), port), port, ccalgo, senders.Get(1),
-                                                        receivers.Get(1), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
-	ns3TcpSocket2->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream2CWND, 0));
-	ns3TcpSocket2->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream2PD, 0, 2));
-
-	netDuration += durationGap;
-
-	//TCP NewReno from H3 to H6
-	Ptr<OutputStreamWrapper> stream3CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h9_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream3PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h3h9_singleflow.congestion_loss");
-	
-	Ptr<Socket> ns3TcpSocket3 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(2), port), port, ccalgo, senders.Get(2),
-                                                        receivers.Get(2), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
-	ns3TcpSocket3->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, 0));
-	ns3TcpSocket3->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, 0, 3));
-
-	//TCP NewReno from H4 to H8
-	Ptr<OutputStreamWrapper> stream4CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h4h10_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream4PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h4h10_singleflow.congestion_loss");
-	
-	Ptr<Socket> ns3TcpSocket4 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(3), port), port, ccalgo, senders.Get(3),
-                                                        receivers.Get(3), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
-	ns3TcpSocket4->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream4CWND, 0));
-	ns3TcpSocket4->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream4PD, 0, 4));
-
-	//TCP NewReno from H5 to H10
-	Ptr<OutputStreamWrapper> stream5CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h5h11_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream5PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h5h11_singleflow.congestion_loss");
-	
-	Ptr<Socket> ns3TcpSocket5 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(4), port), port, ccalgo, senders.Get(4),
-                                                        receivers.Get(4), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
-	ns3TcpSocket5->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream5CWND, 0));
-	ns3TcpSocket5->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream5PD, 0, 5));
-
-	//TCP NewReno from H6 to H12
-	Ptr<OutputStreamWrapper> stream6CWND = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h6h12_singleflow.cwnd");
-	Ptr<OutputStreamWrapper> stream6PD = asciiTraceHelper.CreateFileStream("outputs/congestion_1/h6h12_singleflow.congestion_loss");
-	
-	Ptr<Socket> ns3TcpSocket6 = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(5), port), port, ccalgo, senders.Get(5),
-                                                        receivers.Get(5), otherFlowStart, otherFlowStart+durationGap, packetSize,
-                                                         numPackets, transferSpeed, otherFlowStart, otherFlowStart+durationGap, seed);
-	ns3TcpSocket6->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(&CwndChange, stream3CWND, 0));
-	ns3TcpSocket6->TraceConnectWithoutContext("Drop", MakeBoundCallback(&packetDrop, stream3PD, 0, 6));
-
-	
+		AsciiTraceHelper asciiTraceHelper;
+		std::string cwnd_name = "outputs/congestion_1/h" + std::to_string(hostNum+1) + "h" + 
+								std::to_string(hostNum+1+numSender) + "_singleflow.cwnd";
+		std::string cong_name = "outputs/congestion_1/h" + std::to_string(hostNum+1) + "h" + 
+								std::to_string(hostNum+1+numSender) + "_singleflow.congestion_loss";						
+		Ptr<OutputStreamWrapper> streamCWND = asciiTraceHelper.CreateFileStream(cwnd_name);
+		Ptr<OutputStreamWrapper> streamPD = asciiTraceHelper.CreateFileStream(cong_name);
+		
+		Ptr<Socket> ns3TcpSocket = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(hostNum), port), port, ccalgo, 
+															senders.Get(hostNum),receivers.Get(hostNum), oneFlowStart,
+															oneFlowStart+durationGap, packetSize,
+															numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap, seed);
+		ns3TcpSocket->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, streamCWND, 0));
+		ns3TcpSocket->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, streamPD, 0, hostNum+1));
+		netDuration += durationGap;
+		hostNum++;
+	}
 
     uint routerNum = 0;
     while(routerNum <= 2){
@@ -811,17 +766,17 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 	flowmon->CheckForLostPackets();
 
 	//Ptr<OutputStreamWrapper> streamTP = asciiTraceHelper.CreateFileStream("application_1_a.tp");
-	Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
+	/* Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
 	std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats();
 	for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i) {
 		Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(i->first);
-		/* DEBUG!
+		DEBUG!
 		*streamTP->GetStream()  << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
 		*streamTP->GetStream()  << "  Tx Bytes:   " << i->second.txBytes << "\n";
 		*streamTP->GetStream()  << "  Rx Bytes:   " << i->second.rxBytes << "\n";
 		*streamTP->GetStream()  << "  Time        " << i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds() << "\n";
 		*streamTP->GetStream()  << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds())/1024/1024  << " Mbps\n";	
-		*/
+		
 		if(t.sourceAddress == "10.1.0.1") {
 			if(mapDrop.find(1)==mapDrop.end())
 				mapDrop[1] = 0;
@@ -847,7 +802,7 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 			*stream3PD->GetStream()  << "Packet Lost due to Congestion: " << i->second.lostPackets - mapDrop[3] << "\n";
 
 		}
-	}
+	}*/
 	// !DEBUG
 	Ptr<Queue<Packet>> squeue = StaticCast<PointToPointNetDevice>(senderDevices.Get(0))->GetQueue();
 	std::cout << "Max queue size is "<< squeue->GetMaxSize() << " packets "<<std::endl;
