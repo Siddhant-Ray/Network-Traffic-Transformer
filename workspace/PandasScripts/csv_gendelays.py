@@ -29,6 +29,9 @@ def gen_packet_delay(input_dataframe1, input_dataframe2, path):
 
     input_dataframe1["Delay"] = input_dataframe2["Timestamp"] - input_dataframe1["Timestamp"]
     # print(input_dataframe1.tail(), input_dataframe1.shape)
+
+    input_dataframe1 = input_dataframe1[input_dataframe1['Delay'].notna()]
+    # print(input_dataframe1.tail(), input_dataframe1.shape)
     
     return  input_dataframe1
 

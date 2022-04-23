@@ -163,6 +163,7 @@ def main():
     receiver_csv = generate_receivers_csv(path, n_receivers)
 
     sender_csv.to_csv(path+"combined_sender.csv", index=False)
+    receiver_csv.to_csv(path+"combined_receiver.csv", index=False)
     
 
 if __name__== '__main__':
