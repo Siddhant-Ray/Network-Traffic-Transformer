@@ -62,6 +62,7 @@ SLIDING_WINDOW_SIZE = 10
 
 SAVE_MODEL = False
 MAKE_EPOCH_PLOT = True
+TEST = False
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -171,6 +172,19 @@ class BaseTransformer(pl.LightningModule):
         self.log('Val loss', loss)
         return loss
 
+    def test_step(self, test_batch, test_idx):
+        X, y = test_batch
+        loss = 0
+        prediction = self.forward(X, y)
+        loss = self.loss_func(prediction, y)
+        self.log('Test loss', loss)
+        return loss
+
+    def predict_step(self, test_batch, test_idx, dataloader_idx=0):
+        X, y = test_batch
+        prediction = self.forward(X, y)
+        return prediction
+
     def training_epoch_end(self,outputs):
         loss_tensor_list = [item['loss'].to('cpu').numpy() for item in outputs]
         # print(loss_tensor_list, len(loss_tensor_list))
@@ -197,7 +211,12 @@ def main():
     target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
     print(len(feature_arr), len(target_arr))
 
-    train_vectors, val_vectors, train_labels, val_labels = train_test_split(feature_arr, target_arr, test_size = 0.1,
+    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(feature_arr, target_arr, test_size = 0.05,
+                                                            shuffle = False)
+    # print(len(full_train_vectors), len(full_train_labels))
+    # print(len(test_vectors), len(test_labels))
+
+    train_vectors, val_vectors, train_labels, val_labels = train_test_split(full_train_vectors, full_train_labels, test_size = 0.1,
                                                             shuffle = False)
     # print(len(train_vectors), len(train_labels))
     # print(len(val_vectors), len(val_labels))
@@ -207,10 +226,12 @@ def main():
 
     train_dataset = PacketDataset(train_vectors, train_labels)
     val_dataset = PacketDataset(val_vectors, val_labels)
+    test_dataset = PacketDataset(test_vectors, test_labels)
     # print(train_dataset.__getitem__(0))
     
     train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
     val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
 
     # print one dataloader item!!!!
     train_features, train_labels = next(iter(train_loader))
@@ -265,6 +286,9 @@ def main():
         ax.set_xlabel("epoch")
         ax.set_ylabel(y_key)
         fig.savefig("lossplot_perepoch.png")
+
+    if TEST:
+        trainer.test(dataloaders=test_loader)
 
 if __name__== '__main__':
     main()
