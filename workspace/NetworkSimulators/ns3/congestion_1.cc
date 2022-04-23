@@ -369,7 +369,7 @@ Ptr<Socket> uniFlow(Address sinkAddress,
 
 	// For sending times
 	double minTimeShift = 2.0;
-	double maxTimeShift = 50.0;
+	double maxTimeShift = 6.0;
 	
 	Ptr<UniformRandomVariable> timeShift = CreateObject<UniformRandomVariable>();
 	timeShift->SetAttribute("Min", DoubleValue(minTimeShift));
@@ -654,10 +654,12 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 100;
+	double durationGap = 500;
 	double oneFlowStart = 0;
 	double otherFlowStart = 0;
-    double netDuration = otherFlowStart + durationGap;
+	// This is a dummy variable for extra stuff, need to use it at the compiler treats
+	// unused variables as an error!
+    double netDuration = oneFlowStart + otherFlowStart + durationGap;
 	uint port = 9000;
 	uint numPackets = 100000000;
 	std::string transferSpeed = "400Mbps";	
@@ -674,13 +676,27 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 								std::to_string(hostNum+1+numSender) + "_singleflow.congestion_loss";						
 		Ptr<OutputStreamWrapper> streamCWND = asciiTraceHelper.CreateFileStream(cwnd_name);
 		Ptr<OutputStreamWrapper> streamPD = asciiTraceHelper.CreateFileStream(cong_name);
-		
+
+		double subflowStart = 0;
+
+		double minsubflowTime = 8;
+		double maxsubflowTime = 13;
+		Ptr<UniformRandomVariable> subflow = CreateObject<UniformRandomVariable>();
+		subflow->SetAttribute("Min", DoubleValue(minsubflowTime));
+		subflow->SetAttribute("Max", DoubleValue(maxsubflowTime));
+	
+		double subflowDurationGap = subflow->GetValue();
+
+		while(subflowStart<=durationGap){
+
 		Ptr<Socket> ns3TcpSocket = uniFlow(InetSocketAddress(receiverIFCs.GetAddress(hostNum), port), port, ccalgo, 
-															senders.Get(hostNum),receivers.Get(hostNum), oneFlowStart,
-															oneFlowStart+durationGap, packetSize,
-															numPackets, transferSpeed, oneFlowStart, oneFlowStart+durationGap, seed);
+										senders.Get(hostNum),receivers.Get(hostNum), subflowStart,
+										subflowStart+subflowDurationGap, packetSize,
+										numPackets, transferSpeed, subflowStart, subflowStart+subflowDurationGap, seed);
 		ns3TcpSocket->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback (&CwndChange, streamCWND, 0));
 		ns3TcpSocket->TraceConnectWithoutContext("Drop", MakeBoundCallback (&packetDrop, streamPD, 0, hostNum+1));
+		subflowStart += 20;
+		}
 		netDuration += durationGap;
 		hostNum++;
 	}
