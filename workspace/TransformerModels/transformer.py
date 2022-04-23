@@ -62,7 +62,7 @@ SLIDING_WINDOW_SIZE = 10
 
 SAVE_MODEL = False
 MAKE_EPOCH_PLOT = True
-TEST = False
+TEST = True
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -234,14 +234,31 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
 
     # print one dataloader item!!!!
-    train_features, train_labels = next(iter(train_loader))
+    train_features, train_lbls = next(iter(train_loader))
     print(f"Feature batch shape: {train_features.size()}")
-    print(f"Labels batch shape: {train_labels.size()}")
+    print(f"Labels batch shape: {train_lbls.size()}")
     feature = train_features[0]
-    label = train_labels[0]
+    label = train_lbls[0]
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
+    val_features, val_lbls = next(iter(val_loader))
+    print(f"Feature batch shape: {val_features.size()}")
+    print(f"Labels batch shape: {val_lbls.size()}")
+    feature = val_features[0]
+    label = val_lbls[0]
+    print(f"Feature: {feature}")
+    print(f"Label: {label}")
+
+    test_features, test_lbls = next(iter(test_loader))
+    print(f"Feature batch shape: {test_features.size()}")
+    print(f"Labels batch shape: {test_lbls.size()}")
+    feature = test_features[0]
+    label = test_lbls[0]
+    print(f"Feature: {feature}")
+    print(f"Label: {label}")
+
+    
     model = BaseTransformer(train_vectors[0].shape[0], train_labels[0].shape[0], LOSSFUNCTION)
     print("Started training at:")
     time = datetime.now()
@@ -288,7 +305,7 @@ def main():
         fig.savefig("lossplot_perepoch.png")
 
     if TEST:
-        trainer.test(dataloaders=test_loader)
+        trainer.test(model, dataloaders=test_loader)
 
 if __name__== '__main__':
     main()

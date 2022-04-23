@@ -5,7 +5,7 @@ learning_rate: 1e-4
 dropout: 0.2                   
 num_heads: 8                      
 num_layers: 2                      
-epochs: 10
+epochs: 15
 batch_size: 64
 linear_size: 256 
 loss_function: huber
