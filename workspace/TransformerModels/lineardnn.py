@@ -73,22 +73,31 @@ else:
 
 
 # LSTM CLASS TO PREDICT DELAYS
-class BaseLSTM(pl.LightningModule):
+class BaseLinearDNN(pl.LightningModule):
 
     def __init__(self,input_size, target_size, loss_function):
-        super(BaseLSTM, self).__init__()
+        super(BaseLinearDNN, self).__init__()
 
         self.step = [0]
         self.warmup_steps = 1000
 
         # create the model with its layers
 
-        self.encoder = nn.LSTM(input_size = LINEARSIZE, hidden_size = LINEARSIZE, batch_first = True, num_layers=LAYERS, dropout = DROPOUT)
-        self.decoder = nn.LSTM(input_size = LINEARSIZE, hidden_size = LINEARSIZE, batch_first = True, num_layers=LAYERS, dropout = DROPOUT)
-        self.encoderin = nn.Linear(input_size, LINEARSIZE)
-        self.decoderin = nn.Linear(target_size, LINEARSIZE)
-        self.decoderpred= nn.Linear(LINEARSIZE, target_size)
-        self.model = nn.ModuleList([self.encoder, self.decoder, self.encoderin, self.decoderin, self.decoderpred])
+        self.linearin = nn.Linear(input_size, LINEARSIZE)
+
+        self.hidden = nn.Sequential(
+            nn.Dropout(DROPOUT),
+            nn.Linear(LINEARSIZE, LINEARSIZE),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+            nn.Linear(LINEARSIZE, LINEARSIZE),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+            nn.Linear(LINEARSIZE, LINEARSIZE)
+        )
+        
+        self.linearpred= nn.Linear(LINEARSIZE, target_size)
+        self.model = nn.ModuleList([self.linearin, self.hidden, self.linearpred])
 
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
@@ -108,12 +117,10 @@ class BaseLSTM(pl.LightningModule):
 
     def forward(self, input, target):
         # used for the forward pass of the model
-        scaled_input = self.encoderin(input.double())
-        target = self.decoderin(target.double())
-        enc, states = self.encoder(scaled_input)
-        dout, states =  self.decoder(enc)
-        out = self.decoderpred(dout)
-        return out
+        scaled_input = self.linearin(input.double())
+        output = self.hidden(scaled_input)
+        scaled_output = self.linearpred(output)
+        return scaled_output
 
     def training_step(self, train_batch, train_idx):
         X, y = train_batch
@@ -219,7 +226,7 @@ def main():
     print(f"Label: {label}")
 
     
-    model = BaseLSTM(train_vectors[0].shape[0], train_labels[0].shape[0], LOSSFUNCTION)
+    model = BaseLinearDNN(train_vectors[0].shape[0], train_labels[0].shape[0], LOSSFUNCTION)
     print("Started training at:")
     time = datetime.now()
     print(time)
@@ -227,7 +234,7 @@ def main():
     print("Removing old logs:")
     os.system("rm -rf lightning_logs/*")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="linear_logs/")
 
     if NUM_GPUS > 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -243,7 +250,7 @@ def main():
 
     if SAVE_MODEL:
         name = config['name']
-        torch.save(model.model, f"./trained_lstm_{name}")
+        torch.save(model.model, f"./trained_linear_{name}")
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
