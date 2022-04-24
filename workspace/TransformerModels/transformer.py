@@ -288,7 +288,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "lightning_logs/version_0"
+        log_dir = "transformer_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)

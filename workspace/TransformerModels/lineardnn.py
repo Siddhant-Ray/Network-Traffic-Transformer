@@ -87,13 +87,13 @@ class BaseLinearDNN(pl.LightningModule):
 
         self.hidden = nn.Sequential(
             nn.Dropout(DROPOUT),
-            nn.Linear(LINEARSIZE, LINEARSIZE),
+            nn.Linear(LINEARSIZE*8, LINEARSIZE*8),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-            nn.Linear(LINEARSIZE, LINEARSIZE),
+            nn.Linear(LINEARSIZE*8, LINEARSIZE*8),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-            nn.Linear(LINEARSIZE, LINEARSIZE)
+            nn.Linear(LINEARSIZE*8, LINEARSIZE*8)
         )
         
         self.linearpred= nn.Linear(LINEARSIZE, target_size)
@@ -254,7 +254,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "lightning_logs/version_0"
+        log_dir = "linear_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
