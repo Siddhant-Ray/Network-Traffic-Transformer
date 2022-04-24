@@ -2,8 +2,7 @@ config_base = ''' name: base
 learning_rate: 0.1
 weight_decay: 1e-5
 learning_rate: 1e-4            
-dropout: 0.2                   
-num_heads: 8                      
+dropout: 0.2                                         
 num_layers: 6                      
 epochs: 15
 batch_size: 64

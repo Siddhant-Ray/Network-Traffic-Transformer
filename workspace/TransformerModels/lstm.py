@@ -41,7 +41,6 @@ with open('configs/config-lstm.yaml') as f:
 WEIGHTDECAY = float(config['weight_decay'])      
 LEARNINGRATE = float(config['learning_rate'])         
 DROPOUT = float(config['dropout'])                      
-NHEAD = int(config['num_heads'])    
 LAYERS = int(config['num_layers'])             
 EPOCHS = int(config['epochs'])  
 BATCHSIZE = int(config['batch_size'])  
@@ -93,7 +92,7 @@ class BaseLSTM(pl.LightningModule):
 
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
-                         "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
+                         "LINEARSIZE": LINEARSIZE, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
 
