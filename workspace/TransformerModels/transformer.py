@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 from torch.nn import functional as F
+from pytorch_lightning import loggers as pl_loggers
 
 from sklearn.model_selection import train_test_split
 
@@ -34,7 +35,7 @@ torch.set_default_dtype(torch.float64)
 
 # Hyper parameters from config file
 
-with open('configs/config-base.yaml') as f:
+with open('configs/config-transformer.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 WEIGHTDECAY = float(config['weight_decay'])      
@@ -267,12 +268,14 @@ def main():
     print("Removing old logs:")
     os.system("rm -rf lightning_logs/*")
 
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_logs/")
+    
     if NUM_GPUS > 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                         callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                         callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
 
     trainer.fit(model, train_loader, val_loader)    
     print("Finished training at:")
