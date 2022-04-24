@@ -266,7 +266,7 @@ def main():
     print(time)
 
     print("Removing old logs:")
-    os.system("rm -rf lightning_logs/*")
+    os.system("rm -rf transformer_logs/lightning_logs/*")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_logs/")
     

@@ -87,7 +87,7 @@ class BaseLinearDNN(pl.LightningModule):
 
         self.hidden = nn.Sequential(
             nn.Dropout(DROPOUT),
-            nn.Linear(LINEARSIZE*8, LINEARSIZE*8),
+            nn.Linear(LINEARSIZE, LINEARSIZE*8),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
             nn.Linear(LINEARSIZE*8, LINEARSIZE*8),
@@ -96,7 +96,7 @@ class BaseLinearDNN(pl.LightningModule):
             nn.Linear(LINEARSIZE*8, LINEARSIZE*8)
         )
         
-        self.linearpred= nn.Linear(LINEARSIZE, target_size)
+        self.linearpred= nn.Linear(LINEARSIZE*8, target_size)
         self.model = nn.ModuleList([self.linearin, self.hidden, self.linearpred])
 
         self.loss_func = loss_function
@@ -232,7 +232,7 @@ def main():
     print(time)
 
     print("Removing old logs:")
-    os.system("rm -rf lightning_logs/*")
+    os.system("rm -rf linear_logs/lightning_logs/*")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="linear_logs/")
 
