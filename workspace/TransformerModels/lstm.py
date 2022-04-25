@@ -172,7 +172,7 @@ def main():
     print(len(feature_arr), len(target_arr))
 
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(feature_arr, target_arr, test_size = 0.05,
-                                                            shuffle = False)
+                                                            shuffle = True, random_state=42)
     # print(len(full_train_vectors), len(full_train_labels))
     # print(len(test_vectors), len(test_labels))
 
@@ -225,7 +225,7 @@ def main():
     print(time)
 
     print("Removing old logs:")
-    os.system("rm -rf lstm_logs/lightning_logs/*")
+    os.system("rm -rf lstm_logs/lightning_logs/")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs/")
 
