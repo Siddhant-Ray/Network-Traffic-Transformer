@@ -654,7 +654,7 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 500;
+	double durationGap = 1000;
 	double oneFlowStart = 0;
 	double otherFlowStart = 0;
 	// This is a dummy variable for extra stuff, need to use it at the compiler treats
@@ -686,6 +686,7 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 		subflow->SetAttribute("Max", DoubleValue(maxsubflowTime));
 	
 		double subflowDurationGap = subflow->GetValue();
+		std::cout << "subflow duration is " << subflowDurationGap << std::endl;
 
 		while(subflowStart<=durationGap){
 
