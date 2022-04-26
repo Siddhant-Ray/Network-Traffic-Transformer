@@ -88,9 +88,11 @@ class BaseLinearDNN(pl.LightningModule):
         self.hidden = nn.Sequential(
             nn.Dropout(DROPOUT),
             nn.Linear(LINEARSIZE, LINEARSIZE*8),
+            nn.BatchNorm1d(LINEARSIZE*8),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
             nn.Linear(LINEARSIZE*8, LINEARSIZE*8),
+            nn.BatchNorm1d(LINEARSIZE*8),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
             nn.Linear(LINEARSIZE*8, LINEARSIZE*8)
@@ -160,7 +162,7 @@ class BaseLinearDNN(pl.LightningModule):
 
 def main():
     path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
-    file = "endtoenddelay.csv"
+    file = "endtoenddelay500s.csv"
     print(os.getcwd())
 
     df = get_data_from_csv(path+file)
