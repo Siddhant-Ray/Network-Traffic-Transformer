@@ -158,7 +158,6 @@ class BaseTransformer(pl.LightningModule):
 
     def training_step(self, train_batch, train_idx):
         X, y = train_batch
-        loss = 0
         self.lr_update()
         prediction = self.forward(X, y)
         loss = self.loss_func(prediction, y)
@@ -167,18 +166,16 @@ class BaseTransformer(pl.LightningModule):
 
     def validation_step(self, val_batch, val_idx):
         X, y = val_batch
-        loss = 0
         prediction = self.forward(X, y)
         loss = self.loss_func(prediction, y)
-        self.log('Val loss', loss)
+        self.log('Val loss', loss, sync_dist=True)
         return loss
 
     def test_step(self, test_batch, test_idx):
         X, y = test_batch
-        loss = 0
         prediction = self.forward(X, y)
         loss = self.loss_func(prediction, y)
-        self.log('Test loss', loss)
+        self.log('Test loss', loss, sync_dist=True)
         return loss
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
@@ -194,7 +191,8 @@ class BaseTransformer(pl.LightningModule):
 
 def main():
     path = "congestion_1/"
-    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv"]
+    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
+            "endtoenddelay500s_4.csv"]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
@@ -279,7 +277,7 @@ def main():
         tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_logs/")
         
         if NUM_GPUS >= 1:
-            trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
+            trainer = pl.Trainer(precision=16, gpus=-1, strategy="ddp", num_nodes =1, max_epochs=EPOCHS, check_val_every_n_epoch=1,
                             logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
         else:
             trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
