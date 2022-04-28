@@ -29,6 +29,12 @@ def get_data_from_csv(input_file):
     df = pd.read_csv(input_file)
     return df 
 
+def convert_to_relative_timestamp(df):
+    t_arr = df['Timestamp'].iloc[0]
+    t_arr_abs = df['Timestamp'] - t_arr
+    df['Timestamp'] = t_arr_abs
+    return df
+
 def ipaddress_to_number(df):
     df['Source IP'] = df['Source IP'].apply(lambda s : int(ip_address(s.lstrip(" "))))
     df['Destination IP'] = df['Destination IP'].apply(lambda s : int(ip_address(s.lstrip(" "))))
