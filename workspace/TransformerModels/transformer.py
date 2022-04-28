@@ -23,7 +23,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from utils import get_data_from_csv, ipaddress_to_number, vectorize_features_to_numpy
+from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
 from utils import sliding_window_features, sliding_window_delay
 from utils import PacketDataset
 
@@ -190,7 +190,7 @@ class BaseTransformer(pl.LightningModule):
 
 
 def main():
-    path = "congestion_1/"
+    path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
     files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
             "endtoenddelay500s_4.csv"]
 
@@ -203,92 +203,97 @@ def main():
     output_size = sl_win_size
 
     model = BaseTransformer(input_size, output_size, LOSSFUNCTION)
+    full_feature_arr = []
+    full_target_arr = []
     test_loaders = []
 
     for file in files:
         print(os.getcwd())
 
         df = get_data_from_csv(path+file)
+        df = convert_to_relative_timestamp(df)
+        
         df = ipaddress_to_number(df)
         feature_df, label_df = vectorize_features_to_numpy(df)
 
         print(feature_df.head(), feature_df.shape)
         print(label_df.head())
-
         
         feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
         target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
         print(len(feature_arr), len(target_arr))
+        full_feature_arr = full_feature_arr + feature_arr
+        full_target_arr = full_target_arr + target_arr
 
-        full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(feature_arr, target_arr, test_size = 0.05,
-                                                                shuffle = True, random_state=42)
-        # print(len(full_train_vectors), len(full_train_labels))
-        # print(len(test_vectors), len(test_labels))
-
-        train_vectors, val_vectors, train_labels, val_labels = train_test_split(full_train_vectors, full_train_labels, test_size = 0.1,
-                                                                shuffle = False)
-        # print(len(train_vectors), len(train_labels))
-        # print(len(val_vectors), len(val_labels))
-
-        # print(train_vectors[0].shape[0])
-        # print(train_labels[0].shape[0])
-
-        train_dataset = PacketDataset(train_vectors, train_labels)
-        val_dataset = PacketDataset(val_vectors, val_labels)
-        test_dataset = PacketDataset(test_vectors, test_labels)
-        # print(train_dataset.__getitem__(0))
+    print(len(full_feature_arr), len(full_target_arr))
     
-        train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
-        val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
-        test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
+                                                            shuffle = True, random_state=42)
+    # print(len(full_train_vectors), len(full_train_labels))
+    # print(len(test_vectors), len(test_labels))
 
-        # print one dataloader item!!!!
-        train_features, train_lbls = next(iter(train_loader))
-        print(f"Feature batch shape: {train_features.size()}")
-        print(f"Labels batch shape: {train_lbls.size()}")
-        feature = train_features[0]
-        label = train_lbls[0]
-        print(f"Feature: {feature}")
-        print(f"Label: {label}")
+    train_vectors, val_vectors, train_labels, val_labels = train_test_split(full_train_vectors, full_train_labels, test_size = 0.1,
+                                                            shuffle = False)
+    # print(len(train_vectors), len(train_labels))
+    # print(len(val_vectors), len(val_labels))
 
-        val_features, val_lbls = next(iter(val_loader))
-        print(f"Feature batch shape: {val_features.size()}")
-        print(f"Labels batch shape: {val_lbls.size()}")
-        feature = val_features[0]
-        label = val_lbls[0]
-        print(f"Feature: {feature}")
-        print(f"Label: {label}")
+    # print(train_vectors[0].shape[0])
+    # print(train_labels[0].shape[0])
 
-        test_features, test_lbls = next(iter(test_loader))
-        print(f"Feature batch shape: {test_features.size()}")
-        print(f"Labels batch shape: {test_lbls.size()}")
-        feature = test_features[0]
-        label = test_lbls[0]
-        print(f"Feature: {feature}")
-        print(f"Label: {label}")
+    train_dataset = PacketDataset(train_vectors, train_labels)
+    val_dataset = PacketDataset(val_vectors, val_labels)
+    test_dataset = PacketDataset(test_vectors, test_labels)
+    # print(train_dataset.__getitem__(0))
 
-        print("Started training at:")
-        time = datetime.now()
-        print(time)
+    train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
+    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
 
-        print("Removing old logs:")
-        os.system("rm -rf transformer_logs/lightning_logs/")
+    # print one dataloader item!!!!
+    train_features, train_lbls = next(iter(train_loader))
+    print(f"Feature batch shape: {train_features.size()}")
+    print(f"Labels batch shape: {train_lbls.size()}")
+    feature = train_features[0]
+    label = train_lbls[0]
+    print(f"Feature: {feature}")
+    print(f"Label: {label}")
 
-        tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_logs/")
-        
-        if NUM_GPUS >= 1:
-            trainer = pl.Trainer(precision=16, gpus=-1, strategy="ddp", num_nodes =1, max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                            logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
-        else:
-            trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                            logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+    val_features, val_lbls = next(iter(val_loader))
+    print(f"Feature batch shape: {val_features.size()}")
+    print(f"Labels batch shape: {val_lbls.size()}")
+    feature = val_features[0]
+    label = val_lbls[0]
+    print(f"Feature: {feature}")
+    print(f"Label: {label}")
 
-        trainer.fit(model, train_loader, val_loader)    
-        print("Finished training at:")
-        time = datetime.now()
-        print(time)
+    test_features, test_lbls = next(iter(test_loader))
+    print(f"Feature batch shape: {test_features.size()}")
+    print(f"Labels batch shape: {test_lbls.size()}")
+    feature = test_features[0]
+    label = test_lbls[0]
+    print(f"Feature: {feature}")
+    print(f"Label: {label}")
 
-        test_loaders.append(test_loader)
+    print("Started training at:")
+    time = datetime.now()
+    print(time)
+
+    print("Removing old logs:")
+    os.system("rm -rf transformer_logs/lightning_logs/")
+
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_logs/")
+    
+    if NUM_GPUS >= 1:
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
+                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+    else:
+        trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
+                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+
+    trainer.fit(model, train_loader, val_loader)    
+    print("Finished training at:")
+    time = datetime.now()
+    print(time)
 
     if SAVE_MODEL:
         name = config['name']
@@ -315,10 +320,8 @@ def main():
         ax.set_ylabel(y_key)
         fig.savefig("lossplot_perepoch.png")
 
-    if TEST:
-        for index, _loader in enumerate(test_loaders):
-            print(f"test loss on {str(index)}st set: ")
-            trainer.test(model, dataloaders=_loader)
+    if TEST: 
+        trainer.test(model, dataloaders = test_loader)
 
 
 if __name__== '__main__':
