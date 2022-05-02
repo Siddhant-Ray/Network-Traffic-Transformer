@@ -76,7 +76,7 @@ else:
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoder(pl.LightningModule):
 
-    def __init__(self,input_size, loss_function, src_mask=True):
+    def __init__(self,input_size, loss_function, src_mask=False):
         super(TransformerEncoder, self).__init__()
 
         self.step = [0]
@@ -130,7 +130,13 @@ class TransformerEncoder(pl.LightningModule):
     def training_step(self, train_batch, train_idx):
         X = train_batch
         self.lr_update()
-        if self.mask:
+        mask = self.mask
+
+        # Use mask only 80% of the time
+        if random.random() <=0.8:
+            mask=True
+
+        if mask:
             # Mask out one packet in the window randomly , mask is [-1, -1,.....]
             
             batch_start_mark_pos = np.random.choice(self.start_mask_pos)
@@ -145,22 +151,26 @@ class TransformerEncoder(pl.LightningModule):
             prediction = self.forward(X)
             masked_pred = prediction[:, [batch_mask_indices]]
             masked_loss = self.masked_loss_func(masked_pred, correct_out)
-            self.log('Train loss', masked_loss)
-            exit()
+            self.log('Train masked loss', masked_loss)
+            return masked_loss
 
-        return masked_loss
+        else:
+            prediction = self.forward(X)
+            loss = self.loss_func(prediction, X)
+            self.log('Train full sequence loss', loss)
+            return loss
 
     def validation_step(self, val_batch, val_idx):
         X = val_batch
         prediction = self.forward(X)
-        # loss = self.loss_func(prediction)
-        # self.log('Val loss', loss, sync_dist=True)
-        # return loss
+        loss = self.loss_func(prediction, X)
+        self.log('Val loss', loss, sync_dist=True)
+        return loss
 
     def test_step(self, test_batch, test_idx):
         X = test_batch
         prediction = self.forward(X)
-        loss = self.loss_func(prediction)
+        loss = self.loss_func(prediction, X)
         self.log('Test loss', loss, sync_dist=True)
         return loss
 
@@ -177,9 +187,8 @@ class TransformerEncoder(pl.LightningModule):
 
 def main():
     path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
-    files = ["endtoenddelay500s_1.csv"]
-    '''files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
-            "endtoenddelay500s_4.csv", "endtoenddelay500s_5.csv"]'''
+    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
+            "endtoenddelay500s_4.csv", "endtoenddelay500s_5.csv"]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
