@@ -1,0 +1,12 @@
+config_base = ''' name: encoder
+learning_rate: 0.1
+weight_decay: 1e-5
+learning_rate: 1e-4            
+dropout: 0.2                   
+num_heads: 8                      
+num_layers: 6                      
+epochs: 20
+batch_size: 64
+linear_size: 384 
+loss_function: huber
+eof: eof_str'''

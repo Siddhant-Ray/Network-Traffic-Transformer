@@ -3,7 +3,7 @@ from pytorch_lightning.callbacks import ProgressBar
 from torch import nn, optim, einsum
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-import random
+import random, math
 from ipaddress import ip_address
 import pandas as pd, numpy as np
 import json
@@ -24,6 +24,19 @@ class PacketDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
+class PacketDatasetEncoder(torch.utils.data.Dataset):
+    def __init__(self, encodings):
+        self.encodings = encodings
+    
+    def __getitem__(self, idx):
+        feature = self.encodings[idx]
+        return feature
+
+    def __len__(self):
+        return len(self.encodings)
+
+def gelu(x):
+   return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
 def get_data_from_csv(input_file):
     df = pd.read_csv(input_file)
