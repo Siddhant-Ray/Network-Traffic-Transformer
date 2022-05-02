@@ -654,7 +654,7 @@ void SingleFlow(bool pcap, std::string algo, uint seed) {
 		1) Throughput for long durations
 		2) Evolution of Congestion window
 	********************************************************************/
-	double durationGap = 1000;
+	double durationGap = 500;
 	double oneFlowStart = 0;
 	double otherFlowStart = 0;
 	// This is a dummy variable for extra stuff, need to use it at the compiler treats
@@ -837,7 +837,7 @@ int main(int argc, char **argv) {
 
 	bool pcap = true;
 	std::string ccalgo = "TcpVegas";
-	uint seed = 1;
+	uint seed = 5;
 
     CommandLine cmd;
     cmd.Parse (argc, argv);
