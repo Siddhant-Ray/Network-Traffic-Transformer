@@ -25,8 +25,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
 from utils import sliding_window_features, sliding_window_delay
-from utils import PacketDataset, gelu
-from utils import PacketDatasetEncoder
+from utils import PacketDataset
 
 random.seed(0)
 np.random.seed(0)
@@ -36,7 +35,7 @@ torch.set_default_dtype(torch.float64)
 
 # Hyper parameters from config file
 
-with open('configs/config-encoder.yaml') as f:
+with open('configs/config-transformer.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 WEIGHTDECAY = float(config['weight_decay'])      
@@ -73,11 +72,51 @@ else:
     print("ERROR: NO CUDA DEVICE FOUND")
     NUM_GPUS = 0 
 
-# TRANSFOMER CLASS TO PREDICT DELAYS
-class TransformerEncoder(pl.LightningModule):
+# DO NOT USE (AS OF NOW)
+class AbsPosEmb1DAISummer(nn.Module):
+    """
+    Given query q of shape [batch heads tokens dim] we multiply
+    q by all the flattened absolute differences between tokens.
+    Learned embedding representations are shared across heads
+    """
 
-    def __init__(self,input_size, loss_function, src_mask=False):
-        super(TransformerEncoder, self).__init__()
+    def __init__(self, tokens, dim_head):
+        """
+        Output: [batch head tokens tokens]
+        Args:
+            tokens: elements of the sequence
+            dim_head: the size of the last dimension of q
+        """
+        super().__init__()
+        scale = dim_head ** -0.5
+        self.abs_pos_emb = nn.Parameter(torch.randn(tokens, dim_head) * scale)
+
+    def forward(self, q):
+        return einsum('b h i d, j d -> b h i j', q, self.abs_pos_emb)
+
+# DO NOT USE (AS OF NOW)
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model, dropout=DROPOUT, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
+
+# TRANSFOMER CLASS TO PREDICT DELAYS
+class BaseTransformer(pl.LightningModule):
+
+    def __init__(self,input_size, target_size, loss_function):
+        super(BaseTransformer, self).__init__()
 
         self.step = [0]
         self.warmup_steps = 1000
@@ -85,28 +124,19 @@ class TransformerEncoder(pl.LightningModule):
         # create the model with its layers
 
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
+        self.decoder_layer = nn.TransformerDecoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
+        self.decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=LAYERS)
         self.encoderin = nn.Linear(input_size, LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE)
-        self.activ1 = nn.Tanh()
-        self.linear2 = nn.Linear(LINEARSIZE, LINEARSIZE)
-        self.activ2 = gelu
-        self.norm = nn.LayerNorm(LINEARSIZE)
-        self.decoderpred= nn.Linear(LINEARSIZE, input_size)
-        self.model = nn.ModuleList([self.encoder, self.encoderin, self.linear1, self.linear2, self.decoderpred])
+        self.decoderin = nn.Linear(target_size, LINEARSIZE)
+        self.decoderpred= nn.Linear(LINEARSIZE, target_size)
+        self.model = nn.ModuleList([self.encoder, self.decoder, self.encoderin, self.decoderin, self.decoderpred])
 
         self.loss_func = loss_function
-        self.masked_loss_func = nn.CrossEntropyLoss()
-
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
                          "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
-
-        self.mask = src_mask
-        self.input_size = input_size
-        self.start_mask_pos = np.arange(0, int(self.input_size), int(self.input_size/SLIDING_WINDOW_SIZE))
-        self.feature_size = int(self.input_size / SLIDING_WINDOW_SIZE)
 
     def configure_optimizers(self):
         self.optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
@@ -118,65 +148,39 @@ class TransformerEncoder(pl.LightningModule):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = learning_rate
 
-    def forward(self, input):
+    def forward(self, input, target):
         # used for the forward pass of the model
         scaled_input = self.encoderin(input.double())
+        target = self.decoderin(target.double())
         enc = self.encoder(scaled_input)
-        out = self.linear1(self.activ1(enc))
-        out = self.norm(self.linear2(self.activ2(out)))
-        out = self.decoderpred(out)
+        out = self.decoderpred(self.decoder(target, enc))
         return out
 
     def training_step(self, train_batch, train_idx):
-        X = train_batch
+        X, y = train_batch
         self.lr_update()
-        mask = self.mask
-
-        # Use mask only 80% of the time
-        if random.random() <=0.8:
-            mask=True
-
-        if mask:
-            # Mask out one packet in the window randomly , mask is [-1, -1,.....]
-            
-            batch_start_mark_pos = np.random.choice(self.start_mask_pos)
-            batch_mask_indices = [value for value in range(batch_start_mark_pos, 
-                                    batch_start_mark_pos+self.feature_size)]
-            batch_mask = torch.tensor([-1 for i in range(batch_start_mark_pos, 
-                                    batch_start_mark_pos+self.feature_size)])
-            batch_mask = batch_mask.double() 
-            
-            correct_out = X[:, [batch_mask_indices]]   
-            X[:, [batch_mask_indices]] = batch_mask                  
-            prediction = self.forward(X)
-            masked_pred = prediction[:, [batch_mask_indices]]
-            masked_loss = self.masked_loss_func(masked_pred, correct_out)
-            self.log('Train masked loss', masked_loss)
-            return masked_loss
-
-        else:
-            prediction = self.forward(X)
-            loss = self.loss_func(prediction, X)
-            self.log('Train full sequence loss', loss)
-            return loss
+        prediction = self.forward(X, y)
+        loss = self.loss_func(prediction, y)
+        self.log('Train loss', loss)
+        return loss
 
     def validation_step(self, val_batch, val_idx):
-        X = val_batch
-        prediction = self.forward(X)
-        loss = self.loss_func(prediction, X)
+        X, y = val_batch
+        prediction = self.forward(X, y)
+        loss = self.loss_func(prediction, y)
         self.log('Val loss', loss, sync_dist=True)
         return loss
 
     def test_step(self, test_batch, test_idx):
-        X = test_batch
-        prediction = self.forward(X)
-        loss = self.loss_func(prediction, X)
+        X, y = test_batch
+        prediction = self.forward(X, y)
+        loss = self.loss_func(prediction, y)
         self.log('Test loss', loss, sync_dist=True)
         return loss
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
-        X = test_batch
-        prediction = self.forward(X)
+        X, y = test_batch
+        prediction = self.forward(X, y)
         return prediction
 
     def training_epoch_end(self,outputs):
@@ -198,7 +202,7 @@ def main():
     input_size = sl_win_size * num_features
     output_size = sl_win_size
 
-    model = TransformerEncoder(input_size, LOSSFUNCTION)
+    model = BaseTransformer(input_size, output_size, LOSSFUNCTION)
     full_feature_arr = []
     full_target_arr = []
     test_loaders = []
@@ -223,12 +227,12 @@ def main():
 
     print(len(full_feature_arr), len(full_target_arr))
     
-    full_train_vectors, test_vectors = train_test_split(full_feature_arr, test_size = 0.05,
+    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
     # print(len(full_train_vectors), len(full_train_labels))
     # print(len(test_vectors), len(test_labels))
 
-    train_vectors, val_vectors = train_test_split(full_train_vectors, test_size = 0.1,
+    train_vectors, val_vectors, train_labels, val_labels = train_test_split(full_train_vectors, full_train_labels, test_size = 0.1,
                                                             shuffle = False)
     # print(len(train_vectors), len(train_labels))
     # print(len(val_vectors), len(val_labels))
@@ -236,9 +240,9 @@ def main():
     # print(train_vectors[0].shape[0])
     # print(train_labels[0].shape[0])
 
-    train_dataset = PacketDatasetEncoder(train_vectors)
-    val_dataset = PacketDatasetEncoder(val_vectors)
-    test_dataset = PacketDatasetEncoder(test_vectors)
+    train_dataset = PacketDataset(train_vectors, train_labels)
+    val_dataset = PacketDataset(val_vectors, val_labels)
+    test_dataset = PacketDataset(test_vectors, test_labels)
     # print(train_dataset.__getitem__(0))
 
     train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
@@ -246,30 +250,38 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
 
     # print one dataloader item!!!!
-    train_features = next(iter(train_loader))
+    train_features, train_lbls = next(iter(train_loader))
     print(f"Feature batch shape: {train_features.size()}")
+    print(f"Labels batch shape: {train_lbls.size()}")
     feature = train_features[0]
+    label = train_lbls[0]
     print(f"Feature: {feature}")
-    
+    print(f"Label: {label}")
 
-    val_features = next(iter(val_loader))
+    val_features, val_lbls = next(iter(val_loader))
     print(f"Feature batch shape: {val_features.size()}")
+    print(f"Labels batch shape: {val_lbls.size()}")
     feature = val_features[0]
+    label = val_lbls[0]
     print(f"Feature: {feature}")
+    print(f"Label: {label}")
 
-    test_features = next(iter(test_loader))
+    test_features, test_lbls = next(iter(test_loader))
     print(f"Feature batch shape: {test_features.size()}")
+    print(f"Labels batch shape: {test_lbls.size()}")
     feature = test_features[0]
+    label = test_lbls[0]
     print(f"Feature: {feature}")
+    print(f"Label: {label}")
 
     print("Started training at:")
     time = datetime.now()
     print(time)
 
     print("Removing old logs:")
-    os.system("rm -rf encoder_logs/lightning_logs/")
+    os.system("rm -rf transformer_delay_logs/lightning_logs/")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_delay_logs/")
     
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
