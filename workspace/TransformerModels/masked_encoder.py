@@ -183,7 +183,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
 
 
 def main():
-    path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
+    path = "congestion_1/"
     files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv",
              "endtoenddelay500s_3.csv", "endtoenddelay500s_4.csv",
             "endtoenddelay500s_5.csv"]
