@@ -166,7 +166,6 @@ class MaskedTransformerEncoder(pl.LightningModule):
     def test_step(self, test_batch, test_idx):
         X = test_batch
         prediction = self.forward(X)
-        exit()
         loss = self.loss_func(prediction, X)
         self.log('Test loss', loss, sync_dist=True)
         return loss
