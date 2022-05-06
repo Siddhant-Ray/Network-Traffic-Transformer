@@ -23,7 +23,8 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
+from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number
+from utils import vectorize_features_to_numpy, vectorize_features_to_numpy_masked
 from utils import sliding_window_features, sliding_window_delay
 from utils import PacketDataset, gelu
 from utils import PacketDatasetEncoder
@@ -60,7 +61,7 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 10
+SLIDING_WINDOW_SIZE = 20
 
 SAVE_MODEL = False
 MAKE_EPOCH_PLOT = True
@@ -87,12 +88,12 @@ class MaskedTransformerEncoder(pl.LightningModule):
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         self.encoderin = nn.Linear(input_size, LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE)
+        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
         self.activ1 = nn.Tanh()
-        self.linear2 = nn.Linear(LINEARSIZE, LINEARSIZE)
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
         self.activ2 = nn.GELU()
-        self.norm = nn.LayerNorm(LINEARSIZE)
-        self.decoderpred= nn.Linear(LINEARSIZE, input_size)
+        self.norm = nn.LayerNorm(LINEARSIZE*4)
+        self.decoderpred= nn.Linear(LINEARSIZE*4, input_size)
         self.model = nn.ModuleList([self.encoder, self.encoderin, self.linear1, self.linear2, self.decoderpred])
 
         self.loss_func = loss_function
@@ -105,7 +106,8 @@ class MaskedTransformerEncoder(pl.LightningModule):
 
         self.mask = src_mask
         self.input_size = input_size
-        self.start_mask_pos = np.arange(0, int(self.input_size), int(self.input_size/SLIDING_WINDOW_SIZE))
+        self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
+        self.start_mask_pos = np.arange(0, int(self.input_size), self.packet_size)
         self.feature_size = int(self.input_size / SLIDING_WINDOW_SIZE)
 
     def configure_optimizers(self):
@@ -132,32 +134,26 @@ class MaskedTransformerEncoder(pl.LightningModule):
         self.lr_update()
         mask = self.mask
 
-        # Use mask only 80% of the time
-        if random.random() <=0.8:
-            mask=True
-
         if mask:
-            # Mask out one packet in the window randomly , mask is [-1, -1,.....]
-            
-            batch_start_mark_pos = np.random.choice(self.start_mask_pos)
-            batch_mask_indices = [value for value in range(batch_start_mark_pos, 
-                                    batch_start_mark_pos+self.feature_size)]
-            batch_mask = torch.tensor([-1 for i in range(batch_start_mark_pos, 
-                                    batch_start_mark_pos+self.feature_size)], device=self.device)
+            batch_delay_position = self.start_mask_pos[1:] - np.ones(self.start_mask_pos[1:].shape)
+            batch_delay_position.astype(int)
+            batch_delay_position = np.concatenate([batch_delay_position, [batch_delay_position[-1]+self.packet_size]])
+            # We mask 15% delay positions in every sequence (15% of N packets in the window have delay masked)
+            mask_size = int(0.15*SLIDING_WINDOW_SIZE)
+            masked_indices = [np.random.choice(batch_delay_position).astype(int) for i in range(mask_size)]
+            # print(masked_indices)
+            batch_mask_indices = masked_indices
+            batch_mask = torch.tensor([0 for i in range(len(batch_mask_indices))], device=self.device)
             batch_mask = batch_mask.double() 
-            
+
             correct_out = X[:, [batch_mask_indices]]   
-            X[:, [batch_mask_indices]] = batch_mask                  
+            X[:, [batch_mask_indices]] = batch_mask   
+             
             prediction = self.forward(X)
             masked_pred = prediction[:, [batch_mask_indices]]
-            masked_loss = self.masked_loss_func(masked_pred, correct_out)
-            self.log('Train masked loss', masked_loss)
-            return masked_loss
-
-        else:
-            prediction = self.forward(X)
-            loss = self.loss_func(prediction, X)
-            self.log('Train full sequence loss', loss)
+            
+            loss = self.loss_func(masked_pred, correct_out)
+            self.log('Train loss', loss)
             return loss
 
     def validation_step(self, val_batch, val_idx):
@@ -170,6 +166,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
     def test_step(self, test_batch, test_idx):
         X = test_batch
         prediction = self.forward(X)
+        exit()
         loss = self.loss_func(prediction, X)
         self.log('Test loss', loss, sync_dist=True)
         return loss
@@ -186,19 +183,21 @@ class MaskedTransformerEncoder(pl.LightningModule):
 
 
 def main():
-    path = "congestion_1/"
-    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
-            "endtoenddelay500s_4.csv", "endtoenddelay500s_5.csv"]
+    path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
+    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv",
+             "endtoenddelay500s_3.csv", "endtoenddelay500s_4.csv",
+            "endtoenddelay500s_5.csv"]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    num_features = 15
+
+    num_features = 16 # Packet information + delay 
     input_size = sl_win_size * num_features
     output_size = sl_win_size
 
-    model = MaskedTransformerEncoder(input_size, LOSSFUNCTION)
+    model = MaskedTransformerEncoder(input_size, LOSSFUNCTION, src_mask=True)
     full_feature_arr = []
     full_target_arr = []
     test_loaders = []
@@ -210,18 +209,14 @@ def main():
         df = convert_to_relative_timestamp(df)
         
         df = ipaddress_to_number(df)
-        feature_df, label_df = vectorize_features_to_numpy(df)
+        feature_df = vectorize_features_to_numpy_masked(df)
 
         print(feature_df.head(), feature_df.shape)
-        print(label_df.head())
         
         feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
-        target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
-        print(len(feature_arr), len(target_arr))
         full_feature_arr = full_feature_arr + feature_arr
-        full_target_arr = full_target_arr + target_arr
 
-    print(len(full_feature_arr), len(full_target_arr))
+    print(len(full_feature_arr))
     
     full_train_vectors, test_vectors = train_test_split(full_feature_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
