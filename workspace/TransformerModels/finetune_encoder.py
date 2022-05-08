@@ -37,7 +37,7 @@ torch.set_default_dtype(torch.float64)
 
 # Hyper parameters from config file
 
-with open('configs/config-encoder.yaml') as f:
+with open('configs/config-encoder-test.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 WEIGHTDECAY = float(config['weight_decay'])      
@@ -155,8 +155,8 @@ class TransformerEncoderFinetune(pl.LightningModule):
 
 
 def main():
-    path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
-    files = ["endtoenddelay500s_1.csv"]
+    path = "congestion_1/"
+    files = ["endtoenddelay_test.csv"]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE

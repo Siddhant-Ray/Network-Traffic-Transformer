@@ -36,7 +36,7 @@ torch.set_default_dtype(torch.float64)
 
 # Hyper parameters from config file
 
-with open('configs/config-encoder.yaml') as f:
+with open('configs/config-encoder-test.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 WEIGHTDECAY = float(config['weight_decay'])      
@@ -60,7 +60,7 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 10
+SLIDING_WINDOW_SIZE = 40
 
 SAVE_MODEL = False
 MAKE_EPOCH_PLOT = True
@@ -154,9 +154,8 @@ class TransformerEncoder(pl.LightningModule):
 
 
 def main():
-    path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
-    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
-            "endtoenddelay500s_4.csv", "endtoenddelay500s_5.csv"]
+    path = "congestion_1/"
+    files = ["endtoenddelay_test.csv"]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
