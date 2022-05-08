@@ -61,7 +61,7 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 20
+SLIDING_WINDOW_SIZE = 40
 
 SAVE_MODEL = False
 MAKE_EPOCH_PLOT = True
@@ -139,7 +139,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
             batch_delay_position.astype(int)
             batch_delay_position = np.concatenate([batch_delay_position, [batch_delay_position[-1]+self.packet_size]])
             # We mask 15% delay positions in every sequence (15% of N packets in the window have delay masked)
-            mask_size = int(0.15*SLIDING_WINDOW_SIZE)
+            mask_size = int(0.30*SLIDING_WINDOW_SIZE)
             masked_indices = [np.random.choice(batch_delay_position).astype(int) for i in range(mask_size)]
             # print(masked_indices)
             batch_mask_indices = masked_indices
