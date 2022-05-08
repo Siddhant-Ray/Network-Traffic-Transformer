@@ -138,7 +138,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
             batch_delay_position = self.start_mask_pos[1:] - np.ones(self.start_mask_pos[1:].shape)
             batch_delay_position.astype(int)
             batch_delay_position = np.concatenate([batch_delay_position, [batch_delay_position[-1]+self.packet_size]])
-            # We mask 15% delay positions in every sequence (15% of N packets in the window have delay masked)
+            # We mask 30% delay positions in every sequence (30% of N packets in the window have delay masked)
             mask_size = int(0.30*SLIDING_WINDOW_SIZE)
             masked_indices = [np.random.choice(batch_delay_position).astype(int) for i in range(mask_size)]
             # print(masked_indices)
@@ -266,11 +266,11 @@ def main():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_masked_logs/")
     
     if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=10,
+                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=15)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
+                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=15)])
 
     trainer.fit(model, train_loader, val_loader)    
     print("Finished training at:")
