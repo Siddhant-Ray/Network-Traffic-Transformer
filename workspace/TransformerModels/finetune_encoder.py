@@ -77,7 +77,7 @@ else:
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoderFinetune(pl.LightningModule):
 
-    def __init__(self,input_size, target_size, loss_function):
+    def __init__(self,input_size, loss_function):
         super(TransformerEncoderFinetune, self).__init__()
 
         self.step = [0]
@@ -88,22 +88,22 @@ class TransformerEncoderFinetune(pl.LightningModule):
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         self.encoderin = nn.Linear(input_size, LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE)
-        self.activ1 = nn.ReLU()
-        self.linear2 = nn.Linear(LINEARSIZE, LINEARSIZE)
-        self.activ2 = nn.ReLU()
-        self.norm = nn.LayerNorm(LINEARSIZE)
-        self.encoderpred= nn.Linear(LINEARSIZE, target_size)
-        self.model = nn.ModuleList([self.encoder, self.encoderin, self.linear1, self.linear2, self.encoderpred])
+        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
+        self.activ1 = nn.Tanh()
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
+        self.activ2 = nn.GELU()
+        self.norm = nn.LayerNorm(LINEARSIZE*4)
+        self.decoderpred= nn.Linear(LINEARSIZE*4, input_size)
 
         self.loss_func = loss_function
+        self.masked_loss_func = nn.CrossEntropyLoss()
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
                          "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
 
     def configure_optimizers(self):
-        self.optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
@@ -166,8 +166,16 @@ def main():
     input_size = sl_win_size * num_features
     output_size = sl_win_size
 
-    model = TransformerEncoderFinetune(input_size, output_size, LOSSFUNCTION)
-    model = TransformerEncoderFinetune.load_from_checkpoint(checkpoint_path="example.ckpt")
+    # model = TransformerEncoderFinetune(input_size, output_size, LOSSFUNCTION)
+    cpath = "encoder_masked_logs/lightning_logs/version_0/checkpoints/epoch=9-step=220110.ckpt"
+    model = TransformerEncoderFinetune.load_from_checkpoint(input_size = input_size, loss_function = LOSSFUNCTION, checkpoint_path=cpath,
+                                                            strict=False)
+
+    ## Add a new classifier head for delay prediction                                                        
+    model.decoderpred = nn.Sequential(model.decoderpred,
+                                      nn.ReLU(),
+                                      nn.Linear(input_size, output_size))  
+                                                  
     full_feature_arr = []
     full_target_arr = []
     test_loaders = []

@@ -94,7 +94,6 @@ class MaskedTransformerEncoder(pl.LightningModule):
         self.activ2 = nn.GELU()
         self.norm = nn.LayerNorm(LINEARSIZE*4)
         self.decoderpred= nn.Linear(LINEARSIZE*4, input_size)
-        self.model = nn.ModuleList([self.encoder, self.encoderin, self.linear1, self.linear2, self.decoderpred])
 
         self.loss_func = loss_function
         self.masked_loss_func = nn.CrossEntropyLoss()
@@ -111,7 +110,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
         self.feature_size = int(self.input_size / SLIDING_WINDOW_SIZE)
 
     def configure_optimizers(self):
-        self.optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
