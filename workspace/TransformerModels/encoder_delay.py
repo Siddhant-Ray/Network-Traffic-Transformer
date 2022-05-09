@@ -62,8 +62,8 @@ SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 40
 
-SAVE_MODEL = False
-MAKE_EPOCH_PLOT = True
+SAVE_MODEL = True
+MAKE_EPOCH_PLOT = False
 TEST = True
 
 if torch.cuda.is_available():
@@ -87,13 +87,14 @@ class TransformerEncoder(pl.LightningModule):
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         self.encoderin = nn.Linear(input_size, LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE)
-        self.activ1 = nn.ReLU()
-        self.linear2 = nn.Linear(LINEARSIZE, LINEARSIZE)
-        self.activ2 = nn.ReLU()
-        self.norm = nn.LayerNorm(LINEARSIZE)
-        self.encoderpred= nn.Linear(LINEARSIZE, target_size)
-        self.model = nn.ModuleList([self.encoder, self.encoderin, self.linear1, self.linear2, self.encoderpred])
+        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
+        self.activ1 = nn.Tanh()
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
+        self.activ2 = nn.GELU()
+        self.norm = nn.LayerNorm(LINEARSIZE*4)
+        self.encoderpred1= nn.Linear(LINEARSIZE*4, input_size)
+        self.activ3 = nn.ReLU()
+        self.encoderpred2= nn.Linear(input_size, target_size)
 
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
@@ -102,7 +103,7 @@ class TransformerEncoder(pl.LightningModule):
         self.df["parameters"] = [json.dumps(parameters)]
 
     def configure_optimizers(self):
-        self.optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
@@ -117,7 +118,7 @@ class TransformerEncoder(pl.LightningModule):
         enc = self.encoder(scaled_input)
         out = self.linear1(self.activ1(enc))
         out = self.norm(self.linear2(self.activ2(out)))
-        out = self.encoderpred(out)
+        out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
         return out
 
     def training_step(self, train_batch, train_idx):
@@ -257,12 +258,12 @@ def main():
     print("Finished training at:")
     time = datetime.now()
     print(time)
+    trainer.save_checkpoint("encoder_delay_logs/finetune_nonpretrained_window40.ckpt")
 
     if SAVE_MODEL:
-        name = config['name']
-        torch.save(model.model, f"./trained_transformer_{name}")
+        torch.save(model, "encoder_delay_logs/finetuned_encoder_scratch.pt")
 
-    if not MAKE_EPOCH_PLOT:
+    if MAKE_EPOCH_PLOT:
         t.sleep(5)
         log_dir = "encoder_delay_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
