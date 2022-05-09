@@ -63,8 +63,8 @@ SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 40
 
-SAVE_MODEL = False
-MAKE_EPOCH_PLOT = True
+SAVE_MODEL = True
+MAKE_EPOCH_PLOT = False
 TEST = True
 
 if torch.cuda.is_available():
@@ -261,9 +261,9 @@ def main():
     print(time)
 
     print("Removing old logs:")
-    os.system("rm -rf encoder_masked_logs/lightning_logs/")
+    os.system("rm -rf encoder_masked_logs2/lightning_logs/")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_masked_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_masked_logs2/")
     
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=10,
@@ -276,12 +276,13 @@ def main():
     print("Finished training at:")
     time = datetime.now()
     print(time)
+    ## Manually save checkpoint as auto saving is getting a bit messy
+    trainer.save_checkpoint("encoder_masked_logs2/pretrained_window40.ckpt")
 
     if SAVE_MODEL:
-        name = config['name']
-        torch.save(model.model, f"./trained_transformer_{name}")
+        torch.save(model, "masked_encoder_logs2/pretrained_encoder.pt")
 
-    if not MAKE_EPOCH_PLOT:
+    if MAKE_EPOCH_PLOT:
         t.sleep(5)
         log_dir = "transformer_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
