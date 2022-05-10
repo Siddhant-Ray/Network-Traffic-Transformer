@@ -63,8 +63,8 @@ SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 40
 
-SAVE_MODEL = False
-MAKE_EPOCH_PLOT = True
+SAVE_MODEL = True
+MAKE_EPOCH_PLOT = False
 TEST = True
 
 if torch.cuda.is_available():
@@ -118,7 +118,7 @@ class TransformerEncoderFinetune(pl.LightningModule):
         enc = self.encoder(scaled_input)
         out = self.linear1(self.activ1(enc))
         out = self.norm(self.linear2(self.activ2(out)))
-        out = self.encoderpred(out)
+        out = self.decoderpred(out)
         return out
 
     def training_step(self, train_batch, train_idx):
@@ -167,7 +167,7 @@ def main():
     output_size = sl_win_size
 
     # model = TransformerEncoderFinetune(input_size, output_size, LOSSFUNCTION)
-    cpath = "encoder_masked_logs/lightning_logs/version_0/checkpoints/epoch=9-step=220110.ckpt"
+    cpath = "encoder_masked_logs2/pretrained_window40.ckpt"
     model = TransformerEncoderFinetune.load_from_checkpoint(input_size = input_size, loss_function = LOSSFUNCTION, checkpoint_path=cpath,
                                                             strict=False)
 
@@ -267,12 +267,13 @@ def main():
     print("Finished training at:")
     time = datetime.now()
     print(time)
+    trainer.save_checkpoint("finetune_encoder_logs/finetuned_pretrained_window40.ckpt")
 
     if SAVE_MODEL:
-        name = config['name']
-        torch.save(model.model, f"./trained_transformer_{name}")
+        torch.save(model, "finetune_encoder_logs/finetuned_encoder_pretrained.pt")
 
-    if not MAKE_EPOCH_PLOT:
+
+    if MAKE_EPOCH_PLOT:
         t.sleep(5)
         log_dir = "finetune_encoder_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
