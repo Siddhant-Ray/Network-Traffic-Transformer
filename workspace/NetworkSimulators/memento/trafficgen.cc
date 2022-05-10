@@ -94,15 +94,11 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
     {
         auto current_time = Simulator::Now();
         auto diff_time = current_time - timestampTag.GetTime();
-        *stream->GetStream() << current_time.GetSeconds() << ','
-                             << diff_time.GetSeconds() << ','
-                             << p->GetSize() << ','
-                             << idTag.GetWorkload() << ','
-                             << idTag.GetApplication() << ',';
+        *stream->GetStream() << "Tx sent at:, "<< current_time.GetSeconds()<< ", ";
         *stream->GetStream() << "Flow id is, "<< p->PeekPacketTag(flowid) << ", "
                              << "Packet uid is, "<< p->GetUid() << ", "
                              << "Packet size is, "<< p->GetSize() << ", ";
-
+                             
         Ptr<Packet> copy = p->Copy();
         // Headers must be removed in the order they're present.
         EthernetHeader eHeader;
@@ -112,9 +108,9 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
         *stream->GetStream() << "IP ID is, "<< ipHeader.GetIdentification() << ", "
                                 << "DSCP is, "<< ipHeader.GetDscp() << ", "
                                 << "ECN is, "<< ipHeader.GetEcn() << ", "
-                                << "TTL is "<< ipHeader.GetTtl() << ", "
+                                << "TTL is, "<< 64 << ", "
                                 << "Payload size is, "<< ipHeader.GetPayloadSize() << ", "
-                                << "Protocol is "<< ipHeader.GetProtocol() << ", "
+                                << "Protocol is, "<< 6 << ", "
                                 << "Source IP is, "<< ipHeader.GetSource() << ", "
                                 << "Destination IP is, "<< ipHeader.GetDestination() << ", ";
         TcpHeader tcpHeader;
@@ -122,7 +118,10 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
         *stream->GetStream() << "TCP source port is, "<< tcpHeader.GetSourcePort() << ", "
                              << "TCP destination port is, "<< tcpHeader.GetDestinationPort() << ", "
                              << "TCP sequence num is, "<< tcpHeader.GetSequenceNumber() << ", "
-                             << "TCP current window size is, "<< tcpHeader.GetWindowSize() << ", ";
+                             << "TCP current window size is, "<< tcpHeader.GetWindowSize() << ", "
+                             << "Delay is, "<< diff_time.GetSeconds() << ", "
+                             << "Workload id is, "<< idTag.GetWorkload() << ','
+                             << "Application id is, "<< idTag.GetApplication() << ',';
 
         copy->Print(*stream->GetStream());
         *stream->GetStream() << "\n";
