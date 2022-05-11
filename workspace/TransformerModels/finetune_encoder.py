@@ -167,7 +167,7 @@ def main():
     output_size = sl_win_size
 
     # Choose fine-tuning dataset
-    MEMENTO = False
+    MEMENTO = True
 
     if MEMENTO:
         path = "memento_data/"
