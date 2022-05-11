@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number
-from utils import vectorize_features_to_numpy_finetune
+from utils import vectorize_features_to_numpy_finetune, vectorize_features_to_numpy_finetune_memento
 from utils import sliding_window_features, sliding_window_delay
 from utils import PacketDataset, gelu
 from utils import PacketDatasetEncoder
@@ -166,10 +166,22 @@ def main():
     input_size = sl_win_size * num_features
     output_size = sl_win_size
 
-    # model = TransformerEncoderFinetune(input_size, output_size, LOSSFUNCTION)
-    cpath = "encoder_masked_logs2/pretrained_window40.ckpt"
+    # Choose fine-tuning dataset
+    MEMENTO = False
+
+    if MEMENTO:
+        path = "memento_data/"
+        files = ["memento_test10_final.csv"]
+
+    else:
+        path = "congestion_1/"
+        files = ["endtoenddelay_test.csv"]
+
+
+    model = TransformerEncoderFinetune(input_size, LOSSFUNCTION)
+    '''cpath = "encoder_masked_logs2/pretrained_window40.ckpt"
     model = TransformerEncoderFinetune.load_from_checkpoint(input_size = input_size, loss_function = LOSSFUNCTION, checkpoint_path=cpath,
-                                                            strict=False)
+                                                            strict=False)'''
 
     ## Add a new classifier head for delay prediction                                                        
     model.decoderpred = nn.Sequential(model.decoderpred,
@@ -185,9 +197,12 @@ def main():
 
         df = get_data_from_csv(path+file)
         df = convert_to_relative_timestamp(df)
-        
         df = ipaddress_to_number(df)
-        feature_df, label_df = vectorize_features_to_numpy_finetune(df)
+
+        if MEMENTO:
+            feature_df, label_df = vectorize_features_to_numpy_finetune_memento(df)
+        else:
+            feature_df, label_df = vectorize_features_to_numpy_finetune(df)
 
         print(feature_df.head(), feature_df.shape)
         print(label_df.head())
@@ -199,6 +214,7 @@ def main():
         full_target_arr = full_target_arr + target_arr
 
     print(len(full_feature_arr), len(full_target_arr))
+    exit()
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)

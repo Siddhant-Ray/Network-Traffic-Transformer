@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
+from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
 from utils import PacketDataset, gelu
 from utils import PacketDatasetEncoder
@@ -155,8 +156,6 @@ class TransformerEncoder(pl.LightningModule):
 
 
 def main():
-    path = "congestion_1/"
-    files = ["endtoenddelay_test.csv"]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
@@ -171,14 +170,29 @@ def main():
     full_target_arr = []
     test_loaders = []
 
+    # Choose fine-tuning dataset
+    MEMENTO = True
+
+    if MEMENTO:
+        path = "memento_data/"
+        files = ["memento_test10_final.csv"]
+
+    else:
+        path = "congestion_1/"
+        files = ["endtoenddelay_test.csv"]
+
+
     for file in files:
         print(os.getcwd())
 
         df = get_data_from_csv(path+file)
-        df = convert_to_relative_timestamp(df)
-        
+        df = convert_to_relative_timestamp(df) 
         df = ipaddress_to_number(df)
-        feature_df, label_df = vectorize_features_to_numpy(df)
+
+        if MEMENTO:
+            feature_df, label_df = vectorize_features_to_numpy_memento(df)
+        else:
+            feature_df, label_df = vectorize_features_to_numpy(df)
 
         print(feature_df.head(), feature_df.shape)
         print(label_df.head())
@@ -190,6 +204,7 @@ def main():
         full_target_arr = full_target_arr + target_arr
 
     print(len(full_feature_arr), len(full_target_arr))
+    exit()
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
