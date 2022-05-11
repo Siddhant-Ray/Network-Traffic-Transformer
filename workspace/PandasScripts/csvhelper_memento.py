@@ -42,14 +42,14 @@ def generate_senders_csv(path, n_senders):
     temp = pd.DataFrame(columns = temp_cols)
     print(temp.head())
 
-    while sender_num < num_senders:
+    files = ["memento_test10.csv", "memento_test20.csv", "memento_test25.csv"]
+
+    for file in files:
         
-        sender_tx_df = pd.read_csv(path+"memento_test10"+ ".csv")
+        sender_tx_df = pd.read_csv(path+file)
         sender_tx_df = pd.DataFrame(np.vstack([sender_tx_df.columns,  sender_tx_df]))
         sender_tx_df.drop(sender_tx_df.columns[df_sent_cols_to_drop],axis=1,inplace=True)
         
-
-
         sender_tx_df.columns = df_sent_cols
         sender_tx_df["Packet ID"].iloc[0] = 0
         sender_tx_df["Flow ID"].iloc[0] = sender_tx_df["Flow ID"].iloc[1]
@@ -70,9 +70,9 @@ def generate_senders_csv(path, n_senders):
         # sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
         temp = pd.concat([temp, sender_tx_df], ignore_index=True, copy = False)
         # sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
-        sender_tx_df.to_csv(path+"memento" + str(sender_num) + "_final.csv", index=False)
-        sender_num += 1
-   
+        save_name = file.split(".")[0] + "_final.csv"
+        sender_tx_df.to_csv(path+save_name, index=False)
+    
     # temp.drop(['Extra'],axis = 1, inplace=True)
     print(temp.head())
     print(temp.columns)

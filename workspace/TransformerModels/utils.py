@@ -90,6 +90,31 @@ def vectorize_features_to_numpy_finetune(data_frame):
 
     return feature_frame, label_frame
 
+def vectorize_features_to_numpy_memento(data_frame):
+    feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
+    label_frame = data_frame['Delay']
+    feature_frame.drop(['Delay'], axis = 1, inplace=True)
+    feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
+
+    return feature_frame, label_frame
+
+def vectorize_features_to_numpy_finetune_memento(data_frame):
+    feature_frame = data_frame.drop(['Packet ID', 'Workload ID', 'Application ID'], axis = 1)
+    # Shift the IP ID, ECN and the DSCP values by 1
+    feature_frame["IP ID"] = feature_frame["IP ID"] + np.int64(1) 
+    feature_frame["ECN"] = feature_frame["ECN"] + np.int64(1) 
+    feature_frame["DSCP"] = feature_frame["DSCP"] + np.int64(1) 
+    label_frame = data_frame['Delay']
+    feature_frame.drop(['Delay'], axis = 1, inplace=True)
+    # For fine-tune, add all 0s as delays to maintain input shape
+    feature_frame["Dummy Delay"] = np.int64(0) 
+    # Scale the timestamp to milli sec, to prevent masked confusion scale]
+    # feature_frame["Timestamp"] = feature_frame["Timestamp"]*1000
+    feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
+
+    return feature_frame, label_frame
+
+
 def sliding_window_features(df_series, start, size, step):
     final_arr =[]
     pos = start
