@@ -204,7 +204,6 @@ def main():
         full_target_arr = full_target_arr + target_arr
 
     print(len(full_feature_arr), len(full_target_arr))
-    exit()
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)

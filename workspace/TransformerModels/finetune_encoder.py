@@ -178,10 +178,10 @@ def main():
         files = ["endtoenddelay_test.csv"]
 
 
-    model = TransformerEncoderFinetune(input_size, LOSSFUNCTION)
-    '''cpath = "encoder_masked_logs2/pretrained_window40.ckpt"
+    # model = TransformerEncoderFinetune(input_size, LOSSFUNCTION)
+    cpath = "encoder_masked_logs2/pretrained_window40_5.ckpt"
     model = TransformerEncoderFinetune.load_from_checkpoint(input_size = input_size, loss_function = LOSSFUNCTION, checkpoint_path=cpath,
-                                                            strict=False)'''
+                                                            strict=False)
 
     ## Add a new classifier head for delay prediction                                                        
     model.decoderpred = nn.Sequential(model.decoderpred,
@@ -214,7 +214,6 @@ def main():
         full_target_arr = full_target_arr + target_arr
 
     print(len(full_feature_arr), len(full_target_arr))
-    exit()
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
