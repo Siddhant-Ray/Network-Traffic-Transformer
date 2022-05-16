@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
 
     // Simulation variables
     auto simStart = TimeValue(Seconds(0));
-    auto stopTime = Seconds(600);
+    auto stopTime = Seconds(10);
     auto simStop = TimeValue(stopTime);
 
     // Fix MTU and Segment size, otherwise the small TCP default (536) is used.
@@ -231,7 +231,25 @@ int main(int argc, char *argv[])
     //
     // Explicitly create the nodes required by the topology (shown above).
     //
-    NS_LOG_INFO("Create nodes.");
+
+    // Network topology
+    //
+    //                               disturbance
+    //                                  |
+    //        sender --- switchA --- switchB --- receiver
+    //                      |
+    //                   switchC --- switchD --- (receiver)
+    //
+    //
+    //
+    //
+    //
+    //  The "disturbance" host is used to introduce changes in the network
+    //  conditions.
+    //
+
+
+    NS_LOG_INFO("Create nodes (hosts and disturbances).");
     NodeContainer hosts;
     hosts.Create(3);
     // Keep references to sender, receiver, and disturbance
@@ -240,9 +258,12 @@ int main(int argc, char *argv[])
     auto disturbance = hosts.Get(2);
 
     NodeContainer switches;
-    switches.Create(2);
+    switches.Create(4);
     auto switchA = switches.Get(0);
     auto switchB = switches.Get(1);
+    auto switchC = switches.Get(2);
+    auto switchD = switches.Get(3);
+    
 
     NS_LOG_INFO("Build Topology");
     CsmaHelper csma;
@@ -255,11 +276,16 @@ int main(int argc, char *argv[])
     csma.Install(NodeContainer(receiver, switchB));
     csma.Install(NodeContainer(disturbance, switchB));
     csma.Install(NodeContainer(switchA, switchB));
+    csma.Install(NodeContainer(switchA, switchC));
+    csma.Install(NodeContainer(switchC, switchD));
 
     // Create the bridge netdevice, turning the nodes into actual switches
     BridgeHelper bridge;
     bridge.Install(switchA, GetNetDevices(switchA));
     bridge.Install(switchB, GetNetDevices(switchB));
+
+    bridge.Install(switchC, GetNetDevices(switchC));
+    bridge.Install(switchD, GetNetDevices(switchD));
 
     // Add internet stack and IP addresses to the hosts
     NS_LOG_INFO("Setup stack and assign IP Addresses.");
@@ -368,6 +394,7 @@ int main(int argc, char *argv[])
 
     //csma.EnablePcapAll("csma-bridge", false);
 
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     
     //
     // Now, do the actual simulation.
