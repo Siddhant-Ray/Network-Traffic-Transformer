@@ -185,7 +185,10 @@ int main(int argc, char *argv[])
     double c_w2 = 1;
     double c_w3 = 1;
 
+    auto choose_topo = 1;
+
     CommandLine cmd;
+    cmd.AddValue("topo", "Choose the topology", choose_topo);
     cmd.AddValue("apps", "Number of traffic apps per workload.", n_apps);
     cmd.AddValue("apprate", "Base traffic rate for each app.", baserate);
     cmd.AddValue("linkrate", "Link capacity rate.", linkrate);
@@ -206,6 +209,8 @@ int main(int argc, char *argv[])
     // Print Overview of seetings
     NS_LOG_DEBUG("Overview:"
                  << std::endl
+                 << "Topology is:  "
+                 << choose_topo << std::endl
                  << "Congestion for receiver 1: "
                  << congestion1 << std::endl
                  << "Congestion for receiver 2: "
@@ -224,7 +229,7 @@ int main(int argc, char *argv[])
 
     // Simulation variables
     auto simStart = TimeValue(Seconds(0));
-    auto stopTime = Seconds(10);
+    auto stopTime = Seconds(500);
     auto simStop = TimeValue(stopTime);
 
     // Fix MTU and Segment size, otherwise the small TCP default (536) is used.
@@ -317,7 +322,11 @@ int main(int argc, char *argv[])
     csma.Install(NodeContainer(receiver2, switchD));
     csma.Install(NodeContainer(disturbance2, switchD));
 
+    if (choose_topo == 1)
+    csma.Install(NodeContainer(switchC, switchE));
+    else if (choose_topo == 2)
     csma.Install(NodeContainer(switchD, switchE));
+    
     csma.Install(NodeContainer(switchE, switchF));
     csma.Install(NodeContainer(switchF, switchG));
     csma.Install(NodeContainer(receiver3, switchG));
