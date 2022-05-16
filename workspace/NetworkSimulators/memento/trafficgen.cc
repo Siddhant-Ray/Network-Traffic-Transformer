@@ -170,7 +170,12 @@ int main(int argc, char *argv[])
     int n_apps = 10;
     DataRate linkrate("5Mbps");
     DataRate baserate("100kbps");
-    DataRate congestion("0Mbps");
+
+    // Different for different receivers (can choose to turn off for some, not for all)
+    DataRate congestion1("0Mbps");
+    DataRate congestion2("0Mbps");
+    DataRate congestion3("0Mbps");
+
     std::string basedir = "./distributions/";
     std::string w1 = basedir + "Facebook_WebServerDist_IntraCluster.txt";
     std::string w2 = basedir + "DCTCP_MsgSizeDist.txt";
@@ -187,7 +192,9 @@ int main(int argc, char *argv[])
     cmd.AddValue("w1", "Factor for W1 traffic (FB webserver).", c_w1);
     cmd.AddValue("w2", "Factor for W2 traffic (DCTCP messages).", c_w2);
     cmd.AddValue("w3", "Factor for W3 traffic (FB hadoop).", c_w3);
-    cmd.AddValue("congestion", "Congestion traffic rate.", congestion);
+    cmd.AddValue("congestion1", "Congestion traffic rate.", congestion1);
+    cmd.AddValue("congestion2", "Congestion traffic rate.", congestion2);
+    cmd.AddValue("congestion3", "Congestion traffic rate.", congestion3);
     cmd.AddValue("prefix", "Prefix for log files.", prefix);
     cmd.Parse(argc, argv);
 
@@ -199,8 +206,12 @@ int main(int argc, char *argv[])
     // Print Overview of seetings
     NS_LOG_DEBUG("Overview:"
                  << std::endl
-                 << "Congestion: "
-                 << congestion << std::endl
+                 << "Congestion for receiver 1: "
+                 << congestion1 << std::endl
+                 << "Congestion for receiver 2: "
+                 << congestion2 << std::endl
+                 << "Congestion for receiver 3: "
+                 << congestion3 << std::endl
                  << "Apps: "
                  << n_apps << std::endl
                  << "Workloads (data rates per app):"
@@ -358,15 +369,15 @@ int main(int argc, char *argv[])
     NS_LOG_INFO("Create Traffic Applications.");
 
     // Send multi application data to receiver 1
-    uint16_t base_port = 4200; // Note: We need two ports per pair
-    auto trafficStart = TimeStream(1, 2);
+    uint16_t base_port1 = 4200; // Note: We need two ports per pair
+    auto trafficStart1 = TimeStream(1, 2);
 
     for (auto i_app = 0; i_app < n_apps; ++i_app)
     {
         // We also need to set the appropriate tag at every application!
 
         // Addresses
-        auto port = base_port + i_app;
+        auto port = base_port1 + i_app;
         auto recvAddr1 = AddressValue(InetSocketAddress(addrReceiver1, port));
 
         // Sink
@@ -382,7 +393,7 @@ int main(int argc, char *argv[])
             Ptr<CdfApplication> source1 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w1), "CdfFile", StringValue(w1),
-                "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
+                "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
                 "StopTime", simStop);
             source1->TraceConnectWithoutContext(
                 "Tx", MakeBoundCallback(&setIdTag, 1, i_app));
@@ -393,7 +404,7 @@ int main(int argc, char *argv[])
             Ptr<CdfApplication> source2 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w2), "CdfFile", StringValue(w2),
-                "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
+                "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
                 "StopTime", simStop);
             source2->TraceConnectWithoutContext(
                 "Tx", MakeBoundCallback(&setIdTag, 2, i_app + n_apps));
@@ -404,7 +415,7 @@ int main(int argc, char *argv[])
             Ptr<CdfApplication> source3 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w3), "CdfFile", StringValue(w3),
-                "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
+                "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
                 "StopTime", simStop);
             source3->TraceConnectWithoutContext(
                 "Tx", MakeBoundCallback(&setIdTag, 3, i_app + (2 * n_apps)));
@@ -413,7 +424,7 @@ int main(int argc, char *argv[])
     }
 
     // Explicit congestion for receiver 1
-    if (congestion > 0)
+    if (congestion1 > 0)
     {
         NS_LOG_INFO("Configure congestion app for receiver 1.");
         // Just blast UDP traffic from time to time
@@ -427,8 +438,8 @@ int main(int argc, char *argv[])
             "Protocol", UDP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
-            "DataRate", DataRateValue(congestion),
-            "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
+            "DataRate", DataRateValue(congestion1),
+            "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
             "StopTime", simStop);
         disturbance1->AddApplication(congestion_source);
     }
@@ -494,7 +505,7 @@ int main(int argc, char *argv[])
     }
 
     // Explicit congestion for receiver 2
-    if (congestion > 0)
+    if (congestion2 > 0)
     {
         NS_LOG_INFO("Configure congestion app for receiver 2.");
         // Just blast UDP traffic from time to time
@@ -508,7 +519,7 @@ int main(int argc, char *argv[])
             "Protocol", UDP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
-            "DataRate", DataRateValue(congestion),
+            "DataRate", DataRateValue(congestion2),
             "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
             "StopTime", simStop);
         disturbance2->AddApplication(congestion_source);
@@ -574,7 +585,7 @@ int main(int argc, char *argv[])
     }
 
     // Explicit congestion for receiver 3
-    if (congestion > 0)
+    if (congestion3 > 0)
     {
         NS_LOG_INFO("Configure congestion app for receiver 3.");
         // Just blast UDP traffic from time to time
@@ -588,7 +599,7 @@ int main(int argc, char *argv[])
             "Protocol", UDP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
-            "DataRate", DataRateValue(congestion),
+            "DataRate", DataRateValue(congestion3),
             "StartTime", TimeValue(Seconds(trafficStart3->GetValue())),
             "StopTime", simStop);
         disturbance3->AddApplication(congestion_source);
