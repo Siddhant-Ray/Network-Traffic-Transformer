@@ -14,15 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// Network topology
-//
-//                               disturbance
-//                                  |
-//        sender --- switchA --- switchB --- receiver
-//
-//  The "disturbance" host is used to introduce changes in the network
-//  conditions.
-//
+
 
 #include <iostream>
 #include <fstream>
@@ -234,14 +226,19 @@ int main(int argc, char *argv[])
 
     // Network topology
     //
-    //                               disturbance
+    //                               disturbance1
     //                                  |
-    //        sender --- switchA --- switchB --- receiver
+    //        sender --- switchA --- switchB --- receiver1
     //                      |
-    //                   switchC --- switchD --- (receiver)
-    //
-    //
-    //
+    //                      |
+    //                      |        disturbance2
+    //                      |           |
+    //                   switchC --- switchD --- receiver2
+    //                      |       
+    //                      |                 
+    //                      |
+    //                      |
+    //                      
     //
     //
     //  The "disturbance" host is used to introduce changes in the network
@@ -251,11 +248,13 @@ int main(int argc, char *argv[])
 
     NS_LOG_INFO("Create nodes (hosts and disturbances).");
     NodeContainer hosts;
-    hosts.Create(3);
+    hosts.Create(5);
     // Keep references to sender, receiver, and disturbance
     auto sender = hosts.Get(0);
-    auto receiver = hosts.Get(1);
-    auto disturbance = hosts.Get(2);
+    auto receiver1 = hosts.Get(1);
+    auto disturbance1 = hosts.Get(2);
+    auto receiver2 = hosts.Get(3);
+    auto disturbance2 = hosts.Get(4);
 
     NodeContainer switches;
     switches.Create(4);
@@ -273,11 +272,13 @@ int main(int argc, char *argv[])
 
     // Create the csma links
     csma.Install(NodeContainer(sender, switchA));
-    csma.Install(NodeContainer(receiver, switchB));
-    csma.Install(NodeContainer(disturbance, switchB));
+    csma.Install(NodeContainer(receiver1, switchB));
+    csma.Install(NodeContainer(disturbance1, switchB));
     csma.Install(NodeContainer(switchA, switchB));
     csma.Install(NodeContainer(switchA, switchC));
     csma.Install(NodeContainer(switchC, switchD));
+    csma.Install(NodeContainer(receiver2, switchD));
+    csma.Install(NodeContainer(disturbance2, switchD));
 
     // Create the bridge netdevice, turning the nodes into actual switches
     BridgeHelper bridge;
@@ -291,8 +292,10 @@ int main(int argc, char *argv[])
     NS_LOG_INFO("Setup stack and assign IP Addresses.");
     NetDeviceContainer hostDevices;
     hostDevices.Add(GetNetDevices(sender));
-    hostDevices.Add(GetNetDevices(receiver));
-    hostDevices.Add(GetNetDevices(disturbance));
+    hostDevices.Add(GetNetDevices(receiver1));
+    hostDevices.Add(GetNetDevices(disturbance1));
+    hostDevices.Add(GetNetDevices(receiver2));
+    hostDevices.Add(GetNetDevices(disturbance2));
 
     InternetStackHelper internet;
     internet.Install(hosts);
@@ -300,31 +303,43 @@ int main(int argc, char *argv[])
     ipv4.SetBase("10.1.1.0", "255.255.255.0");
     auto addresses = ipv4.Assign(hostDevices);
     // Get Address: Device with index 0/1, address 0 (only one address)
-    auto addrReceiver = addresses.GetAddress(1, 0);
+    // Print all addresses as a sanity check 
+    NS_LOG_INFO("Src, Dst IP addresses");
+
+    for (int k = 0; k < 5; ++k){
+        std::cout<< addresses.GetAddress(k, 0)<< std::endl;
+    }
+    
+    // List receivers which we use
+    auto addrReceiver1 = addresses.GetAddress(1, 0);
+    auto addrReceiver2 = addresses.GetAddress(3, 0);
 
     NS_LOG_INFO("Create Traffic Applications.");
+
+    // Send multi application data to receiver 1
     uint16_t base_port = 4200; // Note: We need two ports per pair
     auto trafficStart = TimeStream(1, 2);
+
     for (auto i_app = 0; i_app < n_apps; ++i_app)
     {
         // We also need to set the appropriate tag at every application!
 
         // Addresses
         auto port = base_port + i_app;
-        auto recvAddr = AddressValue(InetSocketAddress(addrReceiver, port));
+        auto recvAddr1 = AddressValue(InetSocketAddress(addrReceiver1, port));
 
         // Sink
         Ptr<Application> sink = CreateObjectWithAttributes<PacketSink>(
-            "Local", recvAddr, "Protocol", TCP,
+            "Local", recvAddr1, "Protocol", TCP,
             "StartTime", simStart, "StopTime", simStop);
-        receiver->AddApplication(sink);
+        receiver1->AddApplication(sink);
 
         // Sources for each workload
         // App indexing scheme: 0--n_apps-1: w1, n_apps -- 2n_apps-1: w2, etc.
         if (rate_w1 > 0)
         {
             Ptr<CdfApplication> source1 = CreateObjectWithAttributes<CdfApplication>(
-                "Remote", recvAddr, "Protocol", TCP,
+                "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w1), "CdfFile", StringValue(w1),
                 "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
                 "StopTime", simStop);
@@ -335,7 +350,7 @@ int main(int argc, char *argv[])
         if (rate_w2 > 0)
         {
             Ptr<CdfApplication> source2 = CreateObjectWithAttributes<CdfApplication>(
-                "Remote", recvAddr, "Protocol", TCP,
+                "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w2), "CdfFile", StringValue(w2),
                 "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
                 "StopTime", simStop);
@@ -346,7 +361,7 @@ int main(int argc, char *argv[])
         if (rate_w3 > 0)
         {
             Ptr<CdfApplication> source3 = CreateObjectWithAttributes<CdfApplication>(
-                "Remote", recvAddr, "Protocol", TCP,
+                "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w3), "CdfFile", StringValue(w3),
                 "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
                 "StopTime", simStop);
@@ -356,29 +371,113 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Explicit congestion for receiver 1
     if (congestion > 0)
     {
-        NS_LOG_INFO("Configure congestion app.");
+        NS_LOG_INFO("Configure congestion app for receiver 1.");
         // Just blast UDP traffic from time to time
         Ptr<Application> congestion_sink = CreateObjectWithAttributes<PacketSink>(
-            "Local", AddressValue(InetSocketAddress(addrReceiver, 2100)),
+            "Local", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
             "Protocol", UDP, "StartTime", simStart, "StopTime", simStop);
-        receiver->AddApplication(congestion_sink);
+        receiver1->AddApplication(congestion_sink);
 
         Ptr<Application> congestion_source = CreateObjectWithAttributes<OnOffApplication>(
-            "Remote", AddressValue(InetSocketAddress(addrReceiver, 2100)),
+            "Remote", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
             "Protocol", UDP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
             "DataRate", DataRateValue(congestion),
             "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
             "StopTime", simStop);
-        disturbance->AddApplication(congestion_source);
+        disturbance1->AddApplication(congestion_source);
     }
     else
     {
-        NS_LOG_INFO("No congestion.");
+        NS_LOG_INFO("No explicit congestion for receiver 1.");
     }
+
+
+    // Send multi application data to receiver 2
+    uint16_t base_port2 = 5200; // Note: We need two ports per pair
+    auto trafficStart2 = TimeStream(1, 2);
+
+    for (auto i_app = 0; i_app < n_apps; ++i_app)
+    {
+        // We also need to set the appropriate tag at every application!
+
+        // Addresses
+        auto port = base_port2 + i_app;
+        auto recvAddr2 = AddressValue(InetSocketAddress(addrReceiver2, port));
+
+        // Sink
+        Ptr<Application> sink = CreateObjectWithAttributes<PacketSink>(
+            "Local", recvAddr2, "Protocol", TCP,
+            "StartTime", simStart, "StopTime", simStop);
+        receiver2->AddApplication(sink);
+
+        // Sources for each workload
+        // App indexing scheme: 0--n_apps-1: w1, n_apps -- 2n_apps-1: w2, etc.
+        if (rate_w1 > 0)
+        {
+            Ptr<CdfApplication> source1 = CreateObjectWithAttributes<CdfApplication>(
+                "Remote", recvAddr2, "Protocol", TCP,
+                "DataRate", DataRateValue(rate_w1), "CdfFile", StringValue(w1),
+                "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
+                "StopTime", simStop);
+            source1->TraceConnectWithoutContext(
+                "Tx", MakeBoundCallback(&setIdTag, 1, i_app));
+            sender->AddApplication(source1);
+        }
+        if (rate_w2 > 0)
+        {
+            Ptr<CdfApplication> source2 = CreateObjectWithAttributes<CdfApplication>(
+                "Remote", recvAddr2, "Protocol", TCP,
+                "DataRate", DataRateValue(rate_w2), "CdfFile", StringValue(w2),
+                "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
+                "StopTime", simStop);
+            source2->TraceConnectWithoutContext(
+                "Tx", MakeBoundCallback(&setIdTag, 2, i_app + n_apps));
+            sender->AddApplication(source2);
+        }
+        if (rate_w3 > 0)
+        {
+            Ptr<CdfApplication> source3 = CreateObjectWithAttributes<CdfApplication>(
+                "Remote", recvAddr2, "Protocol", TCP,
+                "DataRate", DataRateValue(rate_w3), "CdfFile", StringValue(w3),
+                "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
+                "StopTime", simStop);
+            source3->TraceConnectWithoutContext(
+                "Tx", MakeBoundCallback(&setIdTag, 3, i_app + (2 * n_apps)));
+            sender->AddApplication(source3);
+        }
+    }
+
+    // Explicit congestion for receiver 2
+    if (congestion > 0)
+    {
+        NS_LOG_INFO("Configure congestion app for receiver 2.");
+        // Just blast UDP traffic from time to time
+        Ptr<Application> congestion_sink = CreateObjectWithAttributes<PacketSink>(
+            "Local", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
+            "Protocol", UDP, "StartTime", simStart, "StopTime", simStop);
+        receiver2->AddApplication(congestion_sink);
+
+        Ptr<Application> congestion_source = CreateObjectWithAttributes<OnOffApplication>(
+            "Remote", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
+            "Protocol", UDP,
+            "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
+            "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
+            "DataRate", DataRateValue(congestion),
+            "StartTime", TimeValue(Seconds(trafficStart->GetValue())),
+            "StopTime", simStop);
+        disturbance2->AddApplication(congestion_source);
+    }
+    else
+    {
+        NS_LOG_INFO("No explicit congestion for receiver 2.");
+    }
+
+
     NS_LOG_INFO("Install Tracing");
     AsciiTraceHelper asciiTraceHelper;
 
@@ -389,7 +488,9 @@ int main(int argc, char *argv[])
     auto trackfile = asciiTraceHelper.CreateFileStream(trackfilename.str());
     sender->GetDevice(0)->TraceConnectWithoutContext(
         "MacTx", MakeCallback(&setTimeTag));
-    receiver->GetDevice(0)->TraceConnectWithoutContext(
+    receiver1->GetDevice(0)->TraceConnectWithoutContext(
+        "MacRx", MakeBoundCallback(&logPacketInfo, trackfile));
+    receiver2->GetDevice(0)->TraceConnectWithoutContext(
         "MacRx", MakeBoundCallback(&logPacketInfo, trackfile));
 
     //csma.EnablePcapAll("csma-bridge", false);
