@@ -12,5 +12,5 @@
                     --congestion1=$2Mbps
                     --congestion2=$3Mbps
                     --congestion3=$4Mbps 
-                    --prefix=results/topo_$1"
+                    --prefix=results/topo_test_$1"
 

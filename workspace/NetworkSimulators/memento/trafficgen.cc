@@ -125,6 +125,23 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
     };
 };
 
+void logValue(Ptr<OutputStreamWrapper> stream, std::string context,
+              uint32_t oldval, uint32_t newval)
+{
+    auto current_time = Simulator::Now();
+    *stream->GetStream() << context << ',' << current_time.GetSeconds() << ','
+                         << newval << std::endl;
+}
+
+void logDrop(Ptr<OutputStreamWrapper> stream,
+             std::string context, Ptr<Packet const> p)
+{
+    auto current_time = Simulator::Now();
+    *stream->GetStream() << context << ',' << current_time.GetSeconds() << ','
+                         << p->GetSize() << std::endl;
+};
+
+
 // TODO: Add base stream? Or how to get different random streams?
 Ptr<RandomVariableStream> TimeStream(double min = 0.0, double max = 1.0)
 {
@@ -170,6 +187,10 @@ int main(int argc, char *argv[])
     int n_apps = 10;
     DataRate linkrate("5Mbps");
     DataRate baserate("100kbps");
+    int start_window = 1;
+    Time delay("5ms");
+    QueueSize queuesize("100p");
+
 
     // Different for different receivers (can choose to turn off for some, not for all)
     DataRate congestion1("0Mbps");
@@ -191,7 +212,10 @@ int main(int argc, char *argv[])
     cmd.AddValue("topo", "Choose the topology", choose_topo);
     cmd.AddValue("apps", "Number of traffic apps per workload.", n_apps);
     cmd.AddValue("apprate", "Base traffic rate for each app.", baserate);
+    cmd.AddValue("startwindow", "Maximum diff in start time.", start_window);
     cmd.AddValue("linkrate", "Link capacity rate.", linkrate);
+    cmd.AddValue("linkdelay", "Link delay.", delay);
+    cmd.AddValue("queuesize", "Bottleneck queue size.", queuesize);
     cmd.AddValue("w1", "Factor for W1 traffic (FB webserver).", c_w1);
     cmd.AddValue("w2", "Factor for W2 traffic (DCTCP messages).", c_w2);
     cmd.AddValue("w3", "Factor for W3 traffic (FB hadoop).", c_w3);
@@ -229,13 +253,18 @@ int main(int argc, char *argv[])
 
     // Simulation variables
     auto simStart = TimeValue(Seconds(0));
-    auto stopTime = Seconds(500);
+    auto stopTime = Seconds(10);
     auto simStop = TimeValue(stopTime);
 
     // Fix MTU and Segment size, otherwise the small TCP default (536) is used.
     Config::SetDefault("ns3::CsmaNetDevice::Mtu", UintegerValue(1500));
+
+    // Tcp Socket (general socket conf)
+    Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(4000000));
+    Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(4000000));
     Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1380));
 
+    
     //
     // Explicitly create the nodes required by the topology (shown above).
     //
@@ -332,6 +361,11 @@ int main(int argc, char *argv[])
     csma.Install(NodeContainer(receiver3, switchG));
     csma.Install(NodeContainer(disturbance3, switchG));
 
+    // Update the queue size
+    Config::Set(
+        "/NodeList/0/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/MaxSize",
+        QueueSizeValue(queuesize));
+
     // Create the bridge netdevice, turning the nodes into actual switches
     BridgeHelper bridge;
     bridge.Install(switchA, GetNetDevices(switchA));
@@ -345,7 +379,7 @@ int main(int argc, char *argv[])
     bridge.Install(switchF, GetNetDevices(switchF));
     bridge.Install(switchG, GetNetDevices(switchG));
 
-
+    
     // Add internet stack and IP addresses to the hosts
     NS_LOG_INFO("Setup stack and assign IP Addresses.");
     NetDeviceContainer hostDevices;
@@ -379,7 +413,7 @@ int main(int argc, char *argv[])
 
     // Send multi application data to receiver 1
     uint16_t base_port1 = 4200; // Note: We need two ports per pair
-    auto trafficStart1 = TimeStream(1, 2);
+    auto trafficStart1 =  TimeStream(1, 1 + start_window);
 
     for (auto i_app = 0; i_app < n_apps; ++i_app)
     {
@@ -460,7 +494,7 @@ int main(int argc, char *argv[])
 
     // Send multi application data to receiver 2
     uint16_t base_port2 = 5200; // Note: We need two ports per pair
-    auto trafficStart2 = TimeStream(1, 2);
+    auto trafficStart2 = TimeStream(1, 1 + start_window);
 
     for (auto i_app = 0; i_app < n_apps; ++i_app)
     {
@@ -540,7 +574,7 @@ int main(int argc, char *argv[])
 
     // Send multi application data to receiver 3
     uint16_t base_port3 = 6200; // Note: We need two ports per pair
-    auto trafficStart3 = TimeStream(1, 2);
+    auto trafficStart3 = TimeStream(1, 1 + start_window);
 
     for (auto i_app = 0; i_app < n_apps; ++i_app)
     {
@@ -636,6 +670,19 @@ int main(int argc, char *argv[])
         "MacRx", MakeBoundCallback(&logPacketInfo, trackfile));
 
     //csma.EnablePcapAll("csma-bridge", false);
+
+    // Track queues
+    auto queuefile = asciiTraceHelper.CreateFileStream("results/queue.csv");
+    Config::Connect(
+        "/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/TxQueue/PacketsInQueue",
+        MakeBoundCallback(&logValue, queuefile));
+
+    auto dropfile = asciiTraceHelper.CreateFileStream("results/drops.csv");
+    Config::Connect(
+        "/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/MacTxDrop",
+        MakeBoundCallback(&logDrop, dropfile));
+
+
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     
