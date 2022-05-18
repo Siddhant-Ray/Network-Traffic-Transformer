@@ -194,3 +194,6 @@ evaluations
 
 ## Logs
 lightning_logs
+
+## Plots 
+workspace/PandasScripts/plots
