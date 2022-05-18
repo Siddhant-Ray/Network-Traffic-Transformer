@@ -19,7 +19,7 @@ def get_pretraining_data_delay():
 
     for count,file in enumerate(files):
         df_pretraining = pd.read_csv(path+file)
-        delay_list = df_pretraining["Delay"].to_list()
+        delay_list = (df_pretraining["Delay"]*1000).to_list()
         list_of_delay_lists.append(delay_list)
         delay_arr = np.array(delay_list)
         metric_tuple = (np.mean(delay_arr), np.median(delay_arr), np.quantile(delay_arr, 0.99))
@@ -38,7 +38,7 @@ def get_memento_finetuning_data_delay():
 
     for count,file in enumerate(files):
         df_pretraining = pd.read_csv(path+file)
-        delay_list = df_pretraining["Delay"].to_list()
+        delay_list = (df_pretraining["Delay"]*1000).to_list()
         list_of_delay_lists.append(delay_list)
         delay_arr = np.array(delay_list)
         metric_tuple = (np.mean(delay_arr), np.median(delay_arr), np.quantile(delay_arr, 0.99))
@@ -58,7 +58,7 @@ def get_memento_finetuning_data_bigger_topology():
 
     for count,file in enumerate(files):
         df_pretraining = pd.read_csv(path+file)
-        delay_list = df_pretraining["Delay"].to_list()
+        delay_list = (df_pretraining["Delay"]*1000).to_list()
         list_of_delay_lists.append(delay_list)
         delay_arr = np.array(delay_list)
         metric_tuple = (np.mean(delay_arr), np.median(delay_arr), np.quantile(delay_arr, 0.99))
@@ -113,7 +113,7 @@ if __name__=="__main__":
 
     print(global_metrics_dict)   
 
-    out_json = json.dumps(global_metrics_dict) 
+    out_json = json.dumps(global_metrics_dict, indent=4) 
 
     with open('plots/metrics_json_data.json', 'w') as outfile:
         outfile.write(out_json)                                            

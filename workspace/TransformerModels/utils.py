@@ -92,7 +92,7 @@ def vectorize_features_to_numpy_finetune(data_frame):
 
 def vectorize_features_to_numpy_memento(data_frame):
     feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
-    label_frame = data_frame['Delay']
+    label_frame = data_frame['Delay'] * 1000 # Scale to ms 
     feature_frame.drop(['Delay'], axis = 1, inplace=True)
     feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
 
@@ -104,7 +104,7 @@ def vectorize_features_to_numpy_finetune_memento(data_frame):
     feature_frame["IP ID"] = feature_frame["IP ID"] + np.int64(1) 
     feature_frame["ECN"] = feature_frame["ECN"] + np.int64(1) 
     feature_frame["DSCP"] = feature_frame["DSCP"] + np.int64(1) 
-    label_frame = data_frame['Delay']
+    label_frame = data_frame['Delay'] * 1000 # Scale to ms 
     feature_frame.drop(['Delay'], axis = 1, inplace=True)
     # For fine-tune, add all 0s as delays to maintain input shape
     feature_frame["Dummy Delay"] = np.int64(0) 
