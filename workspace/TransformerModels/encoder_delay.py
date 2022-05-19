@@ -102,6 +102,10 @@ class TransformerEncoder(pl.LightningModule):
                          "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
+        
+        ## Mask out the nth delay in every input sequence
+        self.input_size = input_size
+        self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
 
     def configure_optimizers(self):
         self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
@@ -124,7 +128,14 @@ class TransformerEncoder(pl.LightningModule):
 
     def training_step(self, train_batch, train_idx):
         X, y = train_batch
-        self.lr_update()               
+        self.lr_update()    
+        
+        # Mask our the nth packet delay delay, which is at position 639 (640 is sequence length)
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
+        batch_mask = batch_mask.double() 
+        X[:, [batch_mask_index]] = batch_mask 
+        
         prediction = self.forward(X)
         loss = self.loss_func(prediction, y)
         self.log('Train loss', loss)
@@ -161,7 +172,7 @@ def main():
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    num_features = 15
+    num_features = 16
     input_size = sl_win_size * num_features
     output_size = sl_win_size
 
@@ -175,7 +186,7 @@ def main():
 
     if MEMENTO:
         path = "memento_data/"
-        files = ["memento_test10_final.csv"]
+        files = ["topo_1_final.csv"]
 
     else:
         path = "congestion_1/"
