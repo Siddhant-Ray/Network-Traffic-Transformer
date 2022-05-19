@@ -271,19 +271,19 @@ int main(int argc, char *argv[])
 
     // Network topology 1
     //
-    //                               disturbance1
-    //                                  |
-    //        sender --- switchA --- switchB --- receiver1
-    //                      |
-    //                      |
-    //                      |        disturbance2
-    //                      |           |
-    //                   switchC --- switchD --- receiver2
-    //                      |       
-    //                      |                 
-    //                      |                   disturbance3
-    //                      |                       |
-    //                   switchE --- switchF --- switchG--recevier3
+    //                                  disturbance1
+    //                                       |
+    // 3x n_apps(senders) --- switchA --- switchB --- receiver1
+    //                          |
+    //                          |
+    //                          |       disturbance2
+    //                          |            |
+    //                       switchC --- switchD --- receiver2
+    //                          |       
+    //                          |                 
+    //                          |                   disturbance3
+    //                          |                       |
+    //                       switchE --- switchF --- switchG--recevier3
     //
     //
 
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
     //
     //                               disturbance1
     //                                  |
-    //        sender --- switchA --- switchB --- receiver1
+    //        sender(s) --- switchA --- switchB --- receiver1
     //                      |
     //                      |
     //                      |        disturbance2
@@ -308,20 +308,21 @@ int main(int argc, char *argv[])
     //  conditions. Disturbance nodes are explicit and can be turned off.
     //  If no disturbance specified, only congestion is from actual traffic on the shared links.
 
-
-    auto num_hosts = 7;
+    // Hosts track only receivers and disturbances
+    auto num_hosts = 6;
 
     NS_LOG_INFO("Create nodes (hosts and disturbances).");
     NodeContainer hosts;
     hosts.Create(num_hosts);
     // Keep references to sender, receiver, and disturbance
-    auto sender = hosts.Get(0);
-    auto receiver1 = hosts.Get(1);
-    auto disturbance1 = hosts.Get(2);
-    auto receiver2 = hosts.Get(3);
-    auto disturbance2 = hosts.Get(4);
-    auto receiver3 = hosts.Get(5);
-    auto disturbance3 = hosts.Get(6);
+    // auto sender = hosts.Get(0);
+
+    auto receiver1 = hosts.Get(0);
+    auto disturbance1 = hosts.Get(1);
+    auto receiver2 = hosts.Get(2);
+    auto disturbance2 = hosts.Get(3);
+    auto receiver3 = hosts.Get(4);
+    auto disturbance3 = hosts.Get(5);
     
     NodeContainer switches;
     switches.Create(7);
@@ -332,6 +333,10 @@ int main(int argc, char *argv[])
     auto switchE = switches.Get(4);
     auto switchF = switches.Get(5);
     auto switchG = switches.Get(6);
+
+    NodeContainer senders;
+    senders.Create(3 * n_apps);
+
     
     NS_LOG_INFO("Build Topology");
     CsmaHelper csma;
@@ -340,7 +345,7 @@ int main(int argc, char *argv[])
     csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(5)));
 
     // Create the csma links
-    csma.Install(NodeContainer(sender, switchA));
+    // csma.Install(NodeContainer(sender, switchA));
 
     csma.Install(NodeContainer(receiver1, switchB));
     csma.Install(NodeContainer(disturbance1, switchB));
@@ -360,6 +365,12 @@ int main(int argc, char *argv[])
     csma.Install(NodeContainer(switchF, switchG));
     csma.Install(NodeContainer(receiver3, switchG));
     csma.Install(NodeContainer(disturbance3, switchG));
+
+    for (auto it = senders.Begin(); it != senders.End(); it++)
+    {
+        Ptr<Node> sender = *it;
+        csma.Install(NodeContainer(sender, switchA));
+    }
 
     // Update the queue size
     Config::Set(
@@ -383,19 +394,28 @@ int main(int argc, char *argv[])
     // Add internet stack and IP addresses to the hosts
     NS_LOG_INFO("Setup stack and assign IP Addresses.");
     NetDeviceContainer hostDevices;
-    hostDevices.Add(GetNetDevices(sender));
+    // hostDevices.Add(GetNetDevices(sender));
     hostDevices.Add(GetNetDevices(receiver1));
     hostDevices.Add(GetNetDevices(disturbance1));
     hostDevices.Add(GetNetDevices(receiver2));
     hostDevices.Add(GetNetDevices(disturbance2));
     hostDevices.Add(GetNetDevices(receiver3));
     hostDevices.Add(GetNetDevices(disturbance3));
-    
+
+    for (auto it = senders.Begin(); it != senders.End(); it++)
+    {
+        Ptr<Node> sender = *it;
+        hostDevices.Add(GetNetDevices(sender));
+    }
+
     InternetStackHelper internet;
     internet.Install(hosts);
+    internet.Install(senders);
+
     Ipv4AddressHelper ipv4;
     ipv4.SetBase("10.1.1.0", "255.255.255.0");
     auto addresses = ipv4.Assign(hostDevices);
+
     // Get Address: Device with index 0/1, address 0 (only one address)
     // Print all addresses as a sanity check 
     NS_LOG_INFO("Src, Dst IP addresses");
@@ -405,9 +425,9 @@ int main(int argc, char *argv[])
     }
     
     // List receivers which we use
-    auto addrReceiver1 = addresses.GetAddress(1, 0);
-    auto addrReceiver2 = addresses.GetAddress(3, 0);
-    auto addrReceiver3 = addresses.GetAddress(5, 0);
+    auto addrReceiver1 = addresses.GetAddress(0, 0);
+    auto addrReceiver2 = addresses.GetAddress(2, 0);
+    auto addrReceiver3 = addresses.GetAddress(4, 0);
 
     NS_LOG_INFO("Create Traffic Applications.");
 
@@ -431,38 +451,42 @@ int main(int argc, char *argv[])
 
         // Sources for each workload
         // App indexing scheme: 0--n_apps-1: w1, n_apps -- 2n_apps-1: w2, etc.
+       
         if (rate_w1 > 0)
         {
+            auto _id = i_app;
             Ptr<CdfApplication> source1 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w1), "CdfFile", StringValue(w1),
                 "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
                 "StopTime", simStop);
             source1->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 1, i_app));
-            sender->AddApplication(source1);
+                "Tx", MakeBoundCallback(&setIdTag, 1, _id));
+            senders.Get(_id)->AddApplication(source1);
         }
         if (rate_w2 > 0)
         {
+            auto _id = i_app + n_apps;
             Ptr<CdfApplication> source2 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w2), "CdfFile", StringValue(w2),
                 "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
                 "StopTime", simStop);
             source2->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 2, i_app + n_apps));
-            sender->AddApplication(source2);
+                "Tx", MakeBoundCallback(&setIdTag, 2, _id));
+            senders.Get(_id)->AddApplication(source2);
         }
         if (rate_w3 > 0)
         {
+            auto _id = i_app + (2 * n_apps);
             Ptr<CdfApplication> source3 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr1, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w3), "CdfFile", StringValue(w3),
                 "StartTime", TimeValue(Seconds(trafficStart1->GetValue())),
                 "StopTime", simStop);
             source3->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 3, i_app + (2 * n_apps)));
-            sender->AddApplication(source3);
+                "Tx", MakeBoundCallback(&setIdTag, 3, _id));
+            senders.Get(_id)->AddApplication(source3);
         }
     }
 
@@ -514,36 +538,39 @@ int main(int argc, char *argv[])
         // App indexing scheme: 0--n_apps-1: w1, n_apps -- 2n_apps-1: w2, etc.
         if (rate_w1 > 0)
         {
+            auto _id = i_app;
             Ptr<CdfApplication> source1 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr2, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w1), "CdfFile", StringValue(w1),
                 "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
                 "StopTime", simStop);
             source1->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 1, i_app));
-            sender->AddApplication(source1);
+                "Tx", MakeBoundCallback(&setIdTag, 1, _id));
+            senders.Get(_id)->AddApplication(source1);
         }
         if (rate_w2 > 0)
         {
+            auto _id = i_app + n_apps;
             Ptr<CdfApplication> source2 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr2, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w2), "CdfFile", StringValue(w2),
                 "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
                 "StopTime", simStop);
             source2->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 2, i_app + n_apps));
-            sender->AddApplication(source2);
+                "Tx", MakeBoundCallback(&setIdTag, 2,_id));
+            senders.Get(_id)->AddApplication(source2);
         }
         if (rate_w3 > 0)
         {
+            auto _id = i_app + (2 * n_apps);
             Ptr<CdfApplication> source3 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr2, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w3), "CdfFile", StringValue(w3),
                 "StartTime", TimeValue(Seconds(trafficStart2->GetValue())),
                 "StopTime", simStop);
             source3->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 3, i_app + (2 * n_apps)));
-            sender->AddApplication(source3);
+                "Tx", MakeBoundCallback(&setIdTag, 3, _id));
+            senders.Get(_id)->AddApplication(source3);
         }
     }
 
@@ -594,36 +621,39 @@ int main(int argc, char *argv[])
         // App indexing scheme: 0--n_apps-1: w1, n_apps -- 2n_apps-1: w2, etc.
         if (rate_w1 > 0)
         {
+            auto _id = i_app;
             Ptr<CdfApplication> source1 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr3, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w1), "CdfFile", StringValue(w1),
                 "StartTime", TimeValue(Seconds(trafficStart3->GetValue())),
                 "StopTime", simStop);
             source1->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 1, i_app));
-            sender->AddApplication(source1);
+                "Tx", MakeBoundCallback(&setIdTag, 1, _id));
+            senders.Get(_id)->AddApplication(source1);
         }
         if (rate_w2 > 0)
         {
+            auto _id = i_app + n_apps;
             Ptr<CdfApplication> source2 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr3, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w2), "CdfFile", StringValue(w2),
                 "StartTime", TimeValue(Seconds(trafficStart3->GetValue())),
                 "StopTime", simStop);
             source2->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 2, i_app + n_apps));
-            sender->AddApplication(source2);
+                "Tx", MakeBoundCallback(&setIdTag, 2, _id));
+            senders.Get(_id)->AddApplication(source2);
         }
         if (rate_w3 > 0)
         {
+            auto _id = i_app + (2 * n_apps);
             Ptr<CdfApplication> source3 = CreateObjectWithAttributes<CdfApplication>(
                 "Remote", recvAddr3, "Protocol", TCP,
                 "DataRate", DataRateValue(rate_w3), "CdfFile", StringValue(w3),
                 "StartTime", TimeValue(Seconds(trafficStart3->GetValue())),
                 "StopTime", simStop);
             source3->TraceConnectWithoutContext(
-                "Tx", MakeBoundCallback(&setIdTag, 3, i_app + (2 * n_apps)));
-            sender->AddApplication(source3);
+                "Tx", MakeBoundCallback(&setIdTag, 3, _id));
+            senders.Get(_id)->AddApplication(source3);
         }
     }
 
@@ -660,8 +690,16 @@ int main(int argc, char *argv[])
     // trackfilename << prefix << "_delays.csv";
     trackfilename << prefix << ".csv"; // only one file for now.
     auto trackfile = asciiTraceHelper.CreateFileStream(trackfilename.str());
-    sender->GetDevice(0)->TraceConnectWithoutContext(
-        "MacTx", MakeCallback(&setTimeTag));
+
+    for (auto it = senders.Begin(); it != senders.End(); it++)
+    {
+        Ptr<Node> sender = *it;
+        sender->GetDevice(0)->TraceConnectWithoutContext(
+            "MacTx", MakeCallback(&setTimeTag));
+    }
+    /*sender->GetDevice(0)->TraceConnectWithoutContext(
+        "MacTx", MakeCallback(&setTimeTag));*/
+
     receiver1->GetDevice(0)->TraceConnectWithoutContext(
         "MacRx", MakeBoundCallback(&logPacketInfo, trackfile));
     receiver2->GetDevice(0)->TraceConnectWithoutContext(
