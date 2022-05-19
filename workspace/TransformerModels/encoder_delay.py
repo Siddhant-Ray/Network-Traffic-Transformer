@@ -275,7 +275,8 @@ def main():
     trainer.save_checkpoint("encoder_delay_logs/finetune_nonpretrained_window40.ckpt")
 
     if SAVE_MODEL:
-        torch.save(model, "encoder_delay_logs/finetuned_encoder_scratch.pt")
+        pass 
+        # torch.save(model, "encoder_delay_logs/finetuned_encoder_scratch.pt")
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)

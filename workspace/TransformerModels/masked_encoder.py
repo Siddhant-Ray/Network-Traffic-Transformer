@@ -279,7 +279,8 @@ def main():
     trainer.save_checkpoint("encoder_masked_logs2/pretrained_window40.ckpt")
 
     if SAVE_MODEL:
-        torch.save(model, "encoder_masked_logs2/pretrained_encoder.pt")
+        pass
+        # torch.save(model, "encoder_masked_logs2/pretrained_encoder.pt")
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
