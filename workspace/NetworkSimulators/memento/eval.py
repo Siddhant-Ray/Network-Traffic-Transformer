@@ -46,9 +46,37 @@ scs = sns.relplot(
     ci=None,
 )
 
-sbs.fig.suptitle('Bottleneck queue plot with multiple senders')
+scs.fig.suptitle('Bottleneck queue plot with multiple senders')
 plt.savefig("Queuesize"+".png")
 
+## Bottleneck plots for switches A, B, D, G
+
+values = [6, 7, 9, 12]
+dict_switches = {
+    6: "A",
+    7: "B",
+    9: "D",
+    12: "G"
+}
+
+for value in values:
+    bottleneck_source = "/NodeList/{}/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/PacketsInQueue".format(value)
+    bottleneck_queue = queueframe[queueframe["source"] == bottleneck_source]
+    print(bottleneck_source)
+
+    plt.figure()
+    scs = sns.relplot(
+        data=bottleneck_queue,
+        kind='line',
+        x='time',
+        y='size',
+        legend=False,
+        ci=None,
+    )
+
+    scs.fig.suptitle('Bottleneck queue on switch {} '.format(dict_switches[value]))
+    save_name = "Queue profile on switch {}".format(dict_switches[value]) + ".png"
+    plt.savefig(save_name) 
 
 dropframe = pd.read_csv("drops.csv", names=["source", "time", "packetsize"])
 
