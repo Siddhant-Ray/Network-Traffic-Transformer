@@ -142,7 +142,8 @@ class MaskedTransformerEncoder(pl.LightningModule):
             masked_indices = [np.random.choice(batch_delay_position).astype(int) for i in range(mask_size)]
             # print(masked_indices)
             batch_mask_indices = masked_indices
-            batch_mask = torch.tensor([0 for i in range(len(batch_mask_indices))], device=self.device)
+            batch_mask = torch.tensor([0 for i in range(len(batch_mask_indices))],
+                                        dtype = torch.double, requires_grad = True, device=self.device)
             batch_mask = batch_mask.double() 
 
             correct_out = X[:, [batch_mask_indices]]   
@@ -260,9 +261,9 @@ def main():
     print(time)
 
     print("Removing old logs:")
-    os.system("rm -rf encoder_masked_logs2/lightning_logs/")
+    os.system("rm -rf encoder_masked_logs/lightning_logs/")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_masked_logs2/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_masked_logs/")
     
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=10,
@@ -276,15 +277,15 @@ def main():
     time = datetime.now()
     print(time)
     ## Manually save checkpoint as auto saving is getting a bit messy
-    trainer.save_checkpoint("encoder_masked_logs2/pretrained_window40.ckpt")
+    trainer.save_checkpoint("encoder_masked_logs/pretrained_window40.ckpt")
 
     if SAVE_MODEL:
         pass
-        # torch.save(model, "encoder_masked_logs2/pretrained_encoder.pt")
+        # torch.save(model, "encoder_masked_logs/pretrained_encoder.pt")
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "transformer_logs/lightning_logs/version_0"
+        log_dir = "encoder_masked_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
