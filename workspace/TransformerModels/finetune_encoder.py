@@ -101,6 +101,8 @@ class TransformerEncoderFinetune(pl.LightningModule):
                          "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
+        self.input_size = input_size
+        self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
 
     def configure_optimizers(self):
         self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
@@ -125,7 +127,7 @@ class TransformerEncoderFinetune(pl.LightningModule):
         X, y = train_batch
         self.lr_update()               
 
-        # Mask our the nth packet delay delay, which is at position 639 (640 is sequence length)
+        # Mask our the nth packet delay delay, which is at position seq_len - 1 (640 is sequence length)
         batch_mask_index = self.input_size - 1
         batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
         batch_mask = batch_mask.double() 
@@ -138,6 +140,13 @@ class TransformerEncoderFinetune(pl.LightningModule):
 
     def validation_step(self, val_batch, val_idx):
         X, y = val_batch
+
+        # No gradient on feature in validation and test
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
+        batch_mask = batch_mask.double() 
+        X[:, [batch_mask_index]] = batch_mask 
+
         prediction = self.forward(X)
         loss = self.loss_func(prediction, y)
         self.log('Val loss', loss, sync_dist=True)
@@ -145,6 +154,12 @@ class TransformerEncoderFinetune(pl.LightningModule):
 
     def test_step(self, test_batch, test_idx):
         X, y  = test_batch
+
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
+        batch_mask = batch_mask.double() 
+        X[:, [batch_mask_index]] = batch_mask 
+
         prediction = self.forward(X)
         loss = self.loss_func(prediction, y)
         self.log('Test loss', loss, sync_dist=True)
@@ -184,7 +199,7 @@ def main():
 
 
     # model = TransformerEncoderFinetune(input_size, LOSSFUNCTION)
-    cpath = "encoder_masked_logs2/pretrained_window40_5.ckpt"
+    cpath = "encoder_masked_logs/pretrained_window40.ckpt"
     model = TransformerEncoderFinetune.load_from_checkpoint(input_size = input_size, loss_function = LOSSFUNCTION, checkpoint_path=cpath,
                                                             strict=False)
 
@@ -290,7 +305,8 @@ def main():
     trainer.save_checkpoint("finetune_encoder_logs/finetuned_pretrained_window40.ckpt")
 
     if SAVE_MODEL:
-        torch.save(model, "finetune_encoder_logs/finetuned_encoder_pretrained.pt")
+        pass
+        #torch.save(model, "finetune_encoder_logs/finetuned_encoder_pretrained.pt")
 
 
     if MAKE_EPOCH_PLOT:

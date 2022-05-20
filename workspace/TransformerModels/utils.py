@@ -94,7 +94,7 @@ def vectorize_features_to_numpy_finetune(data_frame):
 def vectorize_features_to_numpy_memento(data_frame):
     feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
     label_frame = data_frame['Delay'] * 1000 # Scale to ms 
-
+    feature_frame["Delay"] = feature_frame['Delay'] * 1000 # Scale to ms 
     ### Keep the ddelay, mask nth delay in batch during training
     
     # feature_frame.drop(['Delay'], axis = 1, inplace=True)
@@ -109,6 +109,7 @@ def vectorize_features_to_numpy_finetune_memento(data_frame):
     feature_frame["ECN"] = feature_frame["ECN"] + np.int64(1) 
     feature_frame["DSCP"] = feature_frame["DSCP"] + np.int64(1) 
     label_frame = data_frame['Delay'] * 1000 # Scale to ms 
+    feature_frame["Delay"] = feature_frame['Delay'] * 1000 # Scale to ms 
 
     ### Keep the ddelay, mask nth delay in batch during training
 

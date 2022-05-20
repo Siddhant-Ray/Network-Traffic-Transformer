@@ -130,7 +130,7 @@ class TransformerEncoder(pl.LightningModule):
         X, y = train_batch
         self.lr_update()    
         
-        # Mask our the nth packet delay delay, which is at position 639 (640 is sequence length)
+        # Mask our the nth packet delay delay, which is at position seq_len - 1  (640 is sequence length)
         batch_mask_index = self.input_size - 1
         batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
         batch_mask = batch_mask.double() 
@@ -143,6 +143,12 @@ class TransformerEncoder(pl.LightningModule):
 
     def validation_step(self, val_batch, val_idx):
         X, y = val_batch
+
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
+        batch_mask = batch_mask.double() 
+        X[:, [batch_mask_index]] = batch_mask 
+
         prediction = self.forward(X)
         loss = self.loss_func(prediction, y)
         self.log('Val loss', loss, sync_dist=True)
@@ -150,6 +156,12 @@ class TransformerEncoder(pl.LightningModule):
 
     def test_step(self, test_batch, test_idx):
         X, y  = test_batch
+
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
+        batch_mask = batch_mask.double() 
+        X[:, [batch_mask_index]] = batch_mask 
+
         prediction = self.forward(X)
         loss = self.loss_func(prediction, y)
         self.log('Test loss', loss, sync_dist=True)
