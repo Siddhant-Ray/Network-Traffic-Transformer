@@ -67,7 +67,8 @@ def vectorize_features_to_numpy_masked(data_frame):
     feature_frame["IP ID"] = feature_frame["IP ID"] + np.int64(1) 
     feature_frame["ECN"] = feature_frame["ECN"] + np.int64(1) 
     feature_frame["DSCP"] = feature_frame["DSCP"] + np.int64(1) 
-    label_frame = data_frame['Delay']
+    feature_frame["Delay"] = feature_frame["Delay"]*1000 # Scale to ms 
+    label_frame = data_frame['Delay']*1000 # Scale to ms 
     # Scale the timestamp to milli sec, to prevent masked confusion scale]
     # feature_frame["Timestamp"] = feature_frame["Timestamp"]*1000
     feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
