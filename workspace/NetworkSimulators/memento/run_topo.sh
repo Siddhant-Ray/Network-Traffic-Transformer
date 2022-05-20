@@ -8,6 +8,8 @@
                     --topo=$1
                     --apps=20
                     --apprate=1Mbps
+                    --startwindow=1 
+                    --queuesize=100p
                     --linkrate=30Mbps
                     --congestion1=$2Mbps
                     --congestion2=$3Mbps
