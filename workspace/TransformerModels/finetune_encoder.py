@@ -63,6 +63,7 @@ SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 40
 
+TRAIN = False
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
@@ -162,8 +163,24 @@ class TransformerEncoderFinetune(pl.LightningModule):
 
         prediction = self.forward(X)
         loss = self.loss_func(prediction, y)
+
+        mse_loss = nn.MSELoss()
+        target_size = 40
+        last_delay_pos = target_size - 1 
+
+        last_actual_delay = y[:,[last_delay_pos]]
+        last_predicted_delay = prediction[:,[last_delay_pos]]
+
+        # Get fake prediction from mean of n-1 delays
+        fake_prediction = torch.clone(y)
+        fake_prediction = fake_prediction[:, :-1].mean(axis=1, keepdims=True)
+        
+        last_delay_loss = mse_loss(last_actual_delay, last_predicted_delay)
+        
         self.log('Test loss', loss, sync_dist=True)
-        return loss
+        return {"Test loss": loss, "last_delay_loss": last_delay_loss,
+                 "last_predicted_delay": last_predicted_delay, "last_actual_delay": last_actual_delay,
+                 "fake_predicted_delay": fake_prediction}
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
         X, y = test_batch
@@ -174,6 +191,41 @@ class TransformerEncoderFinetune(pl.LightningModule):
         loss_tensor_list = [item['loss'].to('cpu').numpy() for item in outputs]
         # print(loss_tensor_list, len(loss_tensor_list))
         self.log('Avg loss per epoch', np.mean(np.array(loss_tensor_list)), on_step=False, on_epoch=True)
+
+    def test_epoch_end(self, outputs):
+        last_delay_losses = []
+        last_predicted_delay = []
+        last_actual_delay = []
+        fake_last_delay = []
+        for output in outputs:
+            last_packet_losses = list(output['last_delay_loss'].cpu().detach().numpy()) # Losses on last delay only 
+            preds = list(output['last_predicted_delay'].cpu().detach().numpy()) # predicted last delays
+            labels = list(output['last_actual_delay'].cpu().detach().numpy()) # actual last delays
+            fakes = list(output['fake_predicted_delay'].cpu().detach().numpy()) # fake last delays 
+            
+            last_delay_losses.extend(last_packet_losses)
+            last_predicted_delay.extend(preds)
+            last_actual_delay.extend(labels)
+            fake_last_delay.extend(fakes)
+
+        print()
+        print("Check lengths for all as sanity ", len(last_predicted_delay), len(last_actual_delay), len(fake_last_delay))
+        
+        print("Mean loss on last delay (averaged from batches) is : ", np.mean(np.array(last_delay_losses)))
+        
+        last_predicted_delay = np.array(last_predicted_delay)
+        last_actual_delay = np.array(last_actual_delay)
+
+        losses_array = np.square(np.subtract(last_predicted_delay, last_actual_delay))
+
+        print("Mean loss on last delay (averaged from items) is : ", np.mean(losses_array))
+        print("99%%ile loss is : ", np.quantile(losses_array, 0.99))
+
+        fake_last_delay = np.array(fake_last_delay)
+        fake_losses_array = np.square(np.subtract(fake_last_delay, last_actual_delay))
+
+        print("Mean loss on fake last delay (averaged from items) is : ", np.mean(fake_losses_array))
+        print("99%%ile loss on fake delay is : ", np.quantile(fake_losses_array, 0.99))
 
 
 def main():
@@ -282,15 +334,8 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    print("Started training at:")
-    time = datetime.now()
-    print(time)
-
-    print("Removing old logs:")
-    os.system("rm -rf finetune_encoder_logs/lightning_logs/")
-
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_encoder_logs/")
-    
+        
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
@@ -298,11 +343,19 @@ def main():
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
 
-    trainer.fit(model, train_loader, val_loader)    
-    print("Finished training at:")
-    time = datetime.now()
-    print(time)
-    trainer.save_checkpoint("finetune_encoder_logs/finetuned_pretrained_window40.ckpt")
+    if TRAIN:
+        print("Started training at:")
+        time = datetime.now()
+        print(time)
+
+        print("Removing old logs:")
+        os.system("rm -rf finetune_encoder_logs/lightning_logs/")
+
+        trainer.fit(model, train_loader, val_loader)    
+        print("Finished training at:")
+        time = datetime.now()
+        print(time)
+        trainer.save_checkpoint("finetune_encoder_logs/finetuned_pretrained_window40.ckpt")
 
     if SAVE_MODEL:
         pass
