@@ -42,7 +42,7 @@ def generate_senders_csv(path, n_senders):
     temp = pd.DataFrame(columns = temp_cols)
     print(temp.head())
 
-    files = ["topo_1.csv", "topo_2.csv"]
+    files = ["topo_1.csv", "topo_2.csv", "topo_test_1.csv"]
     # files = ["memento_test10.csv", "memento_test20.csv", "memento_test25.csv"]
 
     for file in files:

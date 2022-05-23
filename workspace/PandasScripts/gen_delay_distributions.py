@@ -51,7 +51,7 @@ def get_memento_finetuning_data_bigger_topology():
 
     path = "/local/home/sidray/packet_transformer/evaluations/memento_data/"
 
-    files = ["topo_1_final.csv", "topo_2_final.csv"]
+    files = ["topo_1_final.csv", "topo_2_final.csv", "topo_test_1_final.csv"]
 
     list_of_delay_lists = []
     list_of_tuples = []
