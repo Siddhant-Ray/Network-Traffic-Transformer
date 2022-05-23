@@ -22,6 +22,8 @@ from sklearn.model_selection import train_test_split
 
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+from einops import rearrange, repeat
+from einops.layers.torch import Rearrange
 
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
 from utils import vectorize_features_to_numpy_memento
@@ -63,7 +65,7 @@ SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 40
 
-TRAIN = False
+TRAIN = True
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
@@ -86,9 +88,10 @@ class TransformerEncoder(pl.LightningModule):
 
         # create the model with its layers
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_size,
+                                                        nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
-        self.encoderin = nn.Linear(input_size, LINEARSIZE)
+        # self.encoderin = nn.Linear(input_size, LINEARSIZE) Remove projection temporarily
         self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
         self.activ1 = nn.Tanh()
         self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
@@ -104,9 +107,17 @@ class TransformerEncoder(pl.LightningModule):
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
         
-        ## Mask out the nth delay in every input sequence
+        ## Mask out the nth delay in every input sequence (do it at run time)
         self.input_size = input_size
         self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
+
+        # Change into per packet embedding for the encoder
+        self.transform =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                            seq=SLIDING_WINDOW_SIZE, feat=self.packet_size),
+                            nn.Linear(self.packet_size, LINEARSIZE),
+                            )
+        # Choose mean pooling
+        self.pool = True
 
     def configure_optimizers(self):
         self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
@@ -118,11 +129,21 @@ class TransformerEncoder(pl.LightningModule):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = learning_rate
 
-    def forward(self, input):
+    def forward(self, _input):
         # used for the forward pass of the model
-        scaled_input = self.encoderin(input.double())
+        scaled_input = _input.double()
+        scaled_input = self.transform(scaled_input)
         enc = self.encoder(scaled_input)
-        out = self.linear1(self.activ1(enc))
+    
+        '''enc1 = rearrange(enc, 'b seq feat -> b (seq feat)', 
+                        seq =  SLIDING_WINDOW_SIZE,
+                        feat=int(self.input_size/SLIDING_WINDOW_SIZE))'''
+        if self.pool:                
+            enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)
+        else:
+            enc1 = enc[:,-1] # Take last hidden state (as done in BERT , in ViT they take first hidden state as cls token)
+
+        out = self.linear1(self.activ1(enc1))
         out = self.norm(self.linear2(self.activ2(out)))
         out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
         return out
@@ -136,9 +157,11 @@ class TransformerEncoder(pl.LightningModule):
         batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
         batch_mask = batch_mask.double() 
         X[:, [batch_mask_index]] = batch_mask 
-        
+
+        # Every packet separately into the transformer (project to linear if needed)
         prediction = self.forward(X)
-        loss = self.loss_func(prediction, y)
+        
+        loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
         self.log('Train loss', loss)
         return loss
 
@@ -151,7 +174,8 @@ class TransformerEncoder(pl.LightningModule):
         X[:, [batch_mask_index]] = batch_mask 
 
         prediction = self.forward(X)
-        loss = self.loss_func(prediction, y)
+
+        loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
         self.log('Val loss', loss, sync_dist=True)
         return loss
 
@@ -164,14 +188,15 @@ class TransformerEncoder(pl.LightningModule):
         X[:, [batch_mask_index]] = batch_mask 
 
         prediction = self.forward(X)
-        loss = self.loss_func(prediction, y)
+
+        loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
 
         mse_loss = nn.MSELoss()
-        target_size = 40
+        target_size = SLIDING_WINDOW_SIZE
         last_delay_pos = target_size - 1 
 
         last_actual_delay = y[:,[last_delay_pos]]
-        last_predicted_delay = prediction[:,[last_delay_pos]]
+        last_predicted_delay = prediction
 
         # Get fake prediction from mean of n-1 delays
         fake_prediction = torch.clone(y)
@@ -226,8 +251,8 @@ class TransformerEncoder(pl.LightningModule):
         fake_last_delay = np.array(fake_last_delay)
         fake_losses_array = np.square(np.subtract(fake_last_delay, last_actual_delay))
 
-        print("Mean loss on fake last delay (averaged from items) is : ", np.mean(fake_losses_array))
-        print("99%%ile loss on fake delay is : ", np.quantile(fake_losses_array, 0.99))
+        print("Mean loss on ARMA predicted last delay (averaged from items) is : ", np.mean(fake_losses_array))
+        print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
 
 def main():
 
@@ -237,7 +262,7 @@ def main():
 
     num_features = 16
     input_size = sl_win_size * num_features
-    output_size = sl_win_size
+    output_size = 1
 
     model = TransformerEncoder(input_size, output_size, LOSSFUNCTION)
     full_feature_arr = []
@@ -249,7 +274,7 @@ def main():
 
     if MEMENTO:
         path = "memento_data/"
-        files = ["topo_1_final.csv"]
+        files = ["topo_test_1_final.csv"]
 
     else:
         path = "congestion_1/"
