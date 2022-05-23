@@ -374,7 +374,16 @@ int main(int argc, char *argv[])
 
     // Update the queue size
     Config::Set(
-        "/NodeList/0/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/MaxSize",
+        "/NodeList/6/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/MaxSize",
+        QueueSizeValue(queuesize));
+    Config::Set(
+        "/NodeList/7/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/MaxSize",
+        QueueSizeValue(queuesize));
+    Config::Set(
+        "/NodeList/9/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/MaxSize",
+        QueueSizeValue(queuesize));
+    Config::Set(
+        "/NodeList/12/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/MaxSize",
         QueueSizeValue(queuesize));
 
     // Create the bridge netdevice, turning the nodes into actual switches
