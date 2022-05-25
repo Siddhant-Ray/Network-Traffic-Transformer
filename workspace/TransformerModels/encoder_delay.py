@@ -117,7 +117,7 @@ class TransformerEncoder(pl.LightningModule):
                             nn.Linear(self.packet_size, LINEARSIZE),
                             )
         # Choose mean pooling
-        self.pool = True
+        self.pool = False
 
     def configure_optimizers(self):
         self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
