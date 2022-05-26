@@ -92,14 +92,15 @@ class TransformerEncoder(pl.LightningModule):
                                                         nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         # self.encoderin = nn.Linear(input_size, LINEARSIZE) Remove projection temporarily
+        self.norm1 = nn.LayerNorm(LINEARSIZE)
         self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
         self.activ1 = nn.Tanh()
-        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
+        self.norm2 = nn.LayerNorm(LINEARSIZE*4)
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
         self.activ2 = nn.GELU()
-        self.norm = nn.LayerNorm(LINEARSIZE*4)
-        self.encoderpred1= nn.Linear(LINEARSIZE*4, input_size)
+        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
         self.activ3 = nn.ReLU()
-        self.encoderpred2= nn.Linear(input_size, target_size)
+        self.encoderpred2= nn.Linear(input_size // 8, target_size)
 
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
@@ -142,9 +143,10 @@ class TransformerEncoder(pl.LightningModule):
             enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)
         else:
             enc1 = enc[:,-1] # Take last hidden state (as done in BERT , in ViT they take first hidden state as cls token)
-
-        out = self.linear1(self.activ1(enc1))
-        out = self.norm(self.linear2(self.activ2(out)))
+        
+        enc1 = self.norm1(enc1)
+        out = self.norm2(self.linear1(self.activ1(enc1)))
+        out = self.norm1(self.linear2(self.activ2(out)))
         out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
         return out
 
@@ -274,7 +276,7 @@ def main():
 
     if MEMENTO:
         path = "memento_data/"
-        files = ["topo_test_1_final.csv"]
+        files = ["topo_test_2_final.csv"]
 
     else:
         path = "congestion_1/"
