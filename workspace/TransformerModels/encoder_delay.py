@@ -116,6 +116,7 @@ class TransformerEncoder(pl.LightningModule):
         self.transform =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                             seq=SLIDING_WINDOW_SIZE, feat=self.packet_size),
                             nn.Linear(self.packet_size, LINEARSIZE),
+                            nn.LayerNorm(LINEARSIZE), # pre-normalization
                             )
         # Choose mean pooling
         self.pool = False

@@ -88,7 +88,7 @@ class TransformerEncoderFinetune(pl.LightningModule):
 
         # create the model with its layers
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=int(input_size/SLIDING_WINDOW_SIZE),
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model = input_size,
                                                                     nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         # self.encoderin = nn.Linear(input_size, LINEARSIZE)
@@ -97,7 +97,7 @@ class TransformerEncoderFinetune(pl.LightningModule):
         self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
         self.activ2 = nn.GELU()
         self.norm = nn.LayerNorm(LINEARSIZE*4)
-        self.decoderpred= nn.Linear(LINEARSIZE*4, input_size)
+        self.encoderpred= nn.Linear(LINEARSIZE*4, input_size)
 
         self.loss_func = loss_function
         self.masked_loss_func = nn.CrossEntropyLoss()
@@ -110,6 +110,7 @@ class TransformerEncoderFinetune(pl.LightningModule):
         self.transform =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                             seq=SLIDING_WINDOW_SIZE, feat=self.packet_size),
                             nn.Linear(self.packet_size, LINEARSIZE),
+                            nn.LayerNorm(LINEARSIZE), # pre-normalization
                             )
         # Choose mean pooling
         self.pool = True
@@ -140,7 +141,7 @@ class TransformerEncoderFinetune(pl.LightningModule):
 
         out = self.linear1(self.activ1(enc1))
         out = self.norm(self.linear2(self.activ2(out)))
-        out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
+        out = self.encoderpred(out)
         return out
 
     def training_step(self, train_batch, train_idx):
@@ -256,7 +257,7 @@ def main():
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    num_features = 16  #(Input changed to have actual n-1 delays now)
+    num_features = 16  # (changed to actual n-1 delays now)
     input_size = sl_win_size * num_features
     output_size = 1
 
@@ -278,7 +279,7 @@ def main():
                                                             strict=False)
 
     ## Add a new classifier head for delay prediction                                                        
-    model.decoderpred = nn.Sequential(model.decoderpred,
+    model.decoderpred = nn.Sequential(model.encoderpred,
                                       nn.ReLU(),
                                       nn.Linear(input_size, output_size))  
                                                   

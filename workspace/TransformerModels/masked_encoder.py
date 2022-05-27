@@ -93,7 +93,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
         self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*4)
         self.activ2 = nn.GELU()
         self.norm = nn.LayerNorm(LINEARSIZE*4)
-        self.decoderpred= nn.Linear(LINEARSIZE*4, input_size)
+        self.encoderpred= nn.Linear(LINEARSIZE*4, input_size)
 
         self.loss_func = loss_function
         self.masked_loss_func = nn.CrossEntropyLoss()
@@ -125,7 +125,7 @@ class MaskedTransformerEncoder(pl.LightningModule):
         enc = self.encoder(scaled_input)
         out = self.linear1(self.activ1(enc))
         out = self.norm(self.linear2(self.activ2(out)))
-        out = self.decoderpred(out)
+        out = self.encoderpred(out)
         return out
 
     def training_step(self, train_batch, train_idx):
