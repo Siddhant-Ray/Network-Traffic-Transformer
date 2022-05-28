@@ -84,7 +84,7 @@ class TransformerEncoder(pl.LightningModule):
         super(TransformerEncoder, self).__init__()
 
         self.step = [0]
-        self.warmup_steps = 1000
+        self.warmup_steps = 4000
 
         # create the model with its layers
 
@@ -136,10 +136,7 @@ class TransformerEncoder(pl.LightningModule):
         scaled_input = _input.double()
         scaled_input = self.transform(scaled_input)
         enc = self.encoder(scaled_input)
-    
-        '''enc1 = rearrange(enc, 'b seq feat -> b (seq feat)', 
-                        seq =  SLIDING_WINDOW_SIZE,
-                        feat=int(self.input_size/SLIDING_WINDOW_SIZE))'''
+
         if self.pool:                
             enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)
         else:
@@ -277,7 +274,8 @@ def main():
 
     if MEMENTO:
         path = "memento_data/"
-        files = ["topo_test_2_final.csv"]
+        files = ["topo_more_data_1_final.csv", "topo_more_data_2_final.csv" , "topo_more_data_3_final.csv",
+                "topo_more_data_4_final.csv", "topo_more_data_5_final.csv", "topo_more_data_6_final.csv"]
 
     else:
         path = "congestion_1/"
