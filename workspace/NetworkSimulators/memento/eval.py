@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import seaborn as sns
 
-frame = pd.read_csv("topo_test_2.csv")
+frame = pd.read_csv("topo_more_data_6.csv")
 # Get the time stamp, packet size and delay (from my format, Alex uses a different format)
 frame = frame[frame.columns[[1,7,-6]]]
 frame.columns = ["t", "size", "delay"]

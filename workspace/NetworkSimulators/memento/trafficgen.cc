@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
     int start_window = 1;
     Time delay("5ms");
     QueueSize queuesize("100p");
-
+    auto seed = 1;
 
     // Different for different receivers (can choose to turn off for some, not for all)
     DataRate congestion1("0Mbps");
@@ -223,6 +223,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("congestion2", "Congestion traffic rate.", congestion2);
     cmd.AddValue("congestion3", "Congestion traffic rate.", congestion3);
     cmd.AddValue("prefix", "Prefix for log files.", prefix);
+    cmd.AddValue("seed", "Set simulation seed", seed);
     cmd.Parse(argc, argv);
 
     // Compute resulting workload datarates.
@@ -253,8 +254,10 @@ int main(int argc, char *argv[])
 
     // Simulation variables
     auto simStart = TimeValue(Seconds(0));
-    auto stopTime = Seconds(200);
+    auto stopTime = Seconds(60);
     auto simStop = TimeValue(stopTime);
+    RngSeedManager::SetSeed(seed);
+    std::cout<< seed<< std::endl;
 
     // Fix MTU and Segment size, otherwise the small TCP default (536) is used.
     Config::SetDefault("ns3::CsmaNetDevice::Mtu", UintegerValue(1500));

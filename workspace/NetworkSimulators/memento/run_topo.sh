@@ -8,11 +8,12 @@
                     --topo=$1
                     --apps=20
                     --apprate=1Mbps
-                    --startwindow=100 
+                    --startwindow=50 
                     --queuesize=1000p
                     --linkrate=30Mbps
                     --congestion1=$2Mbps
                     --congestion2=$3Mbps
                     --congestion3=$4Mbps 
-                    --prefix=results/topo_test_2"
+                    --prefix=results/topo_more_data_6
+                    --seed=6"
 
