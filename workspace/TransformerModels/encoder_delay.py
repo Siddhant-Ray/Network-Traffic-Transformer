@@ -254,6 +254,11 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on ARMA predicted last delay (averaged from items) is : ", np.mean(fake_losses_array))
         print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
 
+        save_path= "plot_values/16features/"
+        np.save(save_path + "transformer_last_delay.npy", np.array(last_predicted_delay))
+        np.save(save_path + "arma_last_delay.npy", np.array(fake_last_delay))
+        np.save(save_path + "actual_last_delay.npy", np.array(last_actual_delay))
+
 def main():
 
     sl_win_start = SLIDING_WINDOW_START

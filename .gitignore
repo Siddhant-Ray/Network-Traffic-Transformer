@@ -198,3 +198,4 @@ lightning_logs
 ## Plots 
 workspace/PandasScripts/plots
 workspace/NetworkSimulators/memento/plots
+workspace/TransformerModels/plots
