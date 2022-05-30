@@ -7,6 +7,6 @@ num_heads: 8
 num_layers: 6                      
 epochs: 15
 batch_size: 64
-linear_size: 640 
+linear_size: 120 
 loss_function: huber
 eof: eof_str'''

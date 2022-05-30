@@ -88,7 +88,7 @@ class TransformerEncoder(pl.LightningModule):
 
         # create the model with its layers
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_size,
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE,
                                                         nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         # self.encoderin = nn.Linear(input_size, LINEARSIZE) Remove projection temporarily
@@ -260,7 +260,7 @@ def main():
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    num_features = 16
+    num_features = 3 # If only timestamp, packet size and delay, else 16
     input_size = sl_win_size * num_features
     output_size = 1
 
@@ -290,7 +290,7 @@ def main():
         df = ipaddress_to_number(df)
 
         if MEMENTO:
-            feature_df, label_df = vectorize_features_to_numpy_memento(df)
+            feature_df, label_df = vectorize_features_to_numpy_memento(df, reduced=True)
         else:
             feature_df, label_df = vectorize_features_to_numpy(df)
 
@@ -352,7 +352,7 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs2/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -367,13 +367,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf encoder_delay_logs/lightning_logs/")
+        os.system("rm -rf encoder_delay_logs2/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("encoder_delay_logs/finetune_nonpretrained_window40.ckpt")
+        trainer.save_checkpoint("encoder_delay_logs2/finetune_nonpretrained_window40.ckpt")
 
     if SAVE_MODEL:
         pass 
@@ -381,7 +381,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "encoder_delay_logs/lightning_logs/version_0"
+        log_dir = "encoder_delay_logs2/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -404,7 +404,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_logs/finetune_nonpretrained_window40.ckpt"
+            cpath = "encoder_delay_logs2/finetune_nonpretrained_window40.ckpt"
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, checkpoint_path=cpath,
                                                             strict=True)
