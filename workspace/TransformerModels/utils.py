@@ -91,7 +91,7 @@ def vectorize_features_to_numpy_finetune(data_frame):
 
     return feature_frame, label_frame
 
-def vectorize_features_to_numpy_memento(data_frame, reduced = False):
+def vectorize_features_to_numpy_memento(data_frame, reduced = False, normalize = True):
     feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
     label_frame = data_frame['Delay'] # Scale to ms 
     feature_frame["Delay"] = feature_frame['Delay'] # Scale to ms 
@@ -101,13 +101,17 @@ def vectorize_features_to_numpy_memento(data_frame, reduced = False):
     feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
 
     ## Only keep packet size and delay 
-    feature_frame_reduced = feature_frame[["Timestamp", "Packet Size", "Delay"]]
+    if normalize:
+        feature_frame_reduced = feature_frame[["Timestamp", "Normalised Packet Size", "Normalised Delay"]]
+    else:
+        feature_frame_reduced = feature_frame[["Timestamp", "Packet Size", "Delay"]]
     feature_frame_reduced["Combined"] = feature_frame_reduced.apply(lambda row: row.to_numpy(), axis=1)
+
     if reduced:
         return feature_frame_reduced, label_frame
     return feature_frame, label_frame
 
-def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False):
+def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False, normalize = True):
     feature_frame = data_frame.drop(['Packet ID', 'Workload ID', 'Application ID'], axis = 1)
     # Shift the IP ID, ECN and the DSCP values by 1
     feature_frame["IP ID"] = feature_frame["IP ID"] + np.int64(1) 
@@ -126,8 +130,12 @@ def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False):
     feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
 
     ## Only keep packet size and delay 
-    feature_frame_reduced = feature_frame[["Timestamp", "Packet Size", "Delay"]]
+    if normalize:
+        feature_frame_reduced = feature_frame[["Timestamp", "Normalised Packet Size", "Normalised Delay"]]
+    else:
+        feature_frame_reduced = feature_frame[["Timestamp", "Packet Size", "Delay"]]
     feature_frame_reduced["Combined"] = feature_frame_reduced.apply(lambda row: row.to_numpy(), axis=1)
+
     if reduced:
         return feature_frame_reduced, label_frame
 

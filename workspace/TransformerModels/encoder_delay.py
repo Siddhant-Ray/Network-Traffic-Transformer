@@ -1,3 +1,4 @@
+from locale import normalize
 import random, os, pathlib
 from ipaddress import ip_address
 import pandas as pd, numpy as np
@@ -80,7 +81,7 @@ else:
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoder(pl.LightningModule):
 
-    def __init__(self,input_size, target_size, loss_function):
+    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std):
         super(TransformerEncoder, self).__init__()
 
         self.step = [0]
@@ -121,6 +122,10 @@ class TransformerEncoder(pl.LightningModule):
         # Choose mean pooling
         self.pool = False
 
+        # Mean and std for the delay un-normalization
+        self.delay_mean = delay_mean
+        self.delay_std = delay_std
+
     def configure_optimizers(self):
         self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
         return {"optimizer": self.optimizer}
@@ -160,6 +165,9 @@ class TransformerEncoder(pl.LightningModule):
 
         # Every packet separately into the transformer (project to linear if needed)
         prediction = self.forward(X)
+
+        ## Un-normalize the delay prediction
+        prediction = prediction * self.delay_std + self.delay_mean
         
         loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
         self.log('Train loss', loss)
@@ -175,6 +183,9 @@ class TransformerEncoder(pl.LightningModule):
 
         prediction = self.forward(X)
 
+        ## Un-normalize the delay prediction
+        prediction = prediction * self.delay_std + self.delay_mean
+
         loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
         self.log('Val loss', loss, sync_dist=True)
         return loss
@@ -188,6 +199,9 @@ class TransformerEncoder(pl.LightningModule):
         X[:, [batch_mask_index]] = batch_mask 
 
         prediction = self.forward(X)
+
+        ## Un-normalize the delay prediction
+        prediction = prediction * self.delay_std + self.delay_mean
 
         loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
 
@@ -254,7 +268,7 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on ARMA predicted last delay (averaged from items) is : ", np.mean(fake_losses_array))
         print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
 
-        save_path= "plot_values/16features/"
+        save_path= "plot_values/3features/"
         np.save(save_path + "transformer_last_delay.npy", np.array(last_predicted_delay))
         np.save(save_path + "arma_last_delay.npy", np.array(fake_last_delay))
         np.save(save_path + "actual_last_delay.npy", np.array(last_actual_delay))
@@ -269,7 +283,6 @@ def main():
     input_size = sl_win_size * num_features
     output_size = 1
 
-    model = TransformerEncoder(input_size, output_size, LOSSFUNCTION)
     full_feature_arr = []
     full_target_arr = []
     test_loaders = []
@@ -286,16 +299,31 @@ def main():
         path = "congestion_1/"
         files = ["endtoenddelay_test.csv"]
 
+    ## To calculate the global mean and std of the dataset
+    global_df = pd.DataFrame(["Packet Size", "Delay"])
+    for file in files:
+        
+        file_df = pd.read_csv(path+file)
+        file_df = file_df[["Packet Size", "Delay"]]
+        global_df = pd.concat([global_df, file_df], ignore_index=True)
 
+    print(global_df.shape)
+    mean_delay = global_df["Delay"].mean()
+    std_delay = global_df["Delay"].std()
+    mean_size = global_df["Packet Size"].mean()
+    std_size = global_df["Packet Size"].std()
+    
     for file in files:
         print(os.getcwd())
 
         df = get_data_from_csv(path+file)
         df = convert_to_relative_timestamp(df) 
         df = ipaddress_to_number(df)
+        df["Normalised Delay"] = df["Delay"].apply(lambda x: (x - mean_delay)/std_delay)
+        df["Normalised Packet Size"] = df["Packet Size"].apply(lambda x: (x - mean_size)/std_size)
 
         if MEMENTO:
-            feature_df, label_df = vectorize_features_to_numpy_memento(df, reduced=True)
+            feature_df, label_df = vectorize_features_to_numpy_memento(df, reduced=True, normalize=True)
         else:
             feature_df, label_df = vectorize_features_to_numpy(df)
 
@@ -309,6 +337,9 @@ def main():
         full_target_arr = full_target_arr + target_arr
 
     print(len(full_feature_arr), len(full_target_arr))
+    
+    ## Model definition with delay scaling params
+    model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay)
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
@@ -411,7 +442,8 @@ def main():
         else:
             cpath = "encoder_delay_logs2/finetune_nonpretrained_window40.ckpt"
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
-                                                            loss_function = LOSSFUNCTION, checkpoint_path=cpath,
+                                                            loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
+                                                            delay_std = std_delay, checkpoint_path=cpath,
                                                             strict=True)
             testmodel.eval()
             trainer.test(testmodel, dataloaders = test_loader)
