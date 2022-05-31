@@ -40,18 +40,22 @@ def main():
     plt.figure()
     sns.histplot(actual_values)
     plt.legend([],[], frameon=False)
+    plt.title("Actual delay distribution")
     plt.savefig("plots/actual_last_delay.png")
 
     # Plot the transformer predictions
     plt.figure()
     sns.histplot(transformer_predictions)
     plt.legend([],[], frameon=False)
+    plt.title("Transformer predicted delay distribution")
+
     plt.savefig("plots/transformer_predictions.png")
 
     # Plot the arma predictions
     plt.figure()
     sns.histplot(arma_predictions)
     plt.legend([],[], frameon=False)
+    plt.title("ARMA predicted delay distribution")
     plt.savefig("plots/arma_predictions.png")
 
     # Plot histograms of transformer and arma squared losses
@@ -59,11 +63,13 @@ def main():
     ax = sns.histplot(transformer_squared_losses, color="blue")
     ax.set(xlabel='Transformer Losses', ylabel='Frequency')
     plt.legend([],[], frameon=False)
+    plt.title("Squared loss from transformer vs actual distribution")
     plt.savefig("plots/histogram_squared_losses_transformer.png")
     plt.figure()
     ax=sns.histplot(arma_squared_losses, color="red")
     ax.set(xlabel='ARMA Losses', ylabel='Frequency')
     plt.legend([],[], frameon=False)
+    plt.title("Squared loss from ARMA vs actual distribution")
     plt.savefig("plots/histogram_squared_losses_arma.png")
     
 if __name__=="__main__":
