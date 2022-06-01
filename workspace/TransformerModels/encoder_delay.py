@@ -31,6 +31,7 @@ from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
 from utils import PacketDataset, gelu
 from utils import PacketDatasetEncoder
+from generate_sequences import generate_sliding_windows
 
 random.seed(0)
 np.random.seed(0)
@@ -64,7 +65,8 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 40
+SLIDING_WINDOW_SIZE = 1000
+WINDOW_BATCH_SIZE = 5000
 
 TRAIN = True
 SAVE_MODEL = True
@@ -269,9 +271,9 @@ class TransformerEncoder(pl.LightningModule):
         print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
 
         save_path= "plot_values/3features/"
-        np.save(save_path + "transformer_last_delay.npy", np.array(last_predicted_delay))
-        np.save(save_path + "arma_last_delay.npy", np.array(fake_last_delay))
-        np.save(save_path + "actual_last_delay.npy", np.array(last_actual_delay))
+        np.save(save_path + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
+        np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
+        np.save(save_path + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_actual_delay))
 
 def main():
 
@@ -285,58 +287,12 @@ def main():
 
     full_feature_arr = []
     full_target_arr = []
-    test_loaders = []
-
-    # Choose fine-tuning dataset
-    MEMENTO = True
-
-    if MEMENTO:
-        path = "memento_data/"
-        files = ["topo_more_data_1_final.csv", "topo_more_data_2_final.csv" , "topo_more_data_3_final.csv",
-                "topo_more_data_4_final.csv", "topo_more_data_5_final.csv", "topo_more_data_6_final.csv"]
-
-    else:
-        path = "congestion_1/"
-        files = ["endtoenddelay_test.csv"]
-
-    ## To calculate the global mean and std of the dataset
-    global_df = pd.DataFrame(["Packet Size", "Delay"])
-    for file in files:
-        
-        file_df = pd.read_csv(path+file)
-        file_df = file_df[["Packet Size", "Delay"]]
-        global_df = pd.concat([global_df, file_df], ignore_index=True)
-
-    print(global_df.shape)
-    mean_delay = global_df["Delay"].mean()
-    std_delay = global_df["Delay"].std()
-    mean_size = global_df["Packet Size"].mean()
-    std_size = global_df["Packet Size"].std()
     
-    for file in files:
-        print(os.getcwd())
-
-        df = get_data_from_csv(path+file)
-        df = convert_to_relative_timestamp(df) 
-        df = ipaddress_to_number(df)
-        df["Normalised Delay"] = df["Delay"].apply(lambda x: (x - mean_delay)/std_delay)
-        df["Normalised Packet Size"] = df["Packet Size"].apply(lambda x: (x - mean_size)/std_size)
-
-        if MEMENTO:
-            feature_df, label_df = vectorize_features_to_numpy_memento(df, reduced=True, normalize=True)
-        else:
-            feature_df, label_df = vectorize_features_to_numpy(df)
-
-        print(feature_df.head(), feature_df.shape)
-        print(label_df.head())
-        
-        feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
-        target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
-        print(len(feature_arr), len(target_arr))
-        full_feature_arr = full_feature_arr + feature_arr
-        full_target_arr = full_target_arr + target_arr
-
-    print(len(full_feature_arr), len(full_target_arr))
+    ## Get the data 
+    full_feature_arr, full_target_arr, mean_delay, std_delay = generate_sliding_windows(
+                                                                SLIDING_WINDOW_SIZE, 
+                                                                WINDOW_BATCH_SIZE,
+                                                                num_features)
     
     ## Model definition with delay scaling params
     model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay)
@@ -391,7 +347,7 @@ def main():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs2/")
         
     if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=1, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -409,7 +365,7 @@ def main():
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("encoder_delay_logs2/finetune_nonpretrained_window40.ckpt")
+        trainer.save_checkpoint("encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -440,7 +396,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_logs2/finetune_nonpretrained_window40.ckpt"
+            cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, checkpoint_path=cpath,
