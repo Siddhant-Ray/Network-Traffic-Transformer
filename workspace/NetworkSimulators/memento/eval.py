@@ -2,8 +2,12 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 import seaborn as sns
+import sys
 
-frame = pd.read_csv("topo_more_data_6.csv")
+BIG = False
+val = sys.argv[1]
+
+frame = pd.read_csv("small_test_no_disturbance{}.csv".format(val))
 # Get the time stamp, packet size and delay (from my format, Alex uses a different format)
 frame = frame[frame.columns[[1,7,-6]]]
 frame.columns = ["t", "size", "delay"]
@@ -51,13 +55,19 @@ plt.savefig("Queuesize"+".png")
 
 ## Bottleneck plots for switches A, B, D, G
 
-values = [6, 7, 9, 12]
-dict_switches = {
-    6: "A",
-    7: "B",
-    9: "D",
-    12: "G"
-}
+if BIG:
+    values = [6, 7, 9, 12]
+    dict_switches = {
+        6: "A",
+        7: "B",
+        9: "D",
+        12: "G"
+    }
+else:
+    values = [2]
+    dict_switches = {
+        2: "A"
+    }
 
 for value in values:
     bottleneck_source = "/NodeList/{}/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/PacketsInQueue".format(value)
