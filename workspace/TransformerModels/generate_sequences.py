@@ -32,8 +32,14 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
 
     if MEMENTO:
         path = "memento_data/"
-        files = ["topo_more_data_1_final.csv", "topo_more_data_2_final.csv" , "topo_more_data_3_final.csv",
-                "topo_more_data_4_final.csv", "topo_more_data_5_final.csv", "topo_more_data_6_final.csv"]
+        '''files = ["topo_more_data_1_final.csv", "topo_more_data_2_final.csv" , "topo_more_data_3_final.csv",
+                "topo_more_data_4_final.csv", "topo_more_data_5_final.csv", "topo_more_data_6_final.csv"]'''
+
+        files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
+                "small_test_no_disturbance3_final.csv", "small_test_no_disturbance4_final.csv",
+                "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",
+                "small_test_no_disturbance7_final.csv", "small_test_no_disturbance8_final.csv",
+                 "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
 
     else:
         path = "congestion_1/"

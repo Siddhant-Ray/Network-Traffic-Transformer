@@ -67,6 +67,7 @@ SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 1000
 WINDOW_BATCH_SIZE = 5000
+PACKETS_PER_EMBEDDING = 25
 
 TRAIN = True
 SAVE_MODEL = True
@@ -83,7 +84,7 @@ else:
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoder(pl.LightningModule):
 
-    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std):
+    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std, packets_per_embedding):
         super(TransformerEncoder, self).__init__()
 
         self.step = [0]
@@ -114,11 +115,13 @@ class TransformerEncoder(pl.LightningModule):
         ## Mask out the nth delay in every input sequence (do it at run time)
         self.input_size = input_size
         self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
+        self.packets_per_embedding = packets_per_embedding
 
         # Change into per packet embedding for the encoder
-        self.transform =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
-                            seq=SLIDING_WINDOW_SIZE, feat=self.packet_size),
-                            nn.Linear(self.packet_size, LINEARSIZE),
+        self.feature_transform =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                            seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
+                                            feat=self.packet_size * self.packets_per_embedding), # Make 1000 size sequences to 40,                                
+                            nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 25 packets
                             nn.LayerNorm(LINEARSIZE), # pre-normalization
                             )
         # Choose mean pooling
@@ -141,7 +144,7 @@ class TransformerEncoder(pl.LightningModule):
     def forward(self, _input):
         # used for the forward pass of the model
         scaled_input = _input.double()
-        scaled_input = self.transform(scaled_input)
+        scaled_input = self.feature_transform(scaled_input)
         enc = self.encoder(scaled_input)
 
         if self.pool:                
@@ -295,7 +298,7 @@ def main():
                                                                 num_features)
     
     ## Model definition with delay scaling params
-    model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay)
+    model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING)
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
@@ -399,7 +402,8 @@ def main():
             cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
-                                                            delay_std = std_delay, checkpoint_path=cpath,
+                                                            delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
+                                                            checkpoint_path=cpath,
                                                             strict=True)
             testmodel.eval()
             trainer.test(testmodel, dataloaders = test_loader)
