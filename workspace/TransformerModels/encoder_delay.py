@@ -65,7 +65,7 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 1000
+SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 25
 
@@ -117,13 +117,27 @@ class TransformerEncoder(pl.LightningModule):
         self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
         self.packets_per_embedding = packets_per_embedding
 
-        # Change into per packet embedding for the encoder
-        self.feature_transform =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
-                            seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
-                                            feat=self.packet_size * self.packets_per_embedding), # Make 1000 size sequences to 40,                                
-                            nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 25 packets
-                            nn.LayerNorm(LINEARSIZE), # pre-normalization
-                            )
+        # Change into hierarchical embedding for the encoder
+        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                                    seq=SLIDING_WINDOW_SIZE, feat=self.packet_size), # Make 1000                          
+                                    nn.Linear(self.packet_size, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )
+
+        self.remaining_packets1 = SLIDING_WINDOW_SIZE-32
+        self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
+                                    n = 32),                      
+                                    nn.Linear(LINEARSIZE*32, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )   
+        self.remaining_packets2 = (self.remaining_packets1 // 32) - 15 
+        self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
+                                    n = 16),                      
+                                    nn.Linear(LINEARSIZE*16, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )   
+
+
         # Choose mean pooling
         self.pool = False
 
@@ -143,9 +157,32 @@ class TransformerEncoder(pl.LightningModule):
 
     def forward(self, _input):
         # used for the forward pass of the model
+
+        # Cast to doubletensor
         scaled_input = _input.double()
-        scaled_input = self.feature_transform(scaled_input)
-        enc = self.encoder(scaled_input)
+        
+        # Embed every packet to the embedding dimension
+        scaled_input1 = self.feature_transform1(scaled_input)
+
+        # Keep first 32, re-embed the rest
+        scaled_input_final1 = scaled_input1[:,:32,:]
+        scaled_input_embed1 = scaled_input1[:,32:,:]
+
+        # Embed seequences of 32 packets to the embedding dimension
+        scaled_input_2 = self.feature_transform2(scaled_input_embed1)
+
+        # Keep the first 15, re-embed the rest
+        scaled_input_final2 = scaled_input_2[:,:15,:]
+        scaled_input_embed2 = scaled_input_2[:,15:,:]
+        
+        # Embed seequences of 16 packets to the embedding dimension
+        scaled_input_3 = self.feature_transform3(scaled_input_embed2)
+        scaled_input_final3 = scaled_input_3
+
+        # Embedding the final input (stack along sequence dimension)
+        final_input = torch.cat((scaled_input_final1, scaled_input_final2, scaled_input_final3), dim=1)
+        
+        enc = self.encoder(final_input)
 
         if self.pool:                
             enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)

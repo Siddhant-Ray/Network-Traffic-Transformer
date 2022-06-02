@@ -10,7 +10,7 @@ from utils import make_windows_features, make_windows_delay
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 1000
+SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 
 def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_features):
@@ -40,7 +40,6 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
                 "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",
                 "small_test_no_disturbance7_final.csv", "small_test_no_disturbance8_final.csv",
                  "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
-
     else:
         path = "congestion_1/"
         files = ["endtoenddelay_test.csv"]
