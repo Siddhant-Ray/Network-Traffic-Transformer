@@ -7,6 +7,7 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='Plot predictions')
     parser.add_argument('--path', type=str, help='Path to predictions files')
+    parser.add_argument('--window_size', type=str, help='Window size')
     
     args = parser.parse_args()
 
@@ -18,10 +19,11 @@ def main():
         print("Choose valid prediciton path")
         exit()
 
+    window_size = int(args.window_size)
     # Load data
-    actual_values = np.load(path+"actual_last_delay.npy")
-    transformer_predictions = np.load(path+"transformer_last_delay.npy")
-    arma_predictions = np.load(path+"arma_last_delay.npy")
+    actual_values = np.load(path+"actual_last_delay_window_size_{}.npy".format(window_size))
+    transformer_predictions = np.load(path+"transformer_last_delay_window_size_{}.npy".format(window_size))
+    arma_predictions = np.load(path+"arma_last_delay_window_size_{}.npy".format(window_size))
 
     assert (actual_values.shape == transformer_predictions.shape == arma_predictions.shape)
 

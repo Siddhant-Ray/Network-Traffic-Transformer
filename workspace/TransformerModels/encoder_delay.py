@@ -146,7 +146,15 @@ class TransformerEncoder(pl.LightningModule):
         self.delay_std = delay_std
 
     def configure_optimizers(self):
-        self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        # self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        # Regularise only the weights, not the biases (regularisation of biases is not recommended)
+        self.optimizer = optim.Adam([
+                                    {
+                                    'params': 
+                                    (p for name, p in self.named_parameters() if 'bias' not in name), 'weight_decay': WEIGHTDECAY},
+                                    {
+                                    'params': (p for name, p in self.named_parameters() if 'bias' in name)}
+                                    ],  betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE)
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
@@ -387,7 +395,7 @@ def main():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs2/")
         
     if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=1, check_val_every_n_epoch=1,
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
