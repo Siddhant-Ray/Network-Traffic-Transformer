@@ -49,7 +49,7 @@ def generate_senders_csv(path, n_senders):
     files = ["small_test_no_disturbance1.csv", "small_test_no_disturbance2.csv", "small_test_no_disturbance3.csv",
             "small_test_no_disturbance4.csv", "small_test_no_disturbance5.csv", "small_test_no_disturbance6.csv",
             "small_test_no_disturbance7.csv", "small_test_no_disturbance8.csv", "small_test_no_disturbance9.csv",
-            "small_test_no_disturbance10.csv"]    
+            "small_test_no_disturbance10.csv", "small_test_one_disturbance1.csv"]    
     # files = ["memento_test10.csv", "memento_test20.csv", "memento_test25.csv"]
 
     for file in files:

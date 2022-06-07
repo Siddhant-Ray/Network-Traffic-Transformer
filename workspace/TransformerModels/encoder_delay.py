@@ -73,6 +73,7 @@ TRAIN = True
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
+TEST_ONLY_NEW = True
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -340,7 +341,8 @@ def main():
     full_feature_arr, full_target_arr, mean_delay, std_delay = generate_sliding_windows(
                                                                 SLIDING_WINDOW_SIZE, 
                                                                 WINDOW_BATCH_SIZE,
-                                                                num_features)
+                                                                num_features,
+                                                                TEST_ONLY_NEW)
     
     ## Model definition with delay scaling params
     model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING)
@@ -451,7 +453,16 @@ def main():
                                                             checkpoint_path=cpath,
                                                             strict=True)
             testmodel.eval()
-            trainer.test(testmodel, dataloaders = test_loader)
+
+            if TEST_ONLY_NEW:
+
+                new_test_dataset = PacketDataset(full_feature_arr, full_target_arr)
+                new_test_loader = DataLoader(new_test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+
+                trainer.test(testmodel, dataloaders = new_test_loader)
+
+            else:
+                trainer.test(testmodel, dataloaders = test_loader)
 
 
 if __name__== '__main__':

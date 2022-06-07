@@ -13,7 +13,7 @@ SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 
-def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_features):
+def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_features, TEST_ONLY_NEW):
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
@@ -35,11 +35,16 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
         '''files = ["topo_more_data_1_final.csv", "topo_more_data_2_final.csv" , "topo_more_data_3_final.csv",
                 "topo_more_data_4_final.csv", "topo_more_data_5_final.csv", "topo_more_data_6_final.csv"]'''
 
-        files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
-                "small_test_no_disturbance3_final.csv", "small_test_no_disturbance4_final.csv",
-                "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",
-                "small_test_no_disturbance7_final.csv", "small_test_no_disturbance8_final.csv",
-                 "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
+        if not TEST_ONLY_NEW:
+
+            files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
+                    "small_test_no_disturbance3_final.csv", "small_test_no_disturbance4_final.csv",
+                    "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",
+                    "small_test_no_disturbance7_final.csv", "small_test_no_disturbance8_final.csv",
+                    "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
+
+        else:
+            files = ["small_test_one_disturbance1_final.csv"]
     else:
         path = "congestion_1/"
         files = ["endtoenddelay_test.csv"]
