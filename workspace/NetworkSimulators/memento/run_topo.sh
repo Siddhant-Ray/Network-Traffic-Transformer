@@ -12,6 +12,6 @@
                     --queuesize=1000p
                     --linkrate=30Mbps
                     --congestion1=$2Mbps
-                    --prefix=results/small_test_one_disturbance1
-                    --seed=1"
+                    --prefix=results/small_test_one_disturbance2
+                    --seed=2"
 
