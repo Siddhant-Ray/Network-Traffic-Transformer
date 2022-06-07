@@ -149,12 +149,17 @@ class TransformerEncoder(pl.LightningModule):
     def configure_optimizers(self):
         # self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
         # Regularise only the weights, not the biases (regularisation of biases is not recommended)
+        weights_parameters = (p for name, p in self.named_parameters() if 'bias' not in name)
+        bias_parameters = (p for name, p in self.named_parameters() if 'bias' in name)
+
         self.optimizer = optim.Adam([
+                                    {'params': 
+                                            weights_parameters, 'weight_decay': WEIGHTDECAY
+                                            },
                                     {
                                     'params': 
-                                    (p for name, p in self.named_parameters() if 'bias' not in name), 'weight_decay': WEIGHTDECAY},
-                                    {
-                                    'params': (p for name, p in self.named_parameters() if 'bias' in name)}
+                                            bias_parameters
+                                            }
                                     ],  betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE)
         return {"optimizer": self.optimizer}
 

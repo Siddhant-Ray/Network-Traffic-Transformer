@@ -32,9 +32,7 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
 
     if MEMENTO:
         path = "memento_data/"
-        '''files = ["topo_more_data_1_final.csv", "topo_more_data_2_final.csv" , "topo_more_data_3_final.csv",
-                "topo_more_data_4_final.csv", "topo_more_data_5_final.csv", "topo_more_data_6_final.csv"]'''
-
+        
         if not TEST_ONLY_NEW:
 
             files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
