@@ -5,9 +5,13 @@ import seaborn as sns
 import sys
 
 BIG = False
+TEST = True
 val = sys.argv[1]
 
-frame = pd.read_csv("small_test_no_disturbance{}.csv".format(val))
+if not TEST:
+    frame = pd.read_csv("small_test_no_disturbance{}.csv".format(val))
+else:
+    frame = pd.read_csv("small_test_one_disturbance{}.csv".format(val))
 # Get the time stamp, packet size and delay (from my format, Alex uses a different format)
 frame = frame[frame.columns[[1,7,-6]]]
 frame.columns = ["t", "size", "delay"]
@@ -64,9 +68,10 @@ if BIG:
         12: "G"
     }
 else:
-    values = [2]
+    values = [2, 3]
     dict_switches = {
-        2: "A"
+        2: "A",
+        3: "B"
     }
 
 for value in values:

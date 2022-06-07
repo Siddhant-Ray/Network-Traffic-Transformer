@@ -431,12 +431,12 @@ int main(int argc, char *argv[])
         // Just blast UDP traffic from time to time
         Ptr<Application> congestion_sink = CreateObjectWithAttributes<PacketSink>(
             "Local", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
-            "Protocol", UDP, "StartTime", simStart, "StopTime", simStop);
+            "Protocol", TCP, "StartTime", simStart, "StopTime", simStop);
         receiver1->AddApplication(congestion_sink);
 
         Ptr<Application> congestion_source = CreateObjectWithAttributes<OnOffApplication>(
             "Remote", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
-            "Protocol", UDP,
+            "Protocol", TCP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
             "DataRate", DataRateValue(congestion1),
