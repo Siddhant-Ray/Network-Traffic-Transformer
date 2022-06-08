@@ -42,12 +42,15 @@
 #include "ns3/string.h"
 #include "ns3/pointer.h"
 #include "ns3/double.h"
+#include "ns3/tag.h"
 
 #include "cdf-application.h"
+#include "ns3/experiment-tags.h"
 
 namespace ns3
-{
 
+{
+    
   NS_LOG_COMPONENT_DEFINE("CdfApplication");
 
   NS_OBJECT_ENSURE_REGISTERED(CdfApplication);
@@ -217,6 +220,12 @@ namespace ns3
     NS_ASSERT(m_sendEvent.IsExpired());
     Ptr<Packet> packet = Create<Packet>(size);
     m_txTrace(packet);
+
+    // Tag the UID as message ID
+    MessageTag m_tag;
+    auto m_val = 1;
+    m_tag.SetSimpleValue(m_val);
+    packet->AddPacketTag(m_tag);
     m_socket->Send(packet);
     Address localAddress;
     m_socket->GetSockName(localAddress);

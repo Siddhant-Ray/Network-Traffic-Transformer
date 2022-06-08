@@ -82,6 +82,9 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
     TimestampTag timestampTag;
     IdTag idTag;
     FlowIdTag flowid;
+    MessageTag mTag;
+    p->PeekPacketTag(mTag);
+    
     if (p->PeekPacketTag(timestampTag) && p->PeekPacketTag(idTag))
     {
         auto current_time = Simulator::Now();
@@ -113,7 +116,9 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
                              << "TCP current window size is, "<< tcpHeader.GetWindowSize() << ", "
                              << "Delay is, "<< diff_time.GetSeconds() << ", "
                              << "Workload id is, "<< idTag.GetWorkload() << ','
-                             << "Application id is, "<< idTag.GetApplication() << ',';
+                             << "Application id is, "<< idTag.GetApplication() << ','
+                             << "Message id is, "<< mTag.GetSimpleValue() << std::endl;
+
 
         copy->Print(*stream->GetStream());
         *stream->GetStream() << "\n";
