@@ -117,7 +117,7 @@ class MessageTag : public Tag
         .AddAttribute ("SimpleValue",
                     "A simple value",
                     EmptyAttributeValue (),
-                    MakeUintegerAccessor (&MessageTag::GetSimpleValue),
+                    MakeUintegerAccessor (&MessageTag::m_simpleValue),
                     MakeUintegerChecker<uint8_t> ());
     return tid;
     }
@@ -127,31 +127,33 @@ class MessageTag : public Tag
     }
     uint32_t GetSerializedSize(void) const
     {
-        return 1;
+        return sizeof(m_simpleValue);
     }
     void Serialize(TagBuffer i) const
     {
-        i.WriteU8(m_simpleValue);
+        i.Write(reinterpret_cast<const uint8_t *>(&m_simpleValue),
+                sizeof(m_simpleValue));
     }
     void Deserialize(TagBuffer i)
     {
-        m_simpleValue = i.ReadU8();
+        i.Read(reinterpret_cast<uint8_t *>(&m_simpleValue),
+                sizeof(m_simpleValue));
     }
     void Print(std::ostream &os) const
     {
         os << "v=" << (uint32_t)m_simpleValue;
     }
-    void SetSimpleValue(uint8_t value)
+    void SetSimpleValue(uint32_t value)
     {
         m_simpleValue = value;
     }
-    uint8_t GetSimpleValue(void) const
+    uint32_t GetSimpleValue(void) const
     {
         return m_simpleValue;
     }
 
     private:
-        uint8_t m_simpleValue;  
+        uint32_t m_simpleValue;  
 };
 
 #endif // EXPERIMENT_TAGS_H

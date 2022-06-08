@@ -223,7 +223,7 @@ namespace ns3
 
     // Tag the UID as message ID
     MessageTag m_tag;
-    auto m_val = 1;
+    auto m_val = packet->GetUid();
     m_tag.SetSimpleValue(m_val);
     packet->AddPacketTag(m_tag);
     m_socket->Send(packet);
