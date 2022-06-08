@@ -117,7 +117,7 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
                              << "Delay is, "<< diff_time.GetSeconds() << ", "
                              << "Workload id is, "<< idTag.GetWorkload() << ','
                              << "Application id is, "<< idTag.GetApplication() << ','
-                             << "Message id is, "<< mTag.GetSimpleValue() << std::endl;
+                             << "Message id is, "<< mTag.GetSimpleValue() << ',';
 
 
         copy->Print(*stream->GetStream());

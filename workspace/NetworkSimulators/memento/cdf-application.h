@@ -141,12 +141,13 @@ namespace ns3
     Time m_lastStartTime; //!< Time last packet sent
     EventId m_sendEvent;  //!< Event id of pending "send packet" event
     TypeId m_tid;         //!< Type of the socket used
-
+    
     // cdf files!
     std::string m_filename;
     double m_average_size; // in bytes!
     Ptr<EmpiricalRandomVariable> m_sizeDist;
     Ptr<ExponentialRandomVariable> m_timeDist;
+    uint32_t m_counter;   // track number of fragments sent
 
     /// Traced Callback: transmitted packets.
     TracedCallback<Ptr<const Packet>> m_txTrace;

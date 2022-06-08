@@ -13,7 +13,7 @@ if not TEST:
 else:
     frame = pd.read_csv("small_test_one_disturbance{}.csv".format(val))
 # Get the time stamp, packet size and delay (from my format, Alex uses a different format)
-frame = frame[frame.columns[[1,7,-6]]]
+frame = frame[frame.columns[[1,7,-8]]]
 frame.columns = ["t", "size", "delay"]
 print(frame.head())
 

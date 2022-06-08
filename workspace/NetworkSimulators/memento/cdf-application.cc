@@ -98,7 +98,8 @@ namespace ns3
         m_lastStartTime(Seconds(0)),
         m_average_size(0),
         m_sizeDist(CreateObject<EmpiricalRandomVariable>()),
-        m_timeDist(CreateObject<ExponentialRandomVariable>())
+        m_timeDist(CreateObject<ExponentialRandomVariable>()),
+        m_counter(0)
   {
     NS_LOG_FUNCTION(this);
   }
@@ -221,10 +222,8 @@ namespace ns3
     Ptr<Packet> packet = Create<Packet>(size);
     m_txTrace(packet);
 
-    // Tag the UID as message ID
     MessageTag m_tag;
-    auto m_val = packet->GetUid();
-    m_tag.SetSimpleValue(m_val);
+    m_tag.SetSimpleValue(m_counter++);
     packet->AddPacketTag(m_tag);
     m_socket->Send(packet);
     Address localAddress;
