@@ -42,7 +42,7 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
                     "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
 
         else:
-            files = ["small_test_one_disturbance1_final.csv"]
+            files = ["small_test_one_disturbance2_final.csv"]
     else:
         path = "congestion_1/"
         files = ["endtoenddelay_test.csv"]

@@ -7,16 +7,15 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='Plot predictions')
     parser.add_argument('--path', type=str, help='Path to predictions files')
+    parser.add_argument('--num_features', type=str, help='Number of input features')
     parser.add_argument('--window_size', type=str, help='Window size')
     
     args = parser.parse_args()
 
-    if args.path == "16features":
-        path = "plot_values/16features/"
-    elif args.path == "3features":
-        path = "plot_values/3features/"
+    if args.num_features == "16features" or args.num_features == "3features":
+       path = args.path + "/" + args.num_features + "/"
     else:
-        print("Choose valid prediciton path")
+        print("Choose valid number of features and path")
         exit()
 
     window_size = int(args.window_size)
