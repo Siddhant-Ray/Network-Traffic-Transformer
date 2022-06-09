@@ -6,6 +6,7 @@ from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to
 from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
 from utils import make_windows_features, make_windows_delay
+from utils import create_features_for_MCT
 
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
@@ -95,5 +96,84 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
 
     return full_feature_arr, full_target_arr, mean_delay, std_delay
 
+def generate_MTC_data():
+    full_feature_arr = []
+    full_target_arr = []
+
+    path = "/local/home/sidray/packet_transformer/evaluations/memento_data/"
+    files = ["small_test_one_disturbance_with_message_ids1_final.csv"]
+
+    global_df = pd.DataFrame(["Packet Size", "Delay"])
+    for file in files:
+        
+        file_df = pd.read_csv(path+file)
+        file_df = file_df[["Packet Size", "Delay"]]
+        global_df = pd.concat([global_df, file_df], ignore_index=True)
+
+    print(global_df.shape)
+    mean_delay = global_df["Delay"].mean()
+    std_delay = global_df["Delay"].std()
+    
+    for file in files:
+        print(os.getcwd())
+
+        df = get_data_from_csv(path+file)
+        df = convert_to_relative_timestamp(df) 
+        df = ipaddress_to_number(df)
+        df["Normalised Delay"] = df["Delay"].apply(lambda x: (x - mean_delay)/std_delay)
+
+        mct_df, mean_mct, std_mct, mean_msize, std_msize = create_features_for_MCT(df, reduced=True, normalize=True)
+
+
+    return mct_df, mean_delay, std_delay
+    
+
 if __name__ == "__main__":
-    generate_sliding_windows()
+    # generate_sliding_windows()
+    final_df, mean_delay, std_delay = generate_MTC_data()
+    
+    print(final_df)
+
+    import seaborn as sns; import matplotlib.pyplot as plt
+
+    plt.figure()
+    sbs = sns.displot(
+        data=final_df,
+        kind='ecdf',
+        x='Normalised Message Size'
+    )
+
+    sbs.fig.suptitle('Normalised Message Size')
+    plt.savefig("Norm_message_size"+".png")
+
+    plt.figure()
+    sbs = sns.displot(
+        data=final_df,
+        kind='ecdf',
+        x='Normalised MCT'
+    )
+
+    sbs.fig.suptitle('Normalised MCT')
+    plt.savefig("Norm_MCT"+".png")
+
+    plt.figure()
+    sbs = sns.displot(
+        data=final_df,
+        kind='ecdf',
+        x='Message Completion Time'
+    )
+
+    sbs.fig.suptitle('Message Completion Time')
+    plt.savefig("MCT"+".png")
+
+    plt.figure()
+    sbs = sns.displot(
+        data=final_df,
+        kind='ecdf',
+        x='Message Size'
+    )
+
+    sbs.fig.suptitle('Message size')
+    plt.savefig("Message_size"+".png")
+
+

@@ -141,6 +141,49 @@ def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False, no
 
     return feature_frame, label_frame
 
+# Features for message completion time (size and packets)
+def create_features_for_MCT(data_frame, reduced = True, normalize = True):
+    feature_frame = data_frame
+    label_frame = data_frame['Delay'] # Scale to ms 
+
+
+    feature_frame_reduced = feature_frame[["Timestamp", "Delay", "Packet Size", "Application ID", "Message ID"]]
+    feature_frame_size_MCT = feature_frame_reduced[["Packet Size", "Application ID", "Message ID"]].groupby(["Application ID", "Message ID"]).sum()
+    feature_frame_size_MCT.rename(columns = {"Packet Size" :"Message Size"}, inplace = True, copy = False)
+
+    feature_frame_reduced["Transmissions"] = feature_frame_reduced["Timestamp"]
+    feature_frame_reduced["Receptions"] = feature_frame_reduced["Timestamp"] + feature_frame_reduced["Delay"]
+
+    feature_frame_FT_MCT = feature_frame_reduced[["Transmissions", "Application ID", "Message ID"]].groupby(["Application ID", "Message ID"]).first()
+    feature_frame_FT_MCT.rename(columns = {"Transmissions" :"Message Timestamp"}, inplace = True, copy = False)
+
+    feature_frame_LT_MCT = feature_frame_reduced[["Receptions", "Application ID", "Message ID"]].groupby(["Application ID", "Message ID"]).last()
+    feature_frame_LT_MCT.rename(columns = {"Receptions" :"Message Timestamp"}, inplace = True, copy = False)
+    
+    feature_frame_TT_MCT = feature_frame_LT_MCT - feature_frame_FT_MCT
+    feature_frame_TT_MCT.rename(columns = {"Message Timestamp" :"Message Completion Time"}, inplace = True, copy = False)
+    feature_frame_FT_MCT.rename(columns = {"Message Timestamp" : "Message Creation Timestamp"}, inplace = True, copy = False)
+
+    
+    if reduced:
+        final_df = feature_frame_size_MCT.merge(feature_frame_TT_MCT,
+                             on = ["Application ID", "Message ID"], how='inner')
+        final_df = final_df.merge(feature_frame_FT_MCT,
+                                 on = ["Application ID", "Message ID"], how='inner')   
+
+    if normalize:
+        mean_size = final_df["Message Size"].mean()
+        std_size= final_df["Message Size"].std()
+
+        mean_mct = final_df["Message Completion Time"].mean()
+        std_mct = final_df["Message Completion Time"].std()
+
+        final_df["Normalised Message Size"] = (final_df["Message Size"] - mean_size)/std_size
+        final_df["Normalised MCT"] = (final_df["Message Completion Time"] - mean_mct)/std_mct
+
+
+    return final_df, mean_mct, std_mct, mean_size, std_size
+    
 
 def sliding_window_features(df_series, start, size, step):
     final_arr =[]
