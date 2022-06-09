@@ -30,14 +30,14 @@ def generate_senders_csv(path, n_senders):
     df_sent_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size",
                     "IP ID", "DSCP", "ECN", "TTL", "Payload Size", "Proto", "Source IP", "Destination IP",
                     "TCP Source Port", "TCP Destination Port", "TCP Sequence Number", "TCP Window Size",
-                    "Delay", "Application ID", "Workload ID", "Message ID"]
+                    "Delay", "Workload ID", "Application ID", "Message ID"]
 
     df_sent_cols_to_drop = [0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
 
     temp_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size",
                     "IP ID", "DSCP", "ECN", "TTL", "Payload Size", "Proto", "Source IP", "Destination IP",
                     "TCP Source Port", "TCP Destination Port", "TCP Sequence Number", "TCP Window Size",
-                    "Delay", "Application ID", "Workload ID", "Message ID"]
+                    "Delay", "Workload ID", "Application ID", "Message ID"]
     
     temp = pd.DataFrame(columns = temp_cols)
     print(temp.head())
@@ -75,7 +75,7 @@ def generate_senders_csv(path, n_senders):
         df_sent_cols_new = ["Timestamp", "Flow ID", "Packet ID", "Packet Size",
                     "IP ID", "DSCP","ECN", "Payload Size", "TTL", "Proto", "Source IP", "Destination IP",
                     "TCP Source Port","TCP Destination Port", "TCP Sequence Number", "TCP Window Size",
-                    "Delay", "Application ID", "Workload ID", "Message ID"]
+                    "Delay", "Workload ID", "Application ID", "Message ID"]
         sender_tx_df = sender_tx_df[df_sent_cols_new]
         
         # sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
