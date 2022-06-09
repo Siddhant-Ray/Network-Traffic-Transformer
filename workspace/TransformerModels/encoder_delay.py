@@ -73,7 +73,7 @@ TRAIN = True
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
-TEST_ONLY_NEW = True
+TEST_ONLY_NEW = False
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -85,7 +85,7 @@ else:
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoder(pl.LightningModule):
 
-    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std, packets_per_embedding):
+    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std, packets_per_embedding, pool=False):
         super(TransformerEncoder, self).__init__()
 
         self.step = [0]
@@ -93,20 +93,24 @@ class TransformerEncoder(pl.LightningModule):
 
         # create the model with its layers
 
+        # These are our transformer layers (stay the same)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE,
                                                         nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
-        # self.encoderin = nn.Linear(input_size, LINEARSIZE) Remove projection temporarily
-        self.norm1 = nn.LayerNorm(LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
-        self.activ1 = nn.Tanh()
-        self.norm2 = nn.LayerNorm(LINEARSIZE*4)
-        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
-        self.activ2 = nn.GELU()
-        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
-        self.activ3 = nn.ReLU()
-        self.encoderpred2= nn.Linear(input_size // 8, target_size)
 
+        # This is our prediction layer, change for finetuning as needed
+        self.predictor = nn.Sequential(
+                                        nn.LayerNorm(LINEARSIZE),
+                                        nn.Linear(LINEARSIZE, LINEARSIZE*4),
+                                        nn.Tanh(),
+                                        nn.LayerNorm(LINEARSIZE*4),
+                                        nn.Linear(LINEARSIZE*4, LINEARSIZE),
+                                        nn.GELU(),
+                                        nn.Linear(LINEARSIZE, input_size // 8),
+                                        nn.ReLU(),
+                                        nn.Linear(input_size // 8, target_size)
+                                    )
+        
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
                          "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
@@ -140,7 +144,7 @@ class TransformerEncoder(pl.LightningModule):
 
 
         # Choose mean pooling
-        self.pool = False
+        self.pool = pool
 
         # Mean and std for the delay un-normalization
         self.delay_mean = delay_mean
@@ -203,10 +207,9 @@ class TransformerEncoder(pl.LightningModule):
         else:
             enc1 = enc[:,-1] # Take last hidden state (as done in BERT , in ViT they take first hidden state as cls token)
         
-        enc1 = self.norm1(enc1)
-        out = self.norm2(self.linear1(self.activ1(enc1)))
-        out = self.norm1(self.linear2(self.activ2(out)))
-        out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
+        # Predict the output
+        out = self.predictor(enc1)
+
         return out
 
     def training_step(self, train_batch, train_idx):
@@ -350,7 +353,7 @@ def main():
                                                                 TEST_ONLY_NEW)
     
     ## Model definition with delay scaling params
-    model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING)
+    model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING, pool=False)
     
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
@@ -399,7 +402,7 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs2/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -414,13 +417,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf encoder_delay_logs2/lightning_logs/")
+        os.system("rm -rf encoder_delay_logs/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
+        trainer.save_checkpoint("encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -428,7 +431,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "encoder_delay_logs2/lightning_logs/version_0"
+        log_dir = "encoder_delay_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -451,10 +454,11 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
+                                                            pool = False,
                                                             checkpoint_path=cpath,
                                                             strict=True)
             testmodel.eval()

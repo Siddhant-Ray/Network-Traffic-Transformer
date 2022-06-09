@@ -86,7 +86,7 @@ else:
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoder(pl.LightningModule):
 
-    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std, packets_per_embedding):
+    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std, packets_per_embedding, pool = False):
         super(TransformerEncoder, self).__init__()
 
         self.step = [0]
@@ -94,19 +94,23 @@ class TransformerEncoder(pl.LightningModule):
 
         # create the model with its layers
 
+        # These are our transformer layers (stay the same)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE,
                                                         nhead=NHEAD, batch_first=True, dropout=DROPOUT)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
-        # self.encoderin = nn.Linear(input_size, LINEARSIZE) Remove projection temporarily
-        self.norm1 = nn.LayerNorm(LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
-        self.activ1 = nn.Tanh()
-        self.norm2 = nn.LayerNorm(LINEARSIZE*4)
-        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
-        self.activ2 = nn.GELU()
-        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
-        self.activ3 = nn.ReLU()
-        self.encoderpred2= nn.Linear(input_size // 8, target_size)
+
+        # This is our prediction layer, change for finetuning as needed
+        self.predictor = nn.Sequential(
+                                        nn.LayerNorm(LINEARSIZE),
+                                        nn.Linear(LINEARSIZE, LINEARSIZE*4),
+                                        nn.Tanh(),
+                                        nn.LayerNorm(LINEARSIZE*4),
+                                        nn.Linear(LINEARSIZE*4, LINEARSIZE),
+                                        nn.GELU(),
+                                        nn.Linear(LINEARSIZE, input_size // 8),
+                                        nn.ReLU(),
+                                        nn.Linear(input_size // 8, target_size)
+                                    )
 
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
@@ -141,7 +145,7 @@ class TransformerEncoder(pl.LightningModule):
 
 
         # Choose mean pooling
-        self.pool = False
+        self.pool = pool
 
         # Mean and std for the delay un-normalization
         self.delay_mean = delay_mean
@@ -205,10 +209,9 @@ class TransformerEncoder(pl.LightningModule):
         else:
             enc1 = enc[:,-1] # Take last hidden state (as done in BERT , in ViT they take first hidden state as cls token)
         
-        enc1 = self.norm1(enc1)
-        out = self.norm2(self.linear1(self.activ1(enc1)))
-        out = self.norm1(self.linear2(self.activ2(out)))
-        out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
+        # Predict the output
+        out = self.predictor(enc1)
+
         return out
 
     def training_step(self, train_batch, train_idx):
@@ -356,19 +359,27 @@ def main():
         model = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                                 loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                                 delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
+                                                                pool=False,
                                                                 checkpoint_path=cpath,
                                                                 strict=True)
-    else:
-        model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING) 
 
-    # Freeze everything!!
-    for params in model.parameters(): 
-        params.requires_grad = False
-    
-    # Unfreeze the last layer
-    for param in model.encoderpred2.parameters():
-        param.requires_grad = True
-    
+        # Freeze everything!!
+        for params in model.parameters(): 
+            params.requires_grad = False
+
+        child_count = 0
+        for child in model.predictor.children():
+            child_count += 1
+            if child_count == 9:
+                # Unfreeze the last layer
+                for params in child.parameters():
+                    params.requires_grad = True
+
+    else:
+        # Do not freeeze anything for non pre-trained
+        model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING, pool=False) 
+
+        
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
     # print(len(full_train_vectors), len(full_train_labels))
@@ -477,6 +488,7 @@ def main():
                 testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
+                                                            pool = False,
                                                             checkpoint_path=cpath,
                                                             strict=True)
 
