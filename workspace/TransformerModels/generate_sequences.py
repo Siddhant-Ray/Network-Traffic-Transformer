@@ -113,7 +113,9 @@ def generate_MTC_data():
     print(global_df.shape)
     mean_delay = global_df["Delay"].mean()
     std_delay = global_df["Delay"].std()
-    
+    mean_size = global_df["Packet Size"].mean()
+    std_size = global_df["Packet Size"].std()
+
     for file in files:
         print(os.getcwd())
 
@@ -121,59 +123,74 @@ def generate_MTC_data():
         df = convert_to_relative_timestamp(df) 
         df = ipaddress_to_number(df)
         df["Normalised Delay"] = df["Delay"].apply(lambda x: (x - mean_delay)/std_delay)
+        df["Normalised Packet Size"] = df["Packet Size"].apply(lambda x: (x - mean_size)/std_size)
 
         mct_df, mean_mct, std_mct, mean_msize, std_msize = create_features_for_MCT(df, reduced=True, normalize=True)
 
-
-    return mct_df, mean_delay, std_delay
+    return mct_df, mean_delay, std_delay, mean_mct, std_mct
     
 
 if __name__ == "__main__":
-    # generate_sliding_windows()
-    final_df, mean_delay, std_delay = generate_MTC_data()
+    #generate_sliding_windows()
+    final_df, mean_delay, std_delay, mean_mct, std_mct = generate_MTC_data()
     
     print(final_df)
+    final_df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/MCT.csv")
+
+    print("Mean log size: ", np.mean(final_df["Log Message Size"]))
+    print("90%ile log size: ", np.quantile(final_df["Log Message Size"], 0.90))
+    print("99%ile log size: ", np.quantile(final_df["Log Message Size"], 0.99))
+    print("99.9%ile log size: ", np.quantile(final_df["Log Message Size"], 0.999))
+
+
+    print("Mean log MCT: ",  np.mean(final_df["Log Message Completion Time"]))
+    print("90%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.90))
+    print("99%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.99))
+    print("99.9%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.999))
 
     import seaborn as sns; import matplotlib.pyplot as plt
 
     plt.figure()
+    
     sbs = sns.displot(
         data=final_df,
         kind='ecdf',
-        x='Normalised Message Size'
+        x='Normalised Log Message Size'
     )
-
-    sbs.fig.suptitle('Normalised Message Size')
+    
+    sbs.fig.suptitle('Log Normalised Message Size')
     plt.savefig("Norm_message_size"+".png")
 
     plt.figure()
+    
     sbs = sns.displot(
         data=final_df,
         kind='ecdf',
-        x='Normalised MCT'
+        x='Normalised Log MCT'
     )
-
-    sbs.fig.suptitle('Normalised MCT')
+   
+    sbs.fig.suptitle('Log Normalised MCT')
     plt.savefig("Norm_MCT"+".png")
 
     plt.figure()
     sbs = sns.displot(
         data=final_df,
         kind='ecdf',
-        x='Message Completion Time'
+        x='Log Message Completion Time'
     )
-
-    sbs.fig.suptitle('Message Completion Time')
+    
+    sbs.fig.suptitle('Log Message Completion Time')
     plt.savefig("MCT"+".png")
 
     plt.figure()
+    
     sbs = sns.displot(
         data=final_df,
         kind='ecdf',
-        x='Message Size'
+        x='Log Message Size'
     )
-
-    sbs.fig.suptitle('Message size')
+    
+    sbs.fig.suptitle('Log Message size')
     plt.savefig("Message_size"+".png")
 
 

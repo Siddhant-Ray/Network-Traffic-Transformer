@@ -141,7 +141,7 @@ def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False, no
 
     return feature_frame, label_frame
 
-# Features for message completion time (size and packets)
+# Features for message completion time (message size and MCT)
 def create_features_for_MCT(data_frame, reduced = True, normalize = True):
     feature_frame = data_frame
     label_frame = data_frame['Delay'] # Scale to ms 
@@ -171,16 +171,35 @@ def create_features_for_MCT(data_frame, reduced = True, normalize = True):
         final_df = final_df.merge(feature_frame_FT_MCT,
                                  on = ["Application ID", "Message ID"], how='inner')   
 
+    final_df["Log Message Size"] = np.log(final_df["Message Size"])
+    final_df["Log Message Completion Time"] = np.log(final_df["Message Completion Time"])
+
     if normalize:
-        mean_size = final_df["Message Size"].mean()
-        std_size= final_df["Message Size"].std()
+        mean_size = final_df["Log Message Size"].mean()
+        std_size= final_df["Log Message Size"].std()
 
-        mean_mct = final_df["Message Completion Time"].mean()
-        std_mct = final_df["Message Completion Time"].std()
+        mean_mct = final_df["Log Message Completion Time"].mean()
+        std_mct = final_df["Log Message Completion Time"].std()
 
-        final_df["Normalised Message Size"] = (final_df["Message Size"] - mean_size)/std_size
-        final_df["Normalised MCT"] = (final_df["Message Completion Time"] - mean_mct)/std_mct
+        final_df["Normalised Log Message Size"] = (final_df["Log Message Size"] - mean_size)/std_size
+        final_df["Normalised Log MCT"] = (final_df["Log Message Completion Time"] - mean_mct)/std_mct
 
+    list_of_arrays = []
+    for message_ts in final_df["Message Creation Timestamp"]:  # timestamp when message was generated
+        recent_packets_size = feature_frame[feature_frame['Timestamp'] < message_ts].size
+        
+        if recent_packets_size < 1024:
+            final_df.drop(final_df[final_df["Message Creation Timestamp"] == message_ts].index, axis = 0, inplace = True)
+            continue
+
+        # Get recent 1024 packets (as that is our window size)
+        recent_packets = feature_frame[feature_frame['Timestamp'] < message_ts].tail(1024)
+        recent_packets_features = recent_packets[["Timestamp", "Normalised Packet Size", "Normalised Delay"]]
+        array = np.vstack(recent_packets_features.values).flatten()
+        
+        list_of_arrays.append(array)
+
+    final_df["Input"] = list_of_arrays
 
     return final_df, mean_mct, std_mct, mean_size, std_size
     
