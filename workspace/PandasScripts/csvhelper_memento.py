@@ -30,14 +30,14 @@ def generate_senders_csv(path, n_senders):
     df_sent_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size",
                     "IP ID", "DSCP", "ECN", "TTL", "Payload Size", "Proto", "Source IP", "Destination IP",
                     "TCP Source Port", "TCP Destination Port", "TCP Sequence Number", "TCP Window Size",
-                    "Delay", "Application ID", "Workload ID"]
+                    "Delay", "Application ID", "Workload ID", "Message ID"]
 
-    df_sent_cols_to_drop = [0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38]
+    df_sent_cols_to_drop = [0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
 
     temp_cols = ["Timestamp", "Flow ID", "Packet ID", "Packet Size",
                     "IP ID", "DSCP", "ECN", "TTL", "Payload Size", "Proto", "Source IP", "Destination IP",
                     "TCP Source Port", "TCP Destination Port", "TCP Sequence Number", "TCP Window Size",
-                    "Delay", "Application ID", "Workload ID"]
+                    "Delay", "Application ID", "Workload ID", "Message ID"]
     
     temp = pd.DataFrame(columns = temp_cols)
     print(temp.head())
@@ -46,10 +46,12 @@ def generate_senders_csv(path, n_senders):
     #files = ["topo_more_data_1.csv", "topo_more_data_2.csv", "topo_more_data_3.csv", 
             #"topo_more_data_4.csv", "topo_more_data_5.csv", "topo_more_data_6.csv"]
 
-    files = ["small_test_no_disturbance1.csv", "small_test_no_disturbance2.csv", "small_test_no_disturbance3.csv",
+    '''files = ["small_test_no_disturbance1.csv", "small_test_no_disturbance2.csv", "small_test_no_disturbance3.csv",
             "small_test_no_disturbance4.csv", "small_test_no_disturbance5.csv", "small_test_no_disturbance6.csv",
             "small_test_no_disturbance7.csv", "small_test_no_disturbance8.csv", "small_test_no_disturbance9.csv",
-            "small_test_no_disturbance10.csv", "small_test_one_disturbance1.csv", "small_test_one_disturbance2.csv"]    
+            "small_test_no_disturbance10.csv", "small_test_one_disturbance1.csv", "small_test_one_disturbance2.csv"]'''
+
+    files = ["small_test_one_disturbance_with_message_ids1.csv"]    
     # files = ["memento_test10.csv", "memento_test20.csv", "memento_test25.csv"]
 
     for file in files:
@@ -68,11 +70,12 @@ def generate_senders_csv(path, n_senders):
         # sender_tx_df["TTL"] = sender_tx_df.apply(lambda row: extract_TTL(row['Extra']), axis = 1)
         # sender_tx_df["Proto"] = sender_tx_df.apply(lambda row: extract_protocol(row['Extra']), axis = 1)
         sender_tx_df["Flow ID"] = [sender_num for i in range(sender_tx_df.shape[0])]
+        sender_tx_df["Message ID"].iloc[0] = sender_tx_df["Message ID"].iloc[1]
 
         df_sent_cols_new = ["Timestamp", "Flow ID", "Packet ID", "Packet Size",
                     "IP ID", "DSCP","ECN", "Payload Size", "TTL", "Proto", "Source IP", "Destination IP",
                     "TCP Source Port","TCP Destination Port", "TCP Sequence Number", "TCP Window Size",
-                    "Delay", "Application ID", "Workload ID"]
+                    "Delay", "Application ID", "Workload ID", "Message ID"]
         sender_tx_df = sender_tx_df[df_sent_cols_new]
         
         # sender_tx_df.drop(['Extra'],axis = 1, inplace=True)
