@@ -35,6 +35,20 @@ class PacketDatasetEncoder(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.encodings)
 
+class MCTDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        feature_emb = self.encodings[idx][0]
+        feature_size = self.encodings[idx][1]
+        label = self.labels[idx]
+        return feature_emb, feature_size, label
+
+    def __len__(self):
+        return len(self.labels)
+
 def gelu(x):
    return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 

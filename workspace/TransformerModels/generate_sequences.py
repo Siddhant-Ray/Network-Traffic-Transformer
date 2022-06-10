@@ -2,6 +2,8 @@ import pandas as pd, numpy as np
 import os
 import pickle
 
+import seaborn as sns; import matplotlib.pyplot as plt
+
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
 from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
@@ -100,7 +102,7 @@ def generate_MTC_data():
     full_feature_arr = []
     full_target_arr = []
 
-    path = "/local/home/sidray/packet_transformer/evaluations/memento_data/"
+    path = "memento_data/"
     files = ["small_test_one_disturbance_with_message_ids1_final.csv"]
 
     global_df = pd.DataFrame(["Packet Size", "Delay"])
@@ -126,6 +128,8 @@ def generate_MTC_data():
         df["Normalised Packet Size"] = df["Packet Size"].apply(lambda x: (x - mean_size)/std_size)
 
         mct_df, mean_mct, std_mct, mean_msize, std_msize = create_features_for_MCT(df, reduced=True, normalize=True)
+    
+    mct_df.reset_index(drop=True, inplace=True)
 
     return mct_df, mean_delay, std_delay, mean_mct, std_mct
     
@@ -147,8 +151,6 @@ if __name__ == "__main__":
     print("90%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.90))
     print("99%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.99))
     print("99.9%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.999))
-
-    import seaborn as sns; import matplotlib.pyplot as plt
 
     plt.figure()
     
