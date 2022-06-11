@@ -99,17 +99,16 @@ class TransformerEncoder(pl.LightningModule):
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
 
         # This is our prediction layer, change for finetuning as needed
-        self.predictor = nn.Sequential(
-                                        nn.LayerNorm(LINEARSIZE),
-                                        nn.Linear(LINEARSIZE, LINEARSIZE*4),
-                                        nn.Tanh(),
-                                        nn.LayerNorm(LINEARSIZE*4),
-                                        nn.Linear(LINEARSIZE*4, LINEARSIZE),
-                                        nn.GELU(),
-                                        nn.Linear(LINEARSIZE, input_size // 8),
-                                        nn.ReLU(),
-                                        nn.Linear(input_size // 8, target_size)
-                                    )
+        
+        self.norm1 = nn.LayerNorm(LINEARSIZE)
+        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
+        self.activ1 = nn.Tanh()
+        self.norm2 = nn.LayerNorm(LINEARSIZE*4)
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
+        self.activ2 = nn.GELU()
+        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
+        self.activ3 = nn.ReLU()
+        self.encoderpred2= nn.Linear(input_size // 8, target_size)
         
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
@@ -208,7 +207,10 @@ class TransformerEncoder(pl.LightningModule):
             enc1 = enc[:,-1] # Take last hidden state (as done in BERT , in ViT they take first hidden state as cls token)
         
         # Predict the output
-        out = self.predictor(enc1)
+        enc1 = self.norm1(enc1)
+        out = self.norm2(self.linear1(self.activ1(enc1)))
+        out = self.norm1(self.linear2(self.activ2(out)))
+        out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
 
         return out
 
