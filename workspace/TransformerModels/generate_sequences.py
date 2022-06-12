@@ -131,6 +131,10 @@ def generate_MTC_data():
     
     mct_df.reset_index(drop=True, inplace=True)
 
+    ## Remove the shape which are of incorrect transformer input type
+    mct_df['shapes'] = [x.shape for x in mct_df["Input"].values]
+    mct_df = mct_df[mct_df['shapes'] == (3072,)].drop('shapes', axis = 1)
+
     return mct_df, mean_delay, std_delay, mean_mct, std_mct
     
 

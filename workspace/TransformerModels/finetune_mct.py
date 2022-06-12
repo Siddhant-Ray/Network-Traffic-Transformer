@@ -6,7 +6,7 @@ import json, copy, math
 import yaml, time as t
 from datetime import datetime
 
-import argparse
+import argparse, itertools as it
 
 from tqdm import tqdm
 
@@ -53,7 +53,6 @@ LAYERS = int(config['num_layers'])
 EPOCHS = int(config['epochs'])  
 BATCHSIZE = int(config['batch_size'])  
 LINEARSIZE = int(config['linear_size'])
-LOSSFUNCTION = nn.MSELoss()
 
 if 'loss_function' in config.keys():
     if config['loss_function'] == "huber":
@@ -63,6 +62,8 @@ if 'loss_function' in config.keys():
     if config['loss_function'] == "kldiv":
         LOSSFUNCTION = nn.KLDivLoss()
 
+LOSSFUNCTION = nn.MSELoss()
+
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
@@ -71,11 +72,10 @@ WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 25
 
 TRAIN = True
-PRETRAINED = False
+PRETRAINED = True
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
-TEST_ONLY_NEW = True
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -101,18 +101,16 @@ class TransformerEncoder(pl.LightningModule):
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
 
         # This is our prediction layer, change for finetuning as needed
-        self.predictor = nn.Sequential(
-                                        nn.LayerNorm(LINEARSIZE),
-                                        nn.Tanh(),
-                                        nn.Linear(LINEARSIZE, LINEARSIZE*4),
-                                        nn.LayerNorm(LINEARSIZE*4),
-                                        nn.GELU(),
-                                        nn.Linear(LINEARSIZE*4, LINEARSIZE),
-                                        nn.LayerNorm(LINEARSIZE),
-                                        nn.Linear(LINEARSIZE, input_size // 8),
-                                        nn.ReLU(),
-                                        nn.Linear(input_size // 8, target_size)
-                                    )
+        
+        self.norm1 = nn.LayerNorm(LINEARSIZE)
+        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
+        self.activ1 = nn.Tanh()
+        self.norm2 = nn.LayerNorm(LINEARSIZE*4)
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
+        self.activ2 = nn.GELU()
+        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
+        self.activ3 = nn.ReLU()
+        self.encoderpred2= nn.Linear(input_size // 8, target_size)
 
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
@@ -296,23 +294,42 @@ def main():
 
     if PRETRAINED:
         ## Model definition with delay scaling params (from pretrained model)
-        cpath = "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+        cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
         model = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                                 loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                                 delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
                                                                 pool=True,
                                                                 checkpoint_path=cpath,
                                                                 strict=True)
-        # Freeze everything!!
-        for params in model.parameters(): 
-            params.requires_grad = False
+        # Freeze everything!! Try with non-freezing also
         
-        for params in model.predictor.parameters():
-            params.requires_grad = True                            
-
+        '''for params in model.parameters(): 
+            params.requires_grad = False'''
+        
+                                   
     else:
         # Do not freeeze anything for non pre-trained
         model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING, pool=True) 
+
+    ## Freeze the previous head (as it is not being used anyway)
+    for params in model.norm1.parameters():
+        params.requires_grad = False 
+    for params in model.norm2.parameters():
+        params.requires_grad = False           
+    for params in model.encoderpred1.parameters():
+        params.requires_grad = False  
+    for params in model.encoderpred2.parameters():
+        params.requires_grad = False      
+    for params in model.linear1.parameters():
+        params.requires_grad = False
+    for params in model.linear2.parameters():
+        params.requires_grad = False    
+    for params in model.activ1.parameters():
+        params.requires_grad = False
+    for params in model.activ2.parameters():
+        params.requires_grad = False
+    for params in model.activ3.parameters():
+        params.requires_grad = False
     
     # New predictor head for MCT task
     model.predictor = nn.Sequential(
@@ -326,6 +343,9 @@ def main():
                                     nn.Linear(LINEARSIZE, input_size // 8),
                                     nn.ReLU(),
                                     nn.Linear(input_size // 8, output_size))
+
+    for params in model.predictor.parameters():
+            params.requires_grad = True                                 
     
     full_features_packets = final_df["Input"]
     full_features_size = final_df["Normalised Log Message Size"]
@@ -362,7 +382,7 @@ def main():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_mct_logs/")
         
     if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS//3, check_val_every_n_epoch=1,
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
