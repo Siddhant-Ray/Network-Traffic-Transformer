@@ -70,7 +70,7 @@ WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 25
 
 TRAIN = True
-PRETRAINED = True
+PRETRAINED = False
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
@@ -332,7 +332,7 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on ARMA predicted last delay (averaged from items) is : ", np.mean(fake_losses_array))
         print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
 
-        save_path= "plot_values_finetune/3features/"
+        save_path= "plot_values_finetune_scratch_sametrain/3features/"
         np.save(save_path + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
         np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
         np.save(save_path + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_actual_delay))
@@ -426,7 +426,7 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_encoder_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_encoder_logs3/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS//3, check_val_every_n_epoch=1,
@@ -441,13 +441,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf finetune_encoder_logs/lightning_logs/")
+        os.system("rm -rf finetune_encoder_logs3/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("finetune_encoder_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
+        trainer.save_checkpoint("finetune_encoder_logs3/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -455,7 +455,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "finetune_encoder_logs/lightning_logs/version_0"
+        log_dir = "finetune_encoder_logs3/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -483,7 +483,7 @@ def main():
 
             if TEST_ONLY_NEW:
 
-                cpath = "finetune_encoder_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+                cpath = "finetune_encoder_logs3/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
                 testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
