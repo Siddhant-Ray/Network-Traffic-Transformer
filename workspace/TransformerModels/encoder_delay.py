@@ -69,7 +69,7 @@ SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 25
 
-TRAIN = True
+TRAIN = False
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
@@ -277,12 +277,27 @@ class TransformerEncoder(pl.LightningModule):
         fake_prediction = torch.clone(y)
         fake_prediction = fake_prediction[:, :-1].mean(axis=1, keepdims=True)
         
+        # Also use the penultimate delay as the predicted value
+        penultimate_prediction = torch.clone(y)
+        penultimate_prediction = penultimate_prediction[:, -2].unsqueeze(1)
+        
+        # Also use the weighted Moving average over the sequence
+        ewm_data = torch.clone(y)
+        ewm_data = ewm_data.cpu().numpy()
+
+        weights=0.99**np.arange(1023)[::-1]
+
+        ewm_prediction = np.ma.average(ewm_data[:,:-1], axis = 1, weights=weights)
+        ewm_prediction = np.expand_dims(ewm_prediction, 1)
+        
         last_delay_loss = mse_loss(last_actual_delay, last_predicted_delay)
         
         self.log('Test loss', loss, sync_dist=True)
         return {"Test loss": loss, "last_delay_loss": last_delay_loss,
                  "last_predicted_delay": last_predicted_delay, "last_actual_delay": last_actual_delay,
-                 "fake_predicted_delay": fake_prediction}
+                 "fake_predicted_delay": fake_prediction, 
+                 "penultimate_predicted_delay": penultimate_prediction,
+                 "ewm_predicted_delay": torch.tensor(ewm_prediction, dtype=torch.double, device=self.device)}
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
         X, y = test_batch
@@ -299,16 +314,23 @@ class TransformerEncoder(pl.LightningModule):
         last_predicted_delay = []
         last_actual_delay = []
         fake_last_delay = []
+        penultimate_predicted_delay = []
+        ewm_predicted_delay = []
+
         for output in outputs:
             last_packet_losses = list(output['last_delay_loss'].cpu().detach().numpy()) # Losses on last delay only 
             preds = list(output['last_predicted_delay'].cpu().detach().numpy()) # predicted last delays
             labels = list(output['last_actual_delay'].cpu().detach().numpy()) # actual last delays
             fakes = list(output['fake_predicted_delay'].cpu().detach().numpy()) # fake last delays 
+            penultimate_preds = list(output['penultimate_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
+            ewm_preds = list(output['ewm_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
             
             last_delay_losses.extend(last_packet_losses)
             last_predicted_delay.extend(preds)
             last_actual_delay.extend(labels)
             fake_last_delay.extend(fakes)
+            penultimate_predicted_delay.extend(penultimate_preds)
+            ewm_predicted_delay.extend(ewm_preds)
 
         print()
         print("Check lengths for all as sanity ", len(last_predicted_delay), len(last_actual_delay), len(fake_last_delay))
@@ -329,11 +351,25 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on ARMA predicted last delay (averaged from items) is : ", np.mean(fake_losses_array))
         print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
 
+        penultimate_predicted_delay = np.array(penultimate_predicted_delay)
+        penultimate_losses_array = np.square(np.subtract(penultimate_predicted_delay, last_actual_delay))
+
+        print("Mean loss on penultimate predicted last delay (averaged from items) is : ", np.mean(penultimate_losses_array))
+        print("99%%ile loss on penultimate predicted delay is : ", np.quantile(penultimate_losses_array, 0.99))
+
+        ewm_predicted_delay = np.array(ewm_predicted_delay)
+        ewm_losses_array = np.square(np.subtract(ewm_predicted_delay, last_actual_delay))
+
+        print("Mean loss on EWM predicted last delay (averaged from items) is : ", np.mean(ewm_losses_array))
+        print("99%%ile loss on EWM predicted delay is : ", np.quantile(ewm_losses_array, 0.99))
+
         save_path= "plot_values/3features/"
         np.save(save_path + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
         np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
+        np.save(save_path + "penultimate_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(penultimate_predicted_delay))
+        np.save(save_path + "ewm_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(ewm_predicted_delay))
         np.save(save_path + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_actual_delay))
-
+       
 def main():
 
     sl_win_start = SLIDING_WINDOW_START
@@ -456,7 +492,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
