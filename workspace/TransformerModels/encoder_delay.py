@@ -289,6 +289,10 @@ class TransformerEncoder(pl.LightningModule):
 
         ewm_prediction = np.ma.average(ewm_data[:,:-1], axis = 1, weights=weights)
         ewm_prediction = np.expand_dims(ewm_prediction, 1)
+
+        # Also predict the media over the sequence
+        median_prediction = torch.clone(y)
+        median_prediction = median_prediction[:, :-1].median(axis=1, keepdims=True).values
         
         last_delay_loss = mse_loss(last_actual_delay, last_predicted_delay)
         
@@ -297,7 +301,8 @@ class TransformerEncoder(pl.LightningModule):
                  "last_predicted_delay": last_predicted_delay, "last_actual_delay": last_actual_delay,
                  "fake_predicted_delay": fake_prediction, 
                  "penultimate_predicted_delay": penultimate_prediction,
-                 "ewm_predicted_delay": torch.tensor(ewm_prediction, dtype=torch.double, device=self.device)}
+                 "ewm_predicted_delay": torch.tensor(ewm_prediction, dtype=torch.double, device=self.device),
+                 "median_predicted_delay": median_prediction}
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
         X, y = test_batch
@@ -316,6 +321,7 @@ class TransformerEncoder(pl.LightningModule):
         fake_last_delay = []
         penultimate_predicted_delay = []
         ewm_predicted_delay = []
+        median_predicted_delay = []
 
         for output in outputs:
             last_packet_losses = list(output['last_delay_loss'].cpu().detach().numpy()) # Losses on last delay only 
@@ -324,6 +330,7 @@ class TransformerEncoder(pl.LightningModule):
             fakes = list(output['fake_predicted_delay'].cpu().detach().numpy()) # fake last delays 
             penultimate_preds = list(output['penultimate_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
             ewm_preds = list(output['ewm_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
+            median_preds = list(output['median_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
             
             last_delay_losses.extend(last_packet_losses)
             last_predicted_delay.extend(preds)
@@ -331,6 +338,7 @@ class TransformerEncoder(pl.LightningModule):
             fake_last_delay.extend(fakes)
             penultimate_predicted_delay.extend(penultimate_preds)
             ewm_predicted_delay.extend(ewm_preds)
+            median_predicted_delay.extend(median_preds)
 
         print()
         print("Check lengths for all as sanity ", len(last_predicted_delay), len(last_actual_delay), len(fake_last_delay))
@@ -363,13 +371,20 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on EWM predicted last delay (averaged from items) is : ", np.mean(ewm_losses_array))
         print("99%%ile loss on EWM predicted delay is : ", np.quantile(ewm_losses_array, 0.99))
 
+        median_predicted_delay = np.array(median_predicted_delay)
+        median_losses_array = np.square(np.subtract(median_predicted_delay, last_actual_delay))
+
+        print("Mean loss on median predicted as last delay (averaged from items) is : ", np.mean(median_losses_array))
+        print("99%%ile loss on median predicted as delay is : ", np.quantile(median_losses_array, 0.99))
+
         save_path= "plot_values/3features/"
         np.save(save_path + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
         np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
         np.save(save_path + "penultimate_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(penultimate_predicted_delay))
         np.save(save_path + "ewm_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(ewm_predicted_delay))
         np.save(save_path + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_actual_delay))
-       
+        np.save(save_path + "median_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(median_predicted_delay))
+
 def main():
 
     sl_win_start = SLIDING_WINDOW_START
