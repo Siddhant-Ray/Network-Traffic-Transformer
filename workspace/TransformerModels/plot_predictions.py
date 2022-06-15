@@ -60,27 +60,24 @@ def main():
     ## Save path 
     save_path = "plots/" + path 
 
-    # Plot the actual delay 
+    # Plot the actual delay vs transformer predictions 
     plt.figure()
-    sns.histplot(actual_values)
-    plt.legend([],[], frameon=False)
-    plt.title("Actual delay distribution")
-    plt.savefig(save_path + "actual_last_delay.png")
+    plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays",  alpha = 0.4)
+    plt.hist(transformer_predictions, bins=np.linspace(0, 0.5, 101), label = "Transformer predictions",  alpha = 0.6, histtype='step', color = 'blue')
+    
+    plt.legend()
+    plt.title("Actual delay vs transformer predicted delay distribution")
+    plt.savefig(save_path + "transformer_vs_actual_predictions.png")
 
-    # Plot the transformer predictions
+    # Plot the actual delay vs arma predictions
     plt.figure()
-    sns.histplot(transformer_predictions)
-    plt.legend([],[], frameon=False)
-    plt.title("Transformer predicted delay distribution")
+    plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays", alpha = 0.4)
+    plt.hist(arma_predictions, bins=np.linspace(0, 0.5, 101), label = "ARMA predictions", alpha = 0.6, histtype='step', color = 'blue')
+    
+    plt.legend()
+    plt.title("Actual delay vs arma predicted delay distribution")
+    plt.savefig(save_path + "arma_vs_actual_predictions.png")
 
-    plt.savefig(save_path + "transformer_predictions.png")
-
-    # Plot the arma predictions
-    plt.figure()
-    sns.histplot(arma_predictions)
-    plt.legend([],[], frameon=False)
-    plt.title("ARMA predicted delay distribution")
-    plt.savefig(save_path + "arma_predictions.png")
 
     # Plot histograms of transformer and arma squared losses
     plt.figure()

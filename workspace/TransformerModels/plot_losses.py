@@ -38,17 +38,6 @@ train_loss_epoch_df_pretrained.reset_index(inplace=True, drop=True)
 val_loss_epoch_df_pretrained = df_pretrained[df_pretrained["tag"] == "Val loss"]
 val_loss_epoch_df_pretrained.reset_index(inplace=True, drop=True)
 
-## Train loss (pre-trained)
-plt.figure(figsize=(5, 5))
-sns.lineplot(x=train_loss_epoch_df_pretrained.index, y="value", data=train_loss_epoch_df_pretrained, label="Avg train loss per epoch")
-plt.title("Train loss on MCT prediction (pre-trained)")
-plt.show()
-
-## Val loss (pre-trained)
-plt.figure(figsize=(5, 5))
-sns.lineplot(x=val_loss_epoch_df_pretrained.index, y="value", data=val_loss_epoch_df_pretrained, label="Avg val loss per epoch")
-plt.title("Val loss on MCT prediction (pre-trained)")
-plt.show()
 
 mct_log_dir_nonpretrained = "../../logs/finetune_mct_logs2/"
 reader_nonpretrained = SummaryReader(mct_log_dir_nonpretrained)
@@ -60,17 +49,25 @@ train_loss_epoch_df_nonpretrained.reset_index(inplace=True, drop=True)
 val_loss_epoch_df_nonpretrained = df_nonpretrained[df_nonpretrained["tag"] == "Val loss"]
 val_loss_epoch_df_nonpretrained.reset_index(inplace=True, drop=True)
 
-## Train loss (non-pretrained)
+## Train loss (pre-trained vs non-pretrained)
 plt.figure(figsize=(5, 5))
-sns.lineplot(x=train_loss_epoch_df_nonpretrained.index, y="value", data=train_loss_epoch_df_nonpretrained, label="Avg train loss per epoch")
-plt.title("Train loss on MCT prediction (non-pretrained)")
-plt.show()
+sns.lineplot(x=train_loss_epoch_df_pretrained.index, y="value", data=train_loss_epoch_df_pretrained, label="Avg train loss pre-trained")
+sns.lineplot(x=train_loss_epoch_df_nonpretrained.index, y="value", data=train_loss_epoch_df_nonpretrained, label="Avg train loss non pre-trained")
+plt.title("Train loss on MCT prediction pre-trained vs non-pretrained")
+plt.xlabel("Epoch")
+plt.ylabel("Train loss")
+plt.legend()
+plt.savefig("../../figures/MCT_train_loss.png")
 
-## Val loss (non-pretrained)
+## Val loss (pre-trained vs non-pretrained)
 plt.figure(figsize=(5, 5))
-sns.lineplot(x=val_loss_epoch_df_nonpretrained.index, y="value", data=val_loss_epoch_df_nonpretrained, label="Avg val loss per epoch")
-plt.title("Val loss on MCT prediction (non-pretrained)")
-plt.show()
+sns.lineplot(x=val_loss_epoch_df_pretrained.index, y="value", data=val_loss_epoch_df_pretrained, label="Avg val loss pre-trained")
+sns.lineplot(x=val_loss_epoch_df_nonpretrained.index, y="value", data=val_loss_epoch_df_nonpretrained, label="Avg val loss non pre-trained")
+plt.title("Val loss on MCT prediction pre-trained vs non-pretrained")
+plt.xlabel("Epoch")
+plt.ylabel("Val loss")
+plt.legend()
+plt.savefig("../../figures/MCT_val_loss.png")
 
 
 
