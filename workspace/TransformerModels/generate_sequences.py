@@ -156,6 +156,14 @@ if __name__ == "__main__":
     print("99%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.99))
     print("99.9%ile log MCT: ", np.quantile(final_df["Log Message Completion Time"], 0.999))
 
+    print("Mean packet count: ",  np.mean(final_df["Packet Count"]))
+    print("90%ile packet count: ", np.quantile(final_df["Packet Count"], 0.90))
+    print("99%ile packet count: ", np.quantile(final_df["Packet Count"], 0.99))
+
+    print("Mean MCT: ",  np.mean(final_df["Message Completion Time"]))
+    print("90%ile MCT: ", np.quantile(final_df["Message Completion Time"], 0.90))
+    print("99%ile MCT: ", np.quantile(final_df["Message Completion Time"], 0.99))
+
     plt.figure()
     
     sbs = sns.displot(

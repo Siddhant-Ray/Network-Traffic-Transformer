@@ -165,6 +165,10 @@ def create_features_for_MCT(data_frame, reduced = True, normalize = True):
     feature_frame_size_MCT = feature_frame_reduced[["Packet Size", "Application ID", "Message ID"]].groupby(["Application ID", "Message ID"]).sum()
     feature_frame_size_MCT.rename(columns = {"Packet Size" :"Message Size"}, inplace = True, copy = False)
 
+    feature_frame_creduced = feature_frame[["Timestamp", "Delay", "Packet Size", "Application ID", "Message ID"]]
+    feature_frame_count_MCT = feature_frame_creduced[["Packet Size", "Application ID", "Message ID"]].groupby(["Application ID", "Message ID"]).count()
+    feature_frame_count_MCT.rename(columns = {"Packet Size" :"Packet Count"}, inplace = True, copy = False)
+
     feature_frame_reduced["Transmissions"] = feature_frame_reduced["Timestamp"]
     feature_frame_reduced["Receptions"] = feature_frame_reduced["Timestamp"] + feature_frame_reduced["Delay"]
 
@@ -183,7 +187,11 @@ def create_features_for_MCT(data_frame, reduced = True, normalize = True):
         final_df = feature_frame_size_MCT.merge(feature_frame_TT_MCT,
                              on = ["Application ID", "Message ID"], how='inner')
         final_df = final_df.merge(feature_frame_FT_MCT,
-                                 on = ["Application ID", "Message ID"], how='inner')   
+                                 on = ["Application ID", "Message ID"], how='inner')
+
+        final_df = final_df.merge(feature_frame_count_MCT,
+                                 on = ["Application ID", "Message ID"], how='inner')                         
+
 
     final_df["Log Message Size"] = np.log(final_df["Message Size"])
     final_df["Log Message Completion Time"] = np.log(final_df["Message Completion Time"])
