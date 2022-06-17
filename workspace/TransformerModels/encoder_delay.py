@@ -69,7 +69,7 @@ SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 25
 
-TRAIN = False
+TRAIN = True
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
@@ -218,11 +218,27 @@ class TransformerEncoder(pl.LightningModule):
         X, y = train_batch
         self.lr_update()    
         
-        # Mask our the nth packet delay delay, which is at position seq_len - 1  (640 is sequence length)
+        # Mask our the nth packet delay delay, which is at position seq_len - 1  
         batch_mask_index = self.input_size - 1
         batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
         batch_mask = batch_mask.double() 
-        X[:, [batch_mask_index]] = batch_mask 
+
+        ## For ablation study, mask out all delays and all sizes 
+
+        batch_all_size_masks_index = np.arange(1,self.input_size,3)
+        batch_all_size_masks = torch.zeros(self.input_size //3, dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_size_masks = batch_all_size_masks.double()
+
+        batch_all_delay_masks_index = np.arange(2,self.input_size,3)
+        batch_all_delay_masks = torch.zeros(self.input_size //3 , dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_delay_masks = batch_all_delay_masks.double()
+
+        
+        # X[:, [batch_mask_index]] = batch_mask 
+        ## Mask out all sizes
+        X[:, batch_all_size_masks_index] = batch_all_size_masks
+        ## Mask out all delays
+        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
         # Every packet separately into the transformer (project to linear if needed)
         prediction = self.forward(X)
@@ -240,7 +256,23 @@ class TransformerEncoder(pl.LightningModule):
         batch_mask_index = self.input_size - 1
         batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
         batch_mask = batch_mask.double() 
-        X[:, [batch_mask_index]] = batch_mask 
+
+        ## For ablation study, mask out all delays and all sizes 
+
+        batch_all_size_masks_index = np.arange(1,self.input_size,3)
+        batch_all_size_masks = torch.zeros(self.input_size //3, dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_size_masks = batch_all_size_masks.double()
+
+        batch_all_delay_masks_index = np.arange(2,self.input_size,3)
+        batch_all_delay_masks = torch.zeros(self.input_size //3 , dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_delay_masks = batch_all_delay_masks.double()
+
+        
+        # X[:, [batch_mask_index]] = batch_mask 
+        ## Mask out all sizes
+        X[:, batch_all_size_masks_index] = batch_all_size_masks
+        ## Mask out all delays
+        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
         prediction = self.forward(X)
 
@@ -257,7 +289,23 @@ class TransformerEncoder(pl.LightningModule):
         batch_mask_index = self.input_size - 1
         batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
         batch_mask = batch_mask.double() 
-        X[:, [batch_mask_index]] = batch_mask 
+        
+        ## For ablation study, mask out all delays and all sizes 
+
+        batch_all_size_masks_index = np.arange(1,self.input_size,3)
+        batch_all_size_masks = torch.zeros(self.input_size //3, dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_size_masks = batch_all_size_masks.double()
+
+        batch_all_delay_masks_index = np.arange(2,self.input_size,3)
+        batch_all_delay_masks = torch.zeros(self.input_size //3 , dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_delay_masks = batch_all_delay_masks.double()
+
+        
+        # X[:, [batch_mask_index]] = batch_mask 
+        ## Mask out all sizes
+        X[:, batch_all_size_masks_index] = batch_all_size_masks
+        ## Mask out all delays
+        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
         prediction = self.forward(X)
 
@@ -377,7 +425,7 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on median predicted as last delay (averaged from items) is : ", np.mean(median_losses_array))
         print("99%%ile loss on median predicted as delay is : ", np.quantile(median_losses_array, 0.99))
 
-        save_path= "plot_values/3features/"
+        save_path= "plot_values_extra/3features/"
         np.save(save_path + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
         np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
         np.save(save_path + "penultimate_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(penultimate_predicted_delay))
@@ -507,7 +555,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
