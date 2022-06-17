@@ -1,6 +1,7 @@
 from tbparse import SummaryReader
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 log_dir = "../../logs/encoder_delay_logs/"
 reader = SummaryReader(log_dir)
@@ -21,12 +22,12 @@ print(val_loss_step_df)
 ## Train loss plot (pre-training)
 plt.figure(figsize=(5, 5))
 sns.lineplot(x=epoch_train_loss_df.index, y="value", data=epoch_train_loss_df, label="Avg train loss per epoch")
-plt.show()
+# plt.show()
 
 ## Val loss plot (pre-training)
 plt.figure(figsize=(5, 5))
 sns.lineplot(x=val_loss_step_df.index, y="value", data=val_loss_step_df, label="Avg val loss per epoch")
-plt.show()
+# plt.show()
 
 mct_log_dir_pretrained = "../../logs/finetune_mct_logs/"
 reader_pretrained = SummaryReader(mct_log_dir_pretrained)
@@ -49,25 +50,51 @@ train_loss_epoch_df_nonpretrained.reset_index(inplace=True, drop=True)
 val_loss_epoch_df_nonpretrained = df_nonpretrained[df_nonpretrained["tag"] == "Val loss"]
 val_loss_epoch_df_nonpretrained.reset_index(inplace=True, drop=True)
 
+sns.set_theme("paper", "whitegrid")
+mpl.rcParams.update({
+    'text.usetex': True,
+    'font.family': 'serif',
+    'text.latex.preamble': r'\usepackage{amsmath,amssymb}',
+
+    'lines.linewidth': 2,
+    'lines.markeredgewidth': 0,
+
+    'scatter.marker': '.',
+    'scatter.edgecolors': 'none',
+
+    # Set image quality and reduce whitespace around saved figure.
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.pad_inches': 0.05,
+})
+
 ## Train loss (pre-trained vs non-pretrained)
-plt.figure(figsize=(5, 5))
-sns.lineplot(x=train_loss_epoch_df_pretrained.index, y="value", data=train_loss_epoch_df_pretrained, label="Avg train loss pre-trained")
-sns.lineplot(x=train_loss_epoch_df_nonpretrained.index, y="value", data=train_loss_epoch_df_nonpretrained, label="Avg train loss non pre-trained")
-plt.title("Train loss on MCT prediction pre-trained vs non-pretrained")
-plt.xlabel("Epoch")
-plt.ylabel("Train loss")
-plt.legend()
-plt.savefig("../../figures/MCT_train_loss.png")
+plt.figure(figsize=(3, 1.67))
+sns.lineplot(x=train_loss_epoch_df_pretrained.index, y="value", data=train_loss_epoch_df_pretrained, label="Pre-trained")
+sns.lineplot(x=train_loss_epoch_df_nonpretrained.index, y="value", data=train_loss_epoch_df_nonpretrained, label="From scratch")
+# plt.title("Train loss on MCT prediction pre-trained vs non-pretrained")
+plt.xlabel("Training Epoch", fontsize=8)
+plt.ylabel("Training MSE",fontsize=8)
+plt.ylim([0,1])
+plt.xlim([0,25])
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=10)
+plt.legend(fontsize=8)
+plt.savefig("../../figures/MCT_train_loss.pdf")
 
 ## Val loss (pre-trained vs non-pretrained)
-plt.figure(figsize=(5, 5))
-sns.lineplot(x=val_loss_epoch_df_pretrained.index, y="value", data=val_loss_epoch_df_pretrained, label="Avg val loss pre-trained")
-sns.lineplot(x=val_loss_epoch_df_nonpretrained.index, y="value", data=val_loss_epoch_df_nonpretrained, label="Avg val loss non pre-trained")
-plt.title("Val loss on MCT prediction pre-trained vs non-pretrained")
-plt.xlabel("Epoch")
-plt.ylabel("Val loss")
-plt.legend()
-plt.savefig("../../figures/MCT_val_loss.png")
+plt.figure(figsize=(3, 1.67))
+sns.lineplot(x=val_loss_epoch_df_pretrained.index, y="value", data=val_loss_epoch_df_pretrained, label="Pre-trained")
+sns.lineplot(x=val_loss_epoch_df_nonpretrained.index, y="value", data=val_loss_epoch_df_nonpretrained, label="From scratch")
+# plt.title("Val loss on MCT prediction pre-trained vs non-pretrained")
+plt.xlabel("Training Epoch",fontsize=8)
+plt.ylabel("Validation MSE", fontsize=8)
+plt.ylim([0,1])
+plt.xlim([0,25])
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=10)
+plt.legend(fontsize=8)
+plt.savefig("../../figures/MCT_val_loss.pdf")
 
 
 
