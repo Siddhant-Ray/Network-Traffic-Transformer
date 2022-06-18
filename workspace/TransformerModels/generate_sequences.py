@@ -13,7 +13,7 @@ from utils import create_features_for_MCT
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 1024
+SLIDING_WINDOW_SIZE = 1008
 WINDOW_BATCH_SIZE = 5000
 
 def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_features, TEST_ONLY_NEW):
