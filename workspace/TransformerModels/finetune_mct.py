@@ -124,24 +124,32 @@ class TransformerEncoder(pl.LightningModule):
         self.packets_per_embedding = packets_per_embedding
 
         # Change into hierarchical embedding for the encoder
-        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+        '''self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                                     seq=SLIDING_WINDOW_SIZE, feat=self.packet_size), # Make 1000                          
                                     nn.Linear(self.packet_size, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )
+                                )'''
+        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                            seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
+                                            feat=self.packet_size * self.packets_per_embedding), # Make 1008 size sequences to 48,                                
+                            nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 21 packets
+                            nn.LayerNorm(LINEARSIZE), # pre-normalization
+                            )
 
         self.remaining_packets1 = SLIDING_WINDOW_SIZE-32
-        self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
+        '''self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
                                     n = 32),                      
                                     nn.Linear(LINEARSIZE*32, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )   
+                                )'''  
+        self.feature_transform2 = nn.Identity()                        
         self.remaining_packets2 = (self.remaining_packets1 // 32) - 15 
-        self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
+        '''self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
                                     n = 16),                      
                                     nn.Linear(LINEARSIZE*16, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )   
+                                )'''   
+        self.feature_transform3 = nn.Identity()    
 
 
         # Choose mean pooling

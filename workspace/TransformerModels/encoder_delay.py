@@ -340,7 +340,7 @@ class TransformerEncoder(pl.LightningModule):
         ewm_data = torch.clone(y)
         ewm_data = ewm_data.cpu().numpy()
 
-        weights=0.99**np.arange(1023)[::-1]
+        weights=0.99**np.arange(SLIDING_WINDOW_SIZE-1)[::-1]
 
         ewm_prediction = np.ma.average(ewm_data[:,:-1], axis = 1, weights=weights)
         ewm_prediction = np.expand_dims(ewm_prediction, 1)
