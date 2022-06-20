@@ -124,11 +124,11 @@ class TransformerEncoder(pl.LightningModule):
         self.packets_per_embedding = packets_per_embedding
 
         # Change into hierarchical embedding for the encoder
-        '''self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                                     seq=SLIDING_WINDOW_SIZE, feat=self.packet_size), # Make 1000                          
                                     nn.Linear(self.packet_size, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )'''
+                                )
         self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                             seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
                                             feat=self.packet_size * self.packets_per_embedding), # Make 1008 size sequences to 48,                                
@@ -137,20 +137,19 @@ class TransformerEncoder(pl.LightningModule):
                             )
 
         self.remaining_packets1 = SLIDING_WINDOW_SIZE-32
-        '''self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
+        self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
                                     n = 32),                      
                                     nn.Linear(LINEARSIZE*32, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )'''  
-        self.feature_transform2 = nn.Identity()                        
+                                )  
+        # self.feature_transform2 = nn.Identity()                        
         self.remaining_packets2 = (self.remaining_packets1 // 32) - 15 
-        '''self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
+        self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
                                     n = 16),                      
                                     nn.Linear(LINEARSIZE*16, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )'''   
-        self.feature_transform3 = nn.Identity()    
-
+                                )   
+        # self.feature_transform3 = nn.Identity()    
 
         # Choose mean pooling
         self.pool = pool
@@ -269,7 +268,11 @@ class TransformerEncoder(pl.LightningModule):
         y = y.unsqueeze(1)
         loss = self.loss_func(mct_pred, y)
         self.log('Test loss', loss)
-        return loss
+
+        predictions = mct_pred
+        actual_vals = y
+    
+        return {"Test Loss": loss, 'predictions': predictions, 'actuals': actual_vals}
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
         X, y = test_batch
@@ -282,8 +285,24 @@ class TransformerEncoder(pl.LightningModule):
         self.log('Avg loss per epoch', np.mean(np.array(loss_tensor_list)), on_step=False, on_epoch=True)
 
     def test_epoch_end(self, outputs):
-        pass
-        
+        last_predicted_times = []
+        last_actual_times = []
+
+        for output in outputs:
+            preds = list(output['predictions'].cpu().detach().numpy()) # predicted last times
+            labels = list(output['actuals'].cpu().detach().numpy()) # actual last times
+
+        last_predicted_times.extend(preds)
+        last_actual_times.extend(labels)
+
+        print()
+        print("Check lengths for all as sanity ", len(last_predicted_times), len(last_actual_times))
+
+        # Compute 99%ile SE
+
+        losses_array = np.square(np.subtract(last_predicted_times, last_actual_times))
+        print("99%ile SE on MCT is ", np.percentile(losses_array, 99))
+                    
 def main():
 
     sl_win_start = SLIDING_WINDOW_START
