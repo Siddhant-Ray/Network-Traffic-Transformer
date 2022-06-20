@@ -2,6 +2,7 @@ from tbparse import SummaryReader
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.ticker import FormatStrFormatter
 
 log_dir = "../../logs/encoder_delay_logs/"
 reader = SummaryReader(log_dir)
@@ -65,10 +66,14 @@ mpl.rcParams.update({
     # Set image quality and reduce whitespace around saved figure.
     'savefig.dpi': 300,
     'savefig.bbox': 'tight',
-    'savefig.pad_inches': 0.05,
+    'savefig.pad_inches': 0.01,
 })
 
-fig, ax = plt.subplots(2,figsize=(3, 3.35))
+fig, ax = plt.subplots(2,figsize=(3.8, 3.35), sharex=True)
+plt.subplots_adjust(hspace=0.03)
+#plt.xticks(fontsize=8)
+#plt.yticks(fontsize=8)
+
 
 ## Train loss (pre-trained vs non-pretrained)
 # plt.figure(figsize=(3, 1.67))
@@ -77,10 +82,14 @@ g2 = sns.lineplot(x=train_loss_epoch_df_nonpretrained.index, y="value", data=tra
 # plt.title("Train loss on MCT prediction pre-trained vs non-pretrained")
 ax[0].set_xlabel("Training Epoch", fontsize=8)
 ax[0].set_ylabel("Training MSE",fontsize=8)
+ax[0].lines[1].set_linestyle("--")
+ticks = [0, 0.5, 1]
+ax[0].yaxis.set_ticks(ticks)
+tickLabels = map(str, ticks)
+ax[0].yaxis.set_ticklabels(tickLabels)
 ax[0].axis(ymin=0,ymax=1)
 ax[0].axis(xmin=0,xmax=25)
-plt.xticks(fontsize=10)
-plt.yticks(fontsize=10)
+
 # ax[0].legend(fontsize=8)
 # plt.savefig("../../figures/MCT_train_loss.pdf")
 
@@ -91,12 +100,17 @@ g4 = sns.lineplot(x=val_loss_epoch_df_nonpretrained.index, y="value", data=val_l
 # plt.title("Val loss on MCT prediction pre-trained vs non-pretrained")
 ax[1].set_xlabel("Training Epoch",fontsize=8)
 ax[1].set_ylabel("Validation MSE", fontsize=8)
+ticks = [0, 0.5, 1]
+ax[1].yaxis.set_ticks(ticks)
+tickLabels = map(str, ticks)
+ax[1].yaxis.set_ticklabels(tickLabels)
+ax[1].lines[1].set_linestyle("--")
 ax[1].axis(ymin=0,ymax=1)
 ax[1].axis(xmin=0,xmax=25)
-plt.xticks(fontsize=10)
-plt.yticks(fontsize=10)
+# plt.xticks(fontsize=8)
+# plt.yticks(fontsize=8)
 # ax[1].legend(fontsize=8)
-fig.legend(["Pre-trained", "From scratch"],loc = "upper right", bbox_to_anchor=(0.94, 0.955), ncol=1, fontsize=6)
+fig.legend(["Pre-trained", "From scratch"],loc = "upper right", bbox_to_anchor=(0.96, 0.96), ncol=1, fontsize=8)
 ax[1].get_legend().remove()
 ax[0].get_legend().remove()
 fig.tight_layout()

@@ -61,13 +61,13 @@ def main():
     save_path = "plots/" + path 
 
     # Plot the actual delay vs transformer predictions 
-    plt.figure()
+    '''plt.figure()
     plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays",  alpha = 0.4)
     plt.hist(transformer_predictions, bins=np.linspace(0, 0.5, 101), label = "Transformer predictions",  alpha = 0.6, histtype='step', color = 'blue')
     
     plt.legend()
     plt.title("Actual delay vs transformer predicted delay distribution")
-    plt.savefig(save_path + "transformer_vs_actual_predictions.png")
+    # plt.savefig(save_path + "transformer_vs_actual_predictions.png")
 
     # Plot the actual delay vs arma predictions
     plt.figure()
@@ -76,8 +76,15 @@ def main():
     
     plt.legend()
     plt.title("Actual delay vs arma predicted delay distribution")
-    plt.savefig(save_path + "arma_vs_actual_predictions.png")
+    # plt.savefig(save_path + "arma_vs_actual_predictions.png")'''
 
+    plt.figure()
+    # plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays",  alpha = 0.8, histtype='step', color = 'blue', linewidth=2)
+    plt.hist(transformer_predictions, bins=np.linspace(0, 0.5, 101), label = "Transformer predictions",  alpha = 0.6, color = 'orange')
+    plt.hist(ewm_predictions, bins=np.linspace(0, 0.5, 101), label = "EWMA predictions",  alpha = 0.2, color = 'green')
+    plt.legend()
+    plt.title("Transformer vs baselines predicted delay distribution")
+    plt.savefig(save_path + "transformer_vs_baseline_predictions.png")
 
     # Plot histograms of transformer and arma squared losses
     plt.figure()
