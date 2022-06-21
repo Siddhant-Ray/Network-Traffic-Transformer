@@ -4,6 +4,20 @@ import seaborn as sns
 import argparse
 
 
+def ewma(seq, alpha=1):
+    w_new = alpha
+    w_old = 1 - alpha
+    
+    output = [seq[0]]
+    old_val = seq[0]
+    for new_val in seq[1:]:
+        old_val = w_new * new_val + w_old * old_val
+        output.append(old_val)
+    return np.array(output)
+
+def mse(seq_a, seq_b):
+    return np.mean((seq_a - seq_b)**2)
+
 def main():
     parser = argparse.ArgumentParser(description='Plot predictions')
     parser.add_argument('--path', type=str, help='Path to predictions files')
@@ -102,6 +116,30 @@ def main():
     plt.title("Squared loss from ARMA vs actual distribution")
     plt.xlim(0, 0.0005)
     plt.savefig(save_path + "histogram_squared_losses_arma.png")
+
+    input_seq = actual_values
+    target = input_seq[1:]
+    predictions = input_seq[:-1]
+
+    smoothed_001 = ewma(predictions , alpha=0.01)  # This should equal our current res. (updated!)
+    # Some extras I'd like to try.
+    smoothed_01 = ewma(predictions , alpha=0.1)
+    smoothed_05 = ewma(predictions , alpha=0.5)
+    smoothed_09 = ewma(predictions , alpha=0.9)
+
+    # Normally compute MSE.
+    mse_unsmoothed = mse(target, predictions)
+    mse_001 = mse(target, smoothed_001)
+    mse_01 = mse(target, smoothed_01)
+    mse_05 = mse(target, smoothed_05)
+    mse_09 = mse(target, smoothed_09)
+
+    print("Unsmoothed", mse_unsmoothed)
+    print("Alpha 0.01", mse_001)
+    print("Alpha 0.1", mse_01)
+    print("Alpha 0.5", mse_05)
+    print("Alpha 0.9", mse_09)
+    
     
 if __name__=="__main__":
     main()

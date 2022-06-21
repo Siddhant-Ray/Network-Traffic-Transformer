@@ -77,6 +77,20 @@ SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
 
+def ewma(seq, alpha=1):
+    w_new = alpha
+    w_old = 1 - alpha
+    
+    output = [seq[0]]
+    old_val = seq[0]
+    for new_val in seq[1:]:
+        old_val = w_new * new_val + w_old * old_val
+        output.append(old_val)
+    return np.array(output)
+
+def mse(seq_a, seq_b):
+    return np.mean((seq_a - seq_b)**2)
+
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
     print("Number of GPUS: {}".format(NUM_GPUS))
@@ -129,12 +143,12 @@ class TransformerEncoder(pl.LightningModule):
                                     nn.Linear(self.packet_size, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
                                 )
-        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+        '''self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                             seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
                                             feat=self.packet_size * self.packets_per_embedding), # Make 1008 size sequences to 48,                                
                             nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 21 packets
                             nn.LayerNorm(LINEARSIZE), # pre-normalization
-                            )
+                            )'''
 
         self.remaining_packets1 = SLIDING_WINDOW_SIZE-32
         self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
@@ -266,12 +280,12 @@ class TransformerEncoder(pl.LightningModule):
         
         # Compute the loss 
         y = y.unsqueeze(1)
-        loss = self.loss_func(mct_pred, y)
+        loss = self.loss_func(torch.exp(mct_pred), torch.exp(y))
         self.log('Test loss', loss)
 
         predictions = mct_pred
         actual_vals = y
-    
+
         return {"Test Loss": loss, 'predictions': predictions, 'actuals': actual_vals}
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
@@ -395,6 +409,26 @@ def main():
     # print(train_vectors[0].shape[0])
     # print(train_labels[0].shape[0])
 
+    ## Naive MCT baseline on previous value of MCT
+    
+    MCTS = np.array(test_labels)
+
+    targets = MCTS[1:]  # No previous MCT for first one
+    predictions = MCTS[:-1]
+
+    smoothed_001 = ewma(predictions , alpha=0.01)  # This should equal our current res. (updated!)
+    # Some extras I'd like to try.
+    smoothed_01 = ewma(predictions , alpha=0.1)
+
+    mse_001 = mse(targets, smoothed_001)
+    mse_01 = mse(targets, smoothed_01)
+
+    print("Alpha 0.01", mse_001)
+    print("Alpha 0.1", mse_01)
+
+    baseline_mse = np.mean(np.square(np.subtract(np.exp(targets), np.exp(predictions))))
+    print("MSE on previous MCT as prediction is", baseline_mse)
+
     train_dataset = MCTDataset(train_vectors, train_labels)
     val_dataset = MCTDataset(val_vectors, val_labels)
     test_dataset = MCTDataset(test_vectors, test_labels)
@@ -409,7 +443,7 @@ def main():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_mct_logs/")
         
     if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS*3, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,

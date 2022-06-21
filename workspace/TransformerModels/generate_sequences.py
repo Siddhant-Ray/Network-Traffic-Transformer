@@ -163,6 +163,8 @@ if __name__ == "__main__":
     print("Mean MCT: ",  np.mean(final_df["Message Completion Time"]))
     print("90%ile MCT: ", np.quantile(final_df["Message Completion Time"], 0.90))
     print("99%ile MCT: ", np.quantile(final_df["Message Completion Time"], 0.99))
+    print("99.9%ile MCT: ", np.quantile(final_df["Message Completion Time"], 0.999))
+    print("99.99%ile MCT: ", np.quantile(final_df["Message Completion Time"], 0.9999))
 
     plt.figure()
     

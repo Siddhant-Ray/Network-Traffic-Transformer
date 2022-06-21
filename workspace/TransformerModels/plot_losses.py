@@ -69,7 +69,7 @@ mpl.rcParams.update({
     'savefig.pad_inches': 0.01,
 })
 
-fig, ax = plt.subplots(2,figsize=(3.8, 3.35), sharex=True)
+fig, ax = plt.subplots(2,figsize=(3.5, 3.35), sharex=True)
 plt.subplots_adjust(hspace=0.03)
 #plt.xticks(fontsize=8)
 #plt.yticks(fontsize=8)
