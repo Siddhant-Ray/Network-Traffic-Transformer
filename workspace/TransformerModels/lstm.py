@@ -205,8 +205,6 @@ class LSTMEncoder(pl.LightningModule):
         # Embedding the final input (stack along sequence dimension)
         final_input = torch.cat((scaled_input_final1, scaled_input_final2, scaled_input_final3), dim=1)
         
-        enc = self.encoder(final_input)
-
         enc_out, states  = self.encoder(final_input)
         
         enc = enc_out
@@ -223,6 +221,9 @@ class LSTMEncoder(pl.LightningModule):
         _mean = torch.div(_sum, 2)
 
         enc = _mean
+
+        ## Also do "vanilla" bidirectional LSTM
+        # enc_out, states = self.encoder(final_input)
 
         if self.pool:                
             enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)
