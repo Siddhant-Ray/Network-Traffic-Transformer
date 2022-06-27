@@ -65,9 +65,10 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 1008
+SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 21
+NUM_BOTTLENECKS = 2
 
 TRAIN = True
 SAVE_MODEL = True
@@ -122,32 +123,32 @@ class TransformerEncoder(pl.LightningModule):
         self.packets_per_embedding = packets_per_embedding
 
         # Change into hierarchical embedding for the encoder
-        '''self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                                     seq=SLIDING_WINDOW_SIZE, feat=self.packet_size), # Make 1000                          
                                     nn.Linear(self.packet_size, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )'''
-        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                                )
+        '''self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
                             seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
                                             feat=self.packet_size * self.packets_per_embedding), # Make 1008 size sequences to 48,                                
                             nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 21 packets
                             nn.LayerNorm(LINEARSIZE), # pre-normalization
-                            )
+                            )'''
 
         self.remaining_packets1 = SLIDING_WINDOW_SIZE-32
-        '''self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
+        self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
                                     n = 32),                      
                                     nn.Linear(LINEARSIZE*32, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )'''  
-        self.feature_transform2 = nn.Identity()                        
+                                )  
+        # self.feature_transform2 = nn.Identity()                        
         self.remaining_packets2 = (self.remaining_packets1 // 32) - 15 
-        '''self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
+        self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
                                     n = 16),                      
                                     nn.Linear(LINEARSIZE*16, LINEARSIZE),
                                     nn.LayerNorm(LINEARSIZE), # pre-normalization
-                                )'''   
-        self.feature_transform3 = nn.Identity()
+                                )   
+        # self.feature_transform3 = nn.Identity()
 
         # Choose mean pooling
         self.pool = pool
@@ -432,13 +433,13 @@ class TransformerEncoder(pl.LightningModule):
         print("Mean loss on median predicted as last delay (averaged from items) is : ", np.mean(median_losses_array))
         print("99%%ile loss on median predicted as delay is : ", np.quantile(median_losses_array, 0.99))
 
-        '''save_path= "plot_values_extra/3features/"
+        save_path= "plot_values_extra/3features/"
         np.save(save_path + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
         np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
         np.save(save_path + "penultimate_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(penultimate_predicted_delay))
         np.save(save_path + "ewm_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(ewm_predicted_delay))
         np.save(save_path + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_actual_delay))
-        np.save(save_path + "median_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(median_predicted_delay))'''
+        np.save(save_path + "median_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(median_predicted_delay))
 
 def main():
 
@@ -458,7 +459,8 @@ def main():
                                                                 SLIDING_WINDOW_SIZE, 
                                                                 WINDOW_BATCH_SIZE,
                                                                 num_features,
-                                                                TEST_ONLY_NEW)
+                                                                TEST_ONLY_NEW,
+                                                                NUM_BOTTLENECKS)
     
     ## Model definition with delay scaling params
     model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING, pool=False)
@@ -510,7 +512,7 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs_fx/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -525,13 +527,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf encoder_delay_logs_fx/lightning_logs/")
+        os.system("rm -rf encoder_delay_logs/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("encoder_delay_logs_fx/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
+        trainer.save_checkpoint("encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -539,7 +541,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "encoder_delay_logs_fx/lightning_logs/version_0"
+        log_dir = "encoder_delay_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -562,7 +564,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_logs_fx/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,

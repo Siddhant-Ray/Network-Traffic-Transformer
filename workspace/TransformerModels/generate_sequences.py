@@ -13,10 +13,10 @@ from utils import create_features_for_MCT
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 1008
+SLIDING_WINDOW_SIZE = 1024
 WINDOW_BATCH_SIZE = 5000
 
-def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_features, TEST_ONLY_NEW):
+def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_features, TEST_ONLY_NEW, NUM_BOTTLENECKS):
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
@@ -38,11 +38,22 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
         
         if not TEST_ONLY_NEW:
 
-            files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
-                    "small_test_no_disturbance3_final.csv", "small_test_no_disturbance4_final.csv",
-                    "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",
-                    "small_test_no_disturbance7_final.csv", "small_test_no_disturbance8_final.csv",
-                    "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
+            if NUM_BOTTLENECKS == 1:
+
+                files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
+                        "small_test_no_disturbance3_final.csv", "small_test_no_disturbance4_final.csv",
+                        "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",
+                        "small_test_no_disturbance7_final.csv", "small_test_no_disturbance8_final.csv",
+                        "small_test_no_disturbance9_final.csv","small_test_no_disturbance10_final.csv"]
+            elif NUM_BOTTLENECKS == 2:
+                files = ["small_test_one_disturbance_with_message_ids1_final.csv", "small_test_one_disturbance_with_message_ids2_final.csv",
+                        "small_test_one_disturbance_with_message_ids3_final.csv", "small_test_one_disturbance_with_message_ids4_final.csv",
+                        "small_test_one_disturbance_with_message_ids5_final.csv", "small_test_one_disturbance_with_message_ids6_final.csv",
+                        "small_test_one_disturbance_with_message_ids7_final.csv", "small_test_one_disturbance_with_message_ids8_final.csv",
+                        "small_test_one_disturbance_with_message_ids9_final.csv", "small_test_one_disturbance_with_message_ids10_final.csv"]
+            else:
+                print("Invalid number of bottlenecks")
+                exit()
 
         else:
             files = ["small_test_one_disturbance2_final.csv"]
