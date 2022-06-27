@@ -212,7 +212,14 @@ class LSTMEncoder(pl.LightningModule):
         enc = enc_out
         forward_out = enc[:,:,:LINEARSIZE]
         reverse_out = enc[:,:,LINEARSIZE:]
-        _sum = torch.add(forward_out, reverse_out)
+
+        # Flip the reverse output, as we want to take mean over the same input representations
+        # If input is [3,4,5,6], then forward gives [f(3), f(4), f(5), f(6)]
+        # Reverse gives [r(6), r(5), r(4), r(3)], but we want
+        # [r(3), r(4), r(5), r(6)] and then mean over 
+        # [f(3), f(4), f(5), f(6)] and [r(3), r(4), r(5), r(6)]
+        flipped_out = torch.flip(reverse_out, [2])
+        _sum = torch.add(forward_out, flipped_out)
         _mean = torch.div(_sum, 2)
 
         enc = _mean
