@@ -1,3 +1,4 @@
+from locale import normalize
 import random, os, pathlib
 from ipaddress import ip_address
 import pandas as pd, numpy as np
@@ -22,10 +23,15 @@ from sklearn.model_selection import train_test_split
 
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+from einops import rearrange, repeat
+from einops.layers.torch import Rearrange
 
-from utils import get_data_from_csv, ipaddress_to_number, vectorize_features_to_numpy
+from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
+from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
-from utils import PacketDataset
+from utils import PacketDataset, gelu
+from utils import PacketDatasetEncoder
+from generate_sequences import generate_sliding_windows
 
 random.seed(0)
 np.random.seed(0)
@@ -35,12 +41,13 @@ torch.set_default_dtype(torch.float64)
 
 # Hyper parameters from config file
 
-with open('configs/config-lstm.yaml') as f:
+with open('configs/config-encoder-test.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 WEIGHTDECAY = float(config['weight_decay'])      
 LEARNINGRATE = float(config['learning_rate'])         
 DROPOUT = float(config['dropout'])                      
+NHEAD = int(config['num_heads'])    
 LAYERS = int(config['num_layers'])             
 EPOCHS = int(config['epochs'])  
 BATCHSIZE = int(config['batch_size'])  
@@ -58,11 +65,16 @@ if 'loss_function' in config.keys():
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 10
+SLIDING_WINDOW_SIZE = 1024
+WINDOW_BATCH_SIZE = 5000
+PACKETS_PER_EMBEDDING = 21
+NUM_BOTTLENECKS = 1
 
-SAVE_MODEL = False
-MAKE_EPOCH_PLOT = True
+TRAIN = True
+SAVE_MODEL = True
+MAKE_EPOCH_PLOT = False
 TEST = True
+TEST_ONLY_NEW = False
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -71,33 +83,93 @@ else:
     print("ERROR: NO CUDA DEVICE FOUND")
     NUM_GPUS = 0 
 
+# BiLSTM CLASS TO PREDICT DELAYS
+class LSTMEncoder(pl.LightningModule):
 
-# LSTM CLASS TO PREDICT DELAYS
-class BaseLSTM(pl.LightningModule):
-
-    def __init__(self,input_size, target_size, loss_function):
-        super(BaseLSTM, self).__init__()
+    def __init__(self,input_size, target_size, loss_function, delay_mean, delay_std, packets_per_embedding, pool=False):
+        super(LSTMEncoder, self).__init__()
 
         self.step = [0]
-        self.warmup_steps = 1000
+        self.warmup_steps = 4000
 
         # create the model with its layers
 
-        self.encoder = nn.LSTM(input_size = LINEARSIZE, hidden_size = LINEARSIZE, batch_first = True, num_layers=LAYERS, dropout = DROPOUT)
-        self.decoder = nn.LSTM(input_size = LINEARSIZE, hidden_size = LINEARSIZE, batch_first = True, num_layers=LAYERS, dropout = DROPOUT)
-        self.encoderin = nn.Linear(input_size, LINEARSIZE)
-        self.decoderin = nn.Linear(target_size, LINEARSIZE)
-        self.decoderpred= nn.Linear(LINEARSIZE, target_size)
-        self.model = nn.ModuleList([self.encoder, self.decoder, self.encoderin, self.decoderin, self.decoderpred])
+        # These are our transformer layers (stay the same)
+        self.encoder = nn.LSTM(LINEARSIZE, LINEARSIZE, num_layers=LAYERS, batch_first = True, dropout=DROPOUT, bidirectional=True)
 
+        # This is our prediction layer, change for finetuning as needed
+        
+        self.norm1 = nn.LayerNorm(LINEARSIZE)
+        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
+        self.activ1 = nn.Tanh()
+        self.norm2 = nn.LayerNorm(LINEARSIZE*4)
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
+        self.activ2 = nn.GELU()
+        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
+        self.activ3 = nn.ReLU()
+        self.encoderpred2= nn.Linear(input_size // 8, target_size)
+        
         self.loss_func = loss_function
         parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
-                         "LINEARSIZE": LINEARSIZE, "LAYERS": LAYERS}
+                         "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
+        
+        ## Mask out the nth delay in every input sequence (do it at run time)
+        self.input_size = input_size
+        self.packet_size = int(self.input_size/ SLIDING_WINDOW_SIZE)
+        self.packets_per_embedding = packets_per_embedding
+
+        # Change into hierarchical embedding for the encoder
+        self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                                    seq=SLIDING_WINDOW_SIZE, feat=self.packet_size), # Make 1000                          
+                                    nn.Linear(self.packet_size, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )
+        '''self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                            seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
+                                            feat=self.packet_size * self.packets_per_embedding), # Make 1008 size sequences to 48,                                
+                            nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 21 packets
+                            nn.LayerNorm(LINEARSIZE), # pre-normalization
+                            )'''
+
+        self.remaining_packets1 = SLIDING_WINDOW_SIZE-32
+        self.feature_transform2 =  nn.Sequential(Rearrange('b (seq n) feat  -> b seq (feat n)',
+                                    n = 32),                      
+                                    nn.Linear(LINEARSIZE*32, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )  
+        # self.feature_transform2 = nn.Identity()                        
+        self.remaining_packets2 = (self.remaining_packets1 // 32) - 15 
+        self.feature_transform3 =  nn.Sequential(Rearrange('b (seq n) feat -> b seq (feat n)',
+                                    n = 16),                      
+                                    nn.Linear(LINEARSIZE*16, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )   
+        # self.feature_transform3 = nn.Identity()
+
+        # Choose mean pooling
+        self.pool = pool
+
+        # Mean and std for the delay un-normalization
+        self.delay_mean = delay_mean
+        self.delay_std = delay_std
 
     def configure_optimizers(self):
-        self.optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        # self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        # Regularise only the weights, not the biases (regularisation of biases is not recommended)
+        weights_parameters = (p for name, p in self.named_parameters() if 'bias' not in name)
+        bias_parameters = (p for name, p in self.named_parameters() if 'bias' in name)
+
+        self.optimizer = optim.Adam([
+                                    {'params': 
+                                            weights_parameters, 'weight_decay': WEIGHTDECAY
+                                            },
+                                    {
+                                    'params': 
+                                            bias_parameters
+                                            }
+                                    ],  betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE)
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
@@ -106,43 +178,199 @@ class BaseLSTM(pl.LightningModule):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = learning_rate
 
-    def forward(self, input, target):
+    def forward(self, _input):
         # used for the forward pass of the model
-        scaled_input = self.encoderin(input.double())
-        target = self.decoderin(target.double())
-        enc, states = self.encoder(scaled_input)
-        dout, states =  self.decoder(enc)
-        out = self.decoderpred(dout)
+
+        # Cast to doubletensor
+        scaled_input = _input.double()
+        
+        # Embed every packet to the embedding dimension
+        scaled_input1 = self.feature_transform1(scaled_input)
+
+        # Keep first 32, re-embed the rest
+        scaled_input_final1 = scaled_input1[:,:32,:]
+        scaled_input_embed1 = scaled_input1[:,32:,:]
+
+        # Embed seequences of 32 packets to the embedding dimension
+        scaled_input_2 = self.feature_transform2(scaled_input_embed1)
+
+        # Keep the first 15, re-embed the rest
+        scaled_input_final2 = scaled_input_2[:,:15,:]
+        scaled_input_embed2 = scaled_input_2[:,15:,:]
+        
+        # Embed seequences of 16 packets to the embedding dimension
+        scaled_input_3 = self.feature_transform3(scaled_input_embed2)
+        scaled_input_final3 = scaled_input_3
+
+        # Embedding the final input (stack along sequence dimension)
+        final_input = torch.cat((scaled_input_final1, scaled_input_final2, scaled_input_final3), dim=1)
+        
+        enc = self.encoder(final_input)
+
+        enc_out, states  = self.encoder(final_input)
+        
+        enc = enc_out
+        forward_out = enc[:,:,:LINEARSIZE]
+        reverse_out = enc[:,:,LINEARSIZE:]
+        _sum = torch.add(forward_out, reverse_out)
+        _mean = torch.div(_sum, 2)
+
+        enc = _mean
+
+        if self.pool:                
+            enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)
+        else:
+            enc1 = enc[:,-1] # Take last hidden state (as done in BERT , in ViT they take first hidden state as cls token)
+        
+        # Predict the output
+        enc1 = self.norm1(enc1)
+        out = self.norm2(self.linear1(self.activ1(enc1)))
+        out = self.norm1(self.linear2(self.activ2(out)))
+        out = self.encoderpred2(self.activ3(self.encoderpred1(out)))
+
         return out
 
     def training_step(self, train_batch, train_idx):
         X, y = train_batch
-        loss = 0
-        self.lr_update()
-        prediction = self.forward(X, y)
-        loss = self.loss_func(prediction, y)
+        self.lr_update()    
+        
+        # Mask our the nth packet delay delay, which is at position seq_len - 1  
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
+        batch_mask = batch_mask.double() 
+
+        ## For ablation study, mask out all delays and all sizes 
+
+        batch_all_size_masks_index = np.arange(1,self.input_size,3)
+        batch_all_size_masks = torch.zeros(self.input_size //3, dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_size_masks = batch_all_size_masks.double()
+
+        batch_all_delay_masks_index = np.arange(2,self.input_size,3)
+        batch_all_delay_masks = torch.zeros(self.input_size //3 , dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_delay_masks = batch_all_delay_masks.double()
+
+        
+        X[:, [batch_mask_index]] = batch_mask 
+        ## Mask out all sizes
+        # X[:, batch_all_size_masks_index] = batch_all_size_masks
+        ## Mask out all delays
+        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
+
+        # Every packet separately into the transformer (project to linear if needed)
+        prediction = self.forward(X)
+
+        ## Un-normalize the delay prediction
+        prediction = prediction * self.delay_std + self.delay_mean
+        
+        loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
         self.log('Train loss', loss)
         return loss
 
     def validation_step(self, val_batch, val_idx):
         X, y = val_batch
-        loss = 0
-        prediction = self.forward(X, y)
-        loss = self.loss_func(prediction, y)
-        self.log('Val loss', loss)
+
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
+        batch_mask = batch_mask.double() 
+
+        ## For ablation study, mask out all delays and all sizes 
+
+        batch_all_size_masks_index = np.arange(1,self.input_size,3)
+        batch_all_size_masks = torch.zeros(self.input_size //3, dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_size_masks = batch_all_size_masks.double()
+
+        batch_all_delay_masks_index = np.arange(2,self.input_size,3)
+        batch_all_delay_masks = torch.zeros(self.input_size //3 , dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_delay_masks = batch_all_delay_masks.double()
+
+        
+        X[:, [batch_mask_index]] = batch_mask 
+        ## Mask out all sizes
+        # X[:, batch_all_size_masks_index] = batch_all_size_masks
+        ## Mask out all delays
+        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
+
+        prediction = self.forward(X)
+
+        ## Un-normalize the delay prediction
+        prediction = prediction * self.delay_std + self.delay_mean
+
+        loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
+        self.log('Val loss', loss, sync_dist=True)
         return loss
 
     def test_step(self, test_batch, test_idx):
-        X, y = test_batch
-        loss = 0
-        prediction = self.forward(X, y)
-        loss = self.loss_func(prediction, y)
-        self.log('Test loss', loss)
-        return loss
+        X, y  = test_batch
+
+        batch_mask_index = self.input_size - 1
+        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = False, device=self.device)
+        batch_mask = batch_mask.double() 
+        
+        ## For ablation study, mask out all delays and all sizes 
+
+        batch_all_size_masks_index = np.arange(1,self.input_size,3)
+        batch_all_size_masks = torch.zeros(self.input_size //3, dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_size_masks = batch_all_size_masks.double()
+
+        batch_all_delay_masks_index = np.arange(2,self.input_size,3)
+        batch_all_delay_masks = torch.zeros(self.input_size //3 , dtype = torch.double, requires_grad = True, device=self.device)
+        batch_all_delay_masks = batch_all_delay_masks.double()
+
+        
+        X[:, [batch_mask_index]] = batch_mask 
+        ## Mask out all sizes
+        # X[:, batch_all_size_masks_index] = batch_all_size_masks
+        ## Mask out all delays
+        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
+
+        prediction = self.forward(X)
+
+        ## Un-normalize the delay prediction
+        prediction = prediction * self.delay_std + self.delay_mean
+
+        loss = self.loss_func(prediction, y[:,[SLIDING_WINDOW_SIZE-1]])
+
+        mse_loss = nn.MSELoss()
+        target_size = SLIDING_WINDOW_SIZE
+        last_delay_pos = target_size - 1 
+
+        last_actual_delay = y[:,[last_delay_pos]]
+        last_predicted_delay = prediction
+
+        # Get fake prediction from mean of n-1 delays
+        fake_prediction = torch.clone(y)
+        fake_prediction = fake_prediction[:, :-1].mean(axis=1, keepdims=True)
+        
+        # Also use the penultimate delay as the predicted value
+        penultimate_prediction = torch.clone(y)
+        penultimate_prediction = penultimate_prediction[:, -2].unsqueeze(1)
+        
+        # Also use the weighted Moving average over the sequence
+        ewm_data = torch.clone(y)
+        ewm_data = ewm_data.cpu().numpy()
+
+        weights=0.99**np.arange(SLIDING_WINDOW_SIZE-1)[::-1]
+
+        ewm_prediction = np.ma.average(ewm_data[:,:-1], axis = 1, weights=weights)
+        ewm_prediction = np.expand_dims(ewm_prediction, 1)
+
+        # Also predict the media over the sequence
+        median_prediction = torch.clone(y)
+        median_prediction = median_prediction[:, :-1].median(axis=1, keepdims=True).values
+        
+        last_delay_loss = mse_loss(last_actual_delay, last_predicted_delay)
+        
+        self.log('Test loss', loss, sync_dist=True)
+        return {"Test loss": loss, "last_delay_loss": last_delay_loss,
+                 "last_predicted_delay": last_predicted_delay, "last_actual_delay": last_actual_delay,
+                 "fake_predicted_delay": fake_prediction, 
+                 "penultimate_predicted_delay": penultimate_prediction,
+                 "ewm_predicted_delay": torch.tensor(ewm_prediction, dtype=torch.double, device=self.device),
+                 "median_predicted_delay": median_prediction}
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
         X, y = test_batch
-        prediction = self.forward(X, y)
+        prediction = self.forward(X)
         return prediction
 
     def training_epoch_end(self,outputs):
@@ -150,28 +378,102 @@ class BaseLSTM(pl.LightningModule):
         # print(loss_tensor_list, len(loss_tensor_list))
         self.log('Avg loss per epoch', np.mean(np.array(loss_tensor_list)), on_step=False, on_epoch=True)
 
+    def test_epoch_end(self, outputs):
+        last_delay_losses = []
+        last_predicted_delay = []
+        last_actual_delay = []
+        fake_last_delay = []
+        penultimate_predicted_delay = []
+        ewm_predicted_delay = []
+        median_predicted_delay = []
+
+        for output in outputs:
+            last_packet_losses = list(output['last_delay_loss'].cpu().detach().numpy()) # Losses on last delay only 
+            preds = list(output['last_predicted_delay'].cpu().detach().numpy()) # predicted last delays
+            labels = list(output['last_actual_delay'].cpu().detach().numpy()) # actual last delays
+            fakes = list(output['fake_predicted_delay'].cpu().detach().numpy()) # fake last delays 
+            penultimate_preds = list(output['penultimate_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
+            ewm_preds = list(output['ewm_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
+            median_preds = list(output['median_predicted_delay'].cpu().detach().numpy()) # predicted penultimate delays
+            
+            last_delay_losses.extend(last_packet_losses)
+            last_predicted_delay.extend(preds)
+            last_actual_delay.extend(labels)
+            fake_last_delay.extend(fakes)
+            penultimate_predicted_delay.extend(penultimate_preds)
+            ewm_predicted_delay.extend(ewm_preds)
+            median_predicted_delay.extend(median_preds)
+
+        print()
+        print("Check lengths for all as sanity ", len(last_predicted_delay), len(last_actual_delay), len(fake_last_delay))
+        
+        print("Mean loss on last delay (averaged from batches) is : ", np.mean(np.array(last_delay_losses)))
+        
+        last_predicted_delay = np.array(last_predicted_delay)
+        last_actual_delay = np.array(last_actual_delay)
+
+        losses_array = np.square(np.subtract(last_predicted_delay, last_actual_delay))
+
+        print("Mean loss on last delay (averaged from items) is : ", np.mean(losses_array))
+        print("99%%ile loss is : ", np.quantile(losses_array, 0.99))
+
+        fake_last_delay = np.array(fake_last_delay)
+        fake_losses_array = np.square(np.subtract(fake_last_delay, last_actual_delay))
+
+        print("Mean loss on ARMA predicted last delay (averaged from items) is : ", np.mean(fake_losses_array))
+        print("99%%ile loss on ARMA predicted delay is : ", np.quantile(fake_losses_array, 0.99))
+
+        penultimate_predicted_delay = np.array(penultimate_predicted_delay)
+        penultimate_losses_array = np.square(np.subtract(penultimate_predicted_delay, last_actual_delay))
+
+        print("Mean loss on penultimate predicted last delay (averaged from items) is : ", np.mean(penultimate_losses_array))
+        print("99%%ile loss on penultimate predicted delay is : ", np.quantile(penultimate_losses_array, 0.99))
+
+        ewm_predicted_delay = np.array(ewm_predicted_delay)
+        ewm_losses_array = np.square(np.subtract(ewm_predicted_delay, last_actual_delay))
+
+        print("Mean loss on EWM predicted last delay (averaged from items) is : ", np.mean(ewm_losses_array))
+        print("99%%ile loss on EWM predicted delay is : ", np.quantile(ewm_losses_array, 0.99))
+
+        median_predicted_delay = np.array(median_predicted_delay)
+        median_losses_array = np.square(np.subtract(median_predicted_delay, last_actual_delay))
+
+        print("Mean loss on median predicted as last delay (averaged from items) is : ", np.mean(median_losses_array))
+        print("99%%ile loss on median predicted as delay is : ", np.quantile(median_losses_array, 0.99))
+
+        save_path= "plot_values_extra/3features/"
+        np.save(save_path + "lstm_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_predicted_delay))
+        np.save(save_path + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(fake_last_delay))
+        np.save(save_path + "penultimate_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(penultimate_predicted_delay))
+        np.save(save_path + "ewm_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(ewm_predicted_delay))
+        np.save(save_path + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(last_actual_delay))
+        np.save(save_path + "median_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE), np.array(median_predicted_delay))
 
 def main():
-    path = "/local/home/sidray/packet_transformer/evaluations/congestion_1/"
-    file = "endtoenddelay.csv"
-    print(os.getcwd())
-
-    df = get_data_from_csv(path+file)
-    df = ipaddress_to_number(df)
-    feature_df, label_df = vectorize_features_to_numpy(df)
-
-    print(feature_df.head(), feature_df.shape)
-    print(label_df.head())
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
-    target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
-    print(len(feature_arr), len(target_arr))
+    num_features = 3 # If only timestamp, packet size and delay, else 16
+    input_size = sl_win_size * num_features
+    output_size = 1
 
-    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(feature_arr, target_arr, test_size = 0.05,
+    full_feature_arr = []
+    full_target_arr = []
+    
+    ## Get the data 
+    full_feature_arr, full_target_arr, mean_delay, std_delay = generate_sliding_windows(
+                                                                SLIDING_WINDOW_SIZE, 
+                                                                WINDOW_BATCH_SIZE,
+                                                                num_features,
+                                                                TEST_ONLY_NEW,
+                                                                NUM_BOTTLENECKS)
+    
+    ## Model definition with delay scaling params
+    model = LSTMEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING, pool=False)
+    
+    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
     # print(len(full_train_vectors), len(full_train_labels))
     # print(len(test_vectors), len(test_labels))
@@ -188,7 +490,7 @@ def main():
     val_dataset = PacketDataset(val_vectors, val_labels)
     test_dataset = PacketDataset(test_vectors, test_labels)
     # print(train_dataset.__getitem__(0))
-    
+
     train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
     val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
     test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
@@ -218,32 +520,32 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    
-    model = BaseLSTM(train_vectors[0].shape[0], train_labels[0].shape[0], LOSSFUNCTION)
-    print("Started training at:")
-    time = datetime.now()
-    print(time)
-
-    print("Removing old logs:")
-    os.system("rm -rf lstm_logs/lightning_logs/")
-
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs/")
-
-    if NUM_GPUS > 1:
+        
+    if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
 
-    trainer.fit(model, train_loader, val_loader)    
-    print("Finished training at:")
-    time = datetime.now()
-    print(time)
+    if TRAIN:
+        print("Started training at:")
+        time = datetime.now()
+        print(time)
+
+        print("Removing old logs:")
+        os.system("rm -rf lstm_logs/lightning_logs/")
+
+        trainer.fit(model, train_loader, val_loader)    
+        print("Finished training at:")
+        time = datetime.now()
+        print(time)
+        trainer.save_checkpoint("lstm_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
-        name = config['name']
-        torch.save(model.model, f"./trained_lstm_{name}")
+        pass 
+        # torch.save(model, "encoder_delay_logs/finetuned_encoder_scratch.pt")
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
@@ -266,8 +568,29 @@ def main():
         ax.set_ylabel(y_key)
         fig.savefig("lossplot_perepoch.png")
 
-    if TEST:
-        trainer.test(model, dataloaders=test_loader)
+    if TEST: 
+        if TRAIN:
+            trainer.test(model, dataloaders = test_loader)
+        else:
+            cpath = "lstm_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            testmodel = LSTMEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
+                                                            loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
+                                                            delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
+                                                            pool = False,
+                                                            checkpoint_path=cpath,
+                                                            strict=True)
+            testmodel.eval()
+
+            if TEST_ONLY_NEW:
+
+                new_test_dataset = PacketDataset(full_feature_arr, full_target_arr)
+                new_test_loader = DataLoader(new_test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+
+                trainer.test(testmodel, dataloaders = new_test_loader)
+
+            else:
+                trainer.test(testmodel, dataloaders = test_loader)
+
 
 if __name__== '__main__':
     main()
