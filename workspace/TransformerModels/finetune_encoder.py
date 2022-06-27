@@ -70,12 +70,12 @@ WINDOW_BATCH_SIZE = 5000
 PACKETS_PER_EMBEDDING = 25
 NUM_BOTTLENECKS = 2
 
-TRAIN = False
-PRETRAINED = False
+TRAIN = True
+PRETRAINED = True
 SAVE_MODEL = True
 MAKE_EPOCH_PLOT = False
 TEST = True
-TEST_ONLY_NEW = True
+TEST_ONLY_NEW = False
 
 if torch.cuda.is_available():
     NUM_GPUS = torch.cuda.device_count()
@@ -414,7 +414,7 @@ def main():
 
         # Freeze everything!!
         for params in model.parameters(): 
-            params.requires_grad = False
+            params.requires_grad = True
         
         # Unfreeze the last layer
         for param in model.encoderpred2.parameters():
