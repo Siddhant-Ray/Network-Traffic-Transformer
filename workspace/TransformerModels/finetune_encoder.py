@@ -414,11 +414,27 @@ def main():
 
         # Freeze everything!!
         for params in model.parameters(): 
-            params.requires_grad = True
+            params.requires_grad = False
         
-        # Unfreeze the last layer
-        for param in model.encoderpred2.parameters():
-            param.requires_grad = True
+        # Unfreeze the linear layers
+        for params in model.norm1.parameters():
+            params.requires_grad = True 
+        for params in model.norm2.parameters():
+            params.requires_grad = True           
+        for params in model.encoderpred1.parameters():
+            params.requires_grad = True  
+        for params in model.encoderpred2.parameters():
+            params.requires_grad = True      
+        for params in model.linear1.parameters():
+            params.requires_grad = True
+        for params in model.linear2.parameters():
+            params.requires_grad = True    
+        for params in model.activ1.parameters():
+            params.requires_grad = True
+        for params in model.activ2.parameters():
+            params.requires_grad = True
+        for params in model.activ3.parameters():
+            params.requires_grad = True
 
     else:
         # Do not freeeze anything for non pre-trained
