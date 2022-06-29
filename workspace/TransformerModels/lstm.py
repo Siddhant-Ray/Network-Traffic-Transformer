@@ -95,17 +95,17 @@ class LSTMEncoder(pl.LightningModule):
         # create the model with its layers
 
         # These are our transformer layers (stay the same)
-        self.encoder = nn.LSTM(LINEARSIZE, LINEARSIZE, num_layers=LAYERS, batch_first = True, dropout=DROPOUT, bidirectional=True)
+        self.encoder = nn.LSTM(LINEARSIZE, LINEARSIZE, num_layers=int(LAYERS*1.5), batch_first = True, dropout=DROPOUT, bidirectional=True)
 
         # This is our prediction layer, change for finetuning as needed
         
-        self.norm1 = nn.LayerNorm(LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE*4)
+        self.norm1 = nn.LayerNorm(LINEARSIZE*2)
+        self.linear1 = nn.Linear(LINEARSIZE*2, LINEARSIZE*4)
         self.activ1 = nn.Tanh()
         self.norm2 = nn.LayerNorm(LINEARSIZE*4)
-        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE)
+        self.linear2 = nn.Linear(LINEARSIZE*4, LINEARSIZE*2)
         self.activ2 = nn.GELU()
-        self.encoderpred1= nn.Linear(LINEARSIZE, input_size // 8)
+        self.encoderpred1= nn.Linear(LINEARSIZE*2, input_size // 8)
         self.activ3 = nn.ReLU()
         self.encoderpred2= nn.Linear(input_size // 8, target_size)
         
@@ -207,7 +207,7 @@ class LSTMEncoder(pl.LightningModule):
         
         enc_out, states  = self.encoder(final_input)
         
-        enc = enc_out
+        '''enc = enc_out
         forward_out = enc[:,:,:LINEARSIZE]
         reverse_out = enc[:,:,LINEARSIZE:]
 
@@ -220,11 +220,12 @@ class LSTMEncoder(pl.LightningModule):
         _sum = torch.add(forward_out, flipped_out)
         _mean = torch.div(_sum, 2)
 
-        enc = _mean
+        enc = _mean'''
 
         ## Also do "vanilla" bidirectional LSTM
-        # enc_out, states = self.encoder(final_input)
-
+        enc_out, states = self.encoder(final_input)
+        enc = enc_out
+        
         if self.pool:                
             enc1 = enc.mean(dim=1) # DO MEAN POOLING for the OUTPUT (as every packet is projected to embedding)
         else:
@@ -499,12 +500,12 @@ def main():
     test_dataset = PacketDataset(test_vectors, test_labels)
     # print(train_dataset.__getitem__(0))
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
-    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
-    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+    train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 1)
+    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 1)
+    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 1)
 
     # print one dataloader item!!!!
-    train_features, train_lbls = next(iter(train_loader))
+    '''train_features, train_lbls = next(iter(train_loader))
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_lbls.size()}")
     feature = train_features[0]
@@ -526,9 +527,9 @@ def main():
     feature = test_features[0]
     label = test_lbls[0]
     print(f"Feature: {feature}")
-    print(f"Label: {label}")
+    print(f"Label: {label}")'''
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs2/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -543,13 +544,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf lstm_logs/lightning_logs/")
+        os.system("rm -rf lstm_logs2/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("lstm_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
+        trainer.save_checkpoint("lstm_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -557,7 +558,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "lstm_logs/lightning_logs/version_0"
+        log_dir = "lstm_logs2/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -580,7 +581,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "lstm_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "lstm_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = LSTMEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
