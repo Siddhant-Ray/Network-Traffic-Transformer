@@ -458,7 +458,7 @@ def main():
     train_vectors = train_vectors[:int(0.1*len(train_vectors))]
     train_labels = train_labels[:int(0.1*len(train_labels))]
     
-    
+
     train_dataset = PacketDataset(train_vectors, train_labels)
     val_dataset = PacketDataset(val_vectors, val_labels)
     test_dataset = PacketDataset(test_vectors, test_labels)
@@ -496,7 +496,7 @@ def main():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_encoder_logs/")
         
     if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS//3, check_val_every_n_epoch=1,
+        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
                         logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
     else:
         trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
