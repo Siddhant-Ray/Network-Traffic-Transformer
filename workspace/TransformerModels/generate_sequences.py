@@ -9,6 +9,7 @@ from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
 from utils import make_windows_features, make_windows_delay
 from utils import create_features_for_MCT
+from utils import vectorize_features_for_ARIMA
 
 # Params for the sliding window on the packet data 
 SLIDING_WINDOW_START = 0
@@ -147,10 +148,47 @@ def generate_MTC_data():
     mct_df = mct_df[mct_df['shapes'] == (3072,)].drop('shapes', axis = 1)
 
     return mct_df, mean_delay, std_delay, mean_mct, std_mct
-    
+
+
+def generate_ARIMA_delay_data(NUM_BOTTLENECKS):
+
+    MEMENTO = True 
+
+    if MEMENTO:
+        path = "/local/home/sidray/packet_transformer/evaluations/memento_data/"
+
+        if NUM_BOTTLENECKS == 1:
+            files = ["small_test_no_disturbance1_final.csv"]
+        elif NUM_BOTTLENECKS == 2:
+            files = ["small_test_one_disturbance_with_message_ids1_final.csv"]
+        else:
+            print("Invalid number of bottlenecks")
+            exit()
+
+    else:
+        path = "congestion_1/"
+        files = ["endtoenddelay_test.csv"]
+
+    for file in files:
+        print(os.getcwd())
+
+        df = get_data_from_csv(path+file)
+        df = convert_to_relative_timestamp(df) 
+        df = ipaddress_to_number(df)
+        
+        label_df = vectorize_features_for_ARIMA(df)
+        target_array = label_df
+
+    return target_array
 
 if __name__ == "__main__":
-    #generate_sliding_windows()
+
+    delays = generate_ARIMA_delay_data(NUM_BOTTLENECKS=2)
+    print(type(delays))
+    print(delays.shape)
+    exit()
+
+    # generate_sliding_windows()
     final_df, mean_delay, std_delay, mean_mct, std_mct = generate_MTC_data()
     
     print(final_df)

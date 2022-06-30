@@ -224,8 +224,12 @@ def create_features_for_MCT(data_frame, reduced = True, normalize = True):
     final_df["Input"] = list_of_arrays
 
     return final_df, mean_mct, std_mct, mean_size, std_size
-    
 
+# Features for ARIMA
+def vectorize_features_for_ARIMA(data_frame):
+    label_frame = data_frame['Delay'] # Scale to ms
+    return label_frame
+    
 def sliding_window_features(df_series, start, size, step):
     final_arr =[]
     pos = start
