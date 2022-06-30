@@ -184,10 +184,7 @@ def generate_ARIMA_delay_data(NUM_BOTTLENECKS):
 if __name__ == "__main__":
 
     delays = generate_ARIMA_delay_data(NUM_BOTTLENECKS=2)
-    print(type(delays))
-    print(delays.shape)
-    exit()
-
+    
     # generate_sliding_windows()
     final_df, mean_delay, std_delay, mean_mct, std_mct = generate_MTC_data()
     

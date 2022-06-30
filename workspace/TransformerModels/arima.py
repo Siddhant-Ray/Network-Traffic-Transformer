@@ -5,7 +5,8 @@ from math import sqrt
 import time as t
 from datetime import datetime
 import warnings
-import pandas as pd
+import pandas as pd, numpy as np
+import argparse
 
 from generate_sequences import generate_ARIMA_delay_data
 
@@ -32,21 +33,67 @@ def run_arima():
     # print(count)
     return targets, predictions
 
-if __name__ == "__main__":
-    print("Started ARIMA at:")
-    time = datetime.now()
-    print(time)
-
-    targets, predictions = run_arima()
-
-    ## MSE calculation
+def evaluate_arima(targets, predictions):
     mse = mean_squared_error(targets, predictions)
-    print(mse)
+    squared_error = np.square(targets - predictions)
+    return squared_error, mse
 
-    print("Finished ARIMA at:")
-    time = datetime.now()
-    print(time)
 
-    # Save the results
-    df = pd.DataFrame({"Targets": targets, "Predictions": predictions})
-    df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA.csv")
+if __name__ == "__main__":
+
+    args = argparse.ArgumentParser()
+    args.add_argument("--run", type=bool, default=False)
+    args = args.parse_args()
+
+    if args.run:
+        
+        print("Started ARIMA at:")
+        time = datetime.now()
+        print(time)
+
+        targets, predictions = run_arima()
+
+        ## MSE calculation
+        mse = mean_squared_error(targets, predictions)
+        print(mse)
+
+        print("Finished ARIMA at:")
+        time = datetime.now()
+        print(time)
+
+        # Save the results
+        df = pd.DataFrame({"Targets": targets, "Predictions": predictions.values})
+        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA.csv", index=False)
+    
+    else:
+        print("ARIMA load results from file")
+        df = pd.read_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA.csv")
+
+        targets = df["Targets"]
+        predictions = df["Predictions"].str.split(" ").str[4].str.split("\n").str[0].astype(float)
+
+        squared_error, mse = evaluate_arima(targets, predictions)
+        
+        df = pd.DataFrame({"Squared Error": squared_error, "targets": targets, "predictions": predictions})
+        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_evaluation.csv", index=False)
+
+        print(df.head())
+
+        print(squared_error.values)
+        
+        ## Stats on the squared error
+        # Mean squared error
+        print(np.mean(squared_error.values), " Mean squared error", )
+        # Median squared error
+        print(np.median(squared_error.values), " Median squared error")
+        # 90th percentile squared error
+        print(np.quantile(squared_error.values, 0.90), " 90th percentile squared error")
+        # 99th percentile squared error
+        print(np.quantile(squared_error.values, 0.99), " 99th percentile squared error")
+        # 99.9th percentile squared error
+        print(np.quantile(squared_error.values, 0.999), " 99.9th percentile squared error")
+        # Standard deviation squared error
+        print(np.std(squared_error.values), " Standard deviation squared error")
+        
+
+
