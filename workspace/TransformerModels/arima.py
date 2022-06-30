@@ -87,13 +87,19 @@ if __name__ == "__main__":
         # Median squared error
         print(np.median(squared_error.values), " Median squared error")
         # 90th percentile squared error
-        print(np.quantile(squared_error.values, 0.90), " 90th percentile squared error")
+        print(np.quantile(squared_error.values, 0.90, method = "closest_observation"), " 90th percentile squared error")
         # 99th percentile squared error
-        print(np.quantile(squared_error.values, 0.99), " 99th percentile squared error")
+        print(np.quantile(squared_error.values, 0.99, method = "closest_observation"), " 99th percentile squared error")
         # 99.9th percentile squared error
-        print(np.quantile(squared_error.values, 0.999), " 99.9th percentile squared error")
+        print(np.quantile(squared_error.values, 0.999, method = "closest_observation"), " 99.9th percentile squared error")
         # Standard deviation squared error
         print(np.std(squared_error.values), " Standard deviation squared error")
         
+        ## Df row where the squared error is the a certain value
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.5, method = "closest_observation")])
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.90, method = "closest_observation")])
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.99, method = "closest_observation")])
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.999, method = "closest_observation")])
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.9999, method = "closest_observation")]) 
 
 
