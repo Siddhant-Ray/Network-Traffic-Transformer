@@ -20,7 +20,7 @@ def run_arima():
 
     # count = 0 
     # We want minimum 1023 for the first ARIMA prediction (size of the window)
-    for value in range(1023, int(delay_data.shape[0]/116)+9990):
+    for value in range(1023, int(delay_data.shape[0]/116)+29990):
 
         # We want to predict the next value
         # Fit the model
@@ -64,11 +64,11 @@ if __name__ == "__main__":
 
         # Save the results
         df = pd.DataFrame({"Targets": targets, "Predictions": predictions.values})
-        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA.csv", index=False)
+        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_30000.csv", index=False)
     
     else:
         print("ARIMA load results from file")
-        df = pd.read_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA.csv")
+        df = pd.read_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_30000.csv")
 
         targets = df["Targets"]
         predictions = df["Predictions"].str.split(" ").str[4].str.split("\n").str[0].astype(float)
