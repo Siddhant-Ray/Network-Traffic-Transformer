@@ -7,6 +7,7 @@ from datetime import datetime
 import warnings
 import pandas as pd, numpy as np
 import argparse
+import seaborn as sns, matplotlib.pyplot as plt
 
 from generate_sequences import generate_ARIMA_delay_data
 
@@ -96,10 +97,28 @@ if __name__ == "__main__":
         print(np.std(squared_error.values), " Standard deviation squared error")
         
         ## Df row where the squared error is the a certain value
-        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.5, method = "closest_observation")])
-        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.90, method = "closest_observation")])
-        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.99, method = "closest_observation")])
-        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.999, method = "closest_observation")])
-        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.9999, method = "closest_observation")]) 
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.5, method = "closest_observation")], "Values at median SE") 
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.90, method = "closest_observation")], "Values at 90th percentile SE")
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.99, method = "closest_observation")], "Values at 99th percentile SE")
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.999, method = "closest_observation")], "Values at 99.9th percentile SE")
+        print(df[df["Squared Error"] == np.quantile(squared_error.values, 0.9999, method = "closest_observation")], "Values at 99.99th percentile SE")
+
+        # Plot the index vs squared error
+        # Set figure size
+        
+        ## Do the plots over a loop of xlims 
+        xlims = [0, 2000, 4000, 6000, 8000, 10000]
+        for idx_xlim in range(len(xlims)-1):
+            plt.figure(figsize=(10,6))
+            sns.lineplot(x=df.index, y=df["Squared Error"], color="red", label="Squared Error")
+            # label axes
+            plt.xlabel("History Length")
+            plt.ylabel("Squared Error")
+            # set xlim
+            plt.xlim(xlims[idx_xlim], xlims[idx_xlim+1])
+            plt.title("Squared Error trend for xlims " + str(xlims[idx_xlim]) + " to " + str(xlims[idx_xlim+1]))
+            plt.savefig("SE_trend_arima_xlim_"+str(xlims[idx_xlim])+"_"+str(xlims[idx_xlim+1])+".pdf")
 
 
+
+        
