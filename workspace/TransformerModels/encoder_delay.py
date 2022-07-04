@@ -478,9 +478,9 @@ def main():
     # print(train_vectors[0].shape[0])
     # print(train_labels[0].shape[0])
 
-    ## Take 10% fine-tuning data only
+    '''## Take 10% fine-tuning data only
     train_vectors = train_vectors[:int(0.1*len(train_vectors))]
-    train_labels = train_labels[:int(0.1*len(train_labels))]
+    train_labels = train_labels[:int(0.1*len(train_labels))]'''
 
     train_dataset = PacketDataset(train_vectors, train_labels)
     val_dataset = PacketDataset(val_vectors, val_labels)
