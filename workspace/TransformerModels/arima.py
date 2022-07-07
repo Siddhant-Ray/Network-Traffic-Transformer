@@ -63,7 +63,7 @@ if __name__ == "__main__":
         print(time)
 
         # Save the results
-        df = pd.DataFrame({"Targets": targets, "Predictions": predictions.values})
+        df = pd.DataFrame({"Targets": targets, "Predictions": predictions})
         df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_30000.csv", index=False)
     
     else:
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         squared_error, mse = evaluate_arima(targets, predictions)
         
         df = pd.DataFrame({"Squared Error": squared_error, "targets": targets, "predictions": predictions})
-        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_evaluation.csv", index=False)
+        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_evaluation_30000.csv", index=False)
 
         print(df.head())
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         # Set figure size
         
         ## Do the plots over a loop of xlims 
-        xlims = [0, 2000, 4000, 6000, 8000, 10000]
+        xlims = [0, 6000, 12000, 18000, 24000, 30000]
         for idx_xlim in range(len(xlims)-1):
             plt.figure(figsize=(10,6))
             sns.lineplot(x=df.index, y=df["Squared Error"], color="red", label="Squared Error")
