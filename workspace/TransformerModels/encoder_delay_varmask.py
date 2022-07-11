@@ -224,7 +224,7 @@ class TransformerEncoder(pl.LightningModule):
         # All possible delay postions in the delays in output
         # We don't mask from the start, as we want some amount of prior information always 
         # We start masking after 50% of the input sequence
-        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE//2, SLIDING_WINDOW_SIZE)
+        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 31 , SLIDING_WINDOW_SIZE)
 
         # Randomly select one delay position (in input, multiply by 3 and subtract 1 due to 3 features)
         delay_index_output = np.random.choice(all_delay_indices)
@@ -252,7 +252,7 @@ class TransformerEncoder(pl.LightningModule):
         # All possible delay postions in the delays in output
         # We don't mask from the start, as we want some amount of prior information always 
         # We start masking after 50% of the input sequence
-        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE//2, SLIDING_WINDOW_SIZE)
+        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 31 , SLIDING_WINDOW_SIZE)
 
         # Randomly select one delay position (in input, multiply by 3 and subtract 1 due to 3 features)
         delay_index_output = np.random.choice(all_delay_indices)
@@ -280,7 +280,7 @@ class TransformerEncoder(pl.LightningModule):
         # All possible delay postions in the delays in output
         # We don't mask from the start, as we want some amount of prior information always 
         # We start masking after 50% of the input sequence
-        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE//2, SLIDING_WINDOW_SIZE)
+        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 31 , SLIDING_WINDOW_SIZE)
 
         # Randomly select one delay position (in input, multiply by 3 and subtract 1 due to 3 features)
         delay_index_output = np.random.choice(all_delay_indices)
