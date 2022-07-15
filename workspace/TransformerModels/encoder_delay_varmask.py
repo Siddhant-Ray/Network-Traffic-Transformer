@@ -28,7 +28,7 @@ from einops.layers.torch import Rearrange
 
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
 from utils import vectorize_features_to_numpy_memento
-from utils import sliding_window_features, sliding_window_delay
+from utils import sliding_window_features, sliding_window_delay, reverse_index
 from utils import PacketDataset, gelu
 from utils import PacketDatasetEncoder
 from generate_sequences import generate_sliding_windows
@@ -222,27 +222,69 @@ class TransformerEncoder(pl.LightningModule):
         
         # Mask out one delay in the entire input sequence (this is now random position, not fixed as last)
         # All possible delay postions in the delays in output
-        # We don't mask from the start, as we want some amount of prior information always 
-        # We start masking after 50% of the input sequence
-        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 31 , SLIDING_WINDOW_SIZE)
+        
+        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 33 , SLIDING_WINDOW_SIZE)
+
+        non_aggregated_indices = all_delay_indices[1:]
+        aggregated_indices = all_delay_indices[0]
+
+        # In the encoded output, there are 16 aggregated embeddings and 32 non-aggregated embeddings
+        actual_aggregated_output_indices = np.arange(16)
 
         # Randomly select one delay position (in input, multiply by 3 and subtract 1 due to 3 features)
         delay_index_output = np.random.choice(all_delay_indices)
-        delay_index_input = delay_index_output * 3 - 1
 
-        batch_mask_index = delay_index_input
-        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
-        batch_mask = batch_mask.double() 
+        # We choose between aggregated and non-aggregated delay, based on the random choice
+        # this is the case where we choose the aggregated delay
+        if delay_index_output in non_aggregated_indices:
+            print("In non aggregated")
+            
+            delay_index_input = delay_index_output * 3 - 1
 
-        X[:, [batch_mask_index]] = batch_mask 
-        
-        prediction = self.forward(X)
+            batch_mask_index = delay_index_input
+            batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
+            batch_mask = batch_mask.double() 
 
-        ## Un-normalize the delay prediction
-        prediction = prediction * self.delay_std + self.delay_mean
-        
-        loss = self.loss_func(prediction, y[:,[delay_index_output]])
-        self.log('Train loss', loss)
+            X[:, [batch_mask_index]] = batch_mask
+
+            prediction = self.forward(X)
+
+            ## Un-normalize the delay prediction
+            prediction = prediction * self.delay_std + self.delay_mean
+
+            loss = self.loss_func(prediction, y[:,[delay_index_output]])
+            self.log('Train loss', loss, sync_dist=True)
+            
+        else:
+            print("In aggregated")
+            # Choose one aggregated embedding, mask all packet delays corresponding to that aggregation
+            output_index = np.random.choice(actual_aggregated_output_indices)
+            # Reverse map to correct packets 
+            first, last = reverse_index(output_index)
+            
+            # Get indices of of delays 
+            delay_indices = np.arange(first, last)
+            # Get indices in input
+            input_indices = delay_indices * 3 - 1
+
+
+            ## Mask all these positions with 0 
+            batch_mask_index = input_indices
+            batch_mask = torch.zeros(delay_indices.shape[0], dtype = torch.double, requires_grad = True, device=self.device)
+            batch_mask = batch_mask.double()
+
+            X[:, batch_mask_index] = batch_mask
+            
+            prediction = self.forward(X)
+
+            ## Un-normalize the delay prediction
+            prediction = prediction * self.delay_std + self.delay_mean
+            
+            ## Loss is against mean of output at these indices
+            mean_target = torch.mean(y[:,first:last], dim=1, keepdims=True)
+            loss = self.loss_func(prediction, mean_target)
+            self.log('Train loss', loss, sync_dist=True)
+
         return loss
 
     def validation_step(self, val_batch, val_idx):
@@ -250,27 +292,69 @@ class TransformerEncoder(pl.LightningModule):
 
         # Mask out one delay in the entire input sequence (this is now random position, not fixed as last)
         # All possible delay postions in the delays in output
-        # We don't mask from the start, as we want some amount of prior information always 
-        # We start masking after 50% of the input sequence
-        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 31 , SLIDING_WINDOW_SIZE)
+        
+        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 33 , SLIDING_WINDOW_SIZE)
+
+        non_aggregated_indices = all_delay_indices[1:]
+        aggregated_indices = all_delay_indices[0]
+
+        # In the encoded output, there are 16 aggregated embeddings and 32 non-aggregated embeddings
+        actual_aggregated_output_indices = np.arange(16)
 
         # Randomly select one delay position (in input, multiply by 3 and subtract 1 due to 3 features)
         delay_index_output = np.random.choice(all_delay_indices)
-        delay_index_input = delay_index_output * 3 - 1
 
-        batch_mask_index = delay_index_input
-        batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
-        batch_mask = batch_mask.double() 
+        # We choose between aggregated and non-aggregated delay, based on the random choice
+        # this is the case where we choose the aggregated delay
+        if delay_index_output in non_aggregated_indices:
+            print("In non aggregated")
+            
+            delay_index_input = delay_index_output * 3 - 1
 
-        X[:, [batch_mask_index]] = batch_mask
+            batch_mask_index = delay_index_input
+            batch_mask = torch.tensor([0.0], dtype = torch.double, requires_grad = True, device=self.device)
+            batch_mask = batch_mask.double() 
 
-        prediction = self.forward(X)
+            X[:, [batch_mask_index]] = batch_mask
 
-        ## Un-normalize the delay prediction
-        prediction = prediction * self.delay_std + self.delay_mean
+            prediction = self.forward(X)
 
-        loss = self.loss_func(prediction, y[:,[delay_index_output]])
-        self.log('Val loss', loss, sync_dist=True)
+            ## Un-normalize the delay prediction
+            prediction = prediction * self.delay_std + self.delay_mean
+
+            loss = self.loss_func(prediction, y[:,[delay_index_output]])
+            self.log('Val loss', loss, sync_dist=True)
+
+        else:
+            print("In aggregated")
+            # Choose one aggregated embedding, mask all packet delays corresponding to that aggregation
+            output_index = np.random.choice(actual_aggregated_output_indices)
+            # Reverse map to correct packets 
+            first, last = reverse_index(output_index)
+            
+            # Get indices of of delays 
+            delay_indices = np.arange(first, last)
+            # Get indices in input
+            input_indices = delay_indices * 3 - 1
+
+
+            ## Mask all these positions with 0 
+            batch_mask_index = input_indices
+            batch_mask = torch.zeros(delay_indices.shape[0], dtype = torch.double, requires_grad = True, device=self.device)
+            batch_mask = batch_mask.double()
+
+            X[:, batch_mask_index] = batch_mask
+            
+            prediction = self.forward(X)
+
+            ## Un-normalize the delay prediction
+            prediction = prediction * self.delay_std + self.delay_mean
+            
+            ## Loss is against mean of output at these indices
+            mean_target = torch.mean(y[:,first:last], dim=1, keepdims=True)
+            loss = self.loss_func(prediction, mean_target)
+            self.log('Val loss', loss, sync_dist=True)
+
         return loss
 
     def test_step(self, test_batch, test_idx):
@@ -280,7 +364,7 @@ class TransformerEncoder(pl.LightningModule):
         # All possible delay postions in the delays in output
         # We don't mask from the start, as we want some amount of prior information always 
         # We start masking after 50% of the input sequence
-        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 31 , SLIDING_WINDOW_SIZE)
+        all_delay_indices = np.arange(SLIDING_WINDOW_SIZE - 32 , SLIDING_WINDOW_SIZE)
 
         # Randomly select one delay position (in input, multiply by 3 and subtract 1 due to 3 features)
         delay_index_output = np.random.choice(all_delay_indices)
@@ -428,7 +512,7 @@ def main():
 
     full_feature_arr = []
     full_target_arr = []
-    
+
     ## Get the data 
     full_feature_arr, full_target_arr, mean_delay, std_delay = generate_sliding_windows(
                                                                 SLIDING_WINDOW_SIZE, 

@@ -340,3 +340,14 @@ def make_windows_delay(input_array, window_length, batchsize):
         # yield input_array[index_matrix]
         # Yields sequence after sequence
         yield from input_array[index_matrix]
+
+## Uitlity function to mmap individual packets to aggregated sequences
+def reverse_index(index):
+    if index == 0:
+        return (0, 511)
+    if index < 16:
+        index -= 1
+        return (512 + index * 32, 512 + (index + 1) * 32)
+    start = 992
+    index -= 16
+    return (start + index - 1, start + index)
