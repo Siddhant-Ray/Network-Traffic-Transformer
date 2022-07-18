@@ -199,4 +199,6 @@ lightning_logs
 workspace/PandasScripts/plots
 workspace/NetworkSimulators/memento/plots
 workspace/TransformerModels/plots
-figures/
+figures_test/
+report/thesis.pdf
+
