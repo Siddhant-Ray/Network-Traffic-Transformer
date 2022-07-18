@@ -347,7 +347,7 @@ class TransformerEncoder(pl.LightningModule):
         # We choose between aggregated and non-aggregated delay, based on the random choice
         # this is the case where we choose the aggregated delay
         if delay_index_output == map_non_aggregated_indices:
-            print('Non-aggregated') 
+            
             output_index = np.random.choice(non_aggregated_actual_output_indices)
 
             delay_index_input = delay_index_output * 3 - 1
@@ -367,7 +367,7 @@ class TransformerEncoder(pl.LightningModule):
             self.log('Val loss', loss, sync_dist=True)
 
         elif delay_index_output == map_once_aggregated_indices:
-            print('Once aggregated')
+            
             # Choose one aggregated embedding, mask all packet delays corresponding to that aggregation
             output_index = np.random.choice(once_aggregated_actual_aggregated_output_indices)
             # Reverse map to correct packets 
@@ -396,7 +396,7 @@ class TransformerEncoder(pl.LightningModule):
             self.log('Val loss', loss, sync_dist=True)
 
         elif delay_index_output == map_twice_aggregated_indices:
-            print('Twice aggregated')
+            
             # Choose one aggregated embedding, mask all packet delays corresponding to that aggregation
             output_index = np.random.choice(twice_aggregated_actual_aggregated_output_indices)
             # Reverse map to correct packets 
@@ -606,18 +606,14 @@ def main():
     # print(train_vectors[0].shape[0])
     # print(train_labels[0].shape[0])
 
-    '''## Take 10% fine-tuning data only
-    train_vectors = train_vectors[:int(0.1*len(train_vectors))]
-    train_labels = train_labels[:int(0.1*len(train_labels))]'''
-
     train_dataset = PacketDataset(train_vectors, train_labels)
     val_dataset = PacketDataset(val_vectors, val_labels)
     test_dataset = PacketDataset(test_vectors, test_labels)
     # print(train_dataset.__getitem__(0))
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
-    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
-    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+    train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 1)
+    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 1)
+    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 1)
 
     # print one dataloader item!!!!
     train_features, train_lbls = next(iter(train_loader))
@@ -644,7 +640,7 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_varmask_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_varmask_logs2/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -659,13 +655,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf encoder_delay_varmask_logs/lightning_logs/")
+        os.system("rm -rf encoder_delay_varmask_logs2/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("encoder_delay_varmask_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
+        trainer.save_checkpoint("encoder_delay_varmask_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -673,7 +669,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "encoder_delay_varmask_logs/lightning_logs/version_0"
+        log_dir = "encoder_delay_varmask_logs2/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -696,7 +692,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "encoder_delay_varmask_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "encoder_delay_varmask_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
