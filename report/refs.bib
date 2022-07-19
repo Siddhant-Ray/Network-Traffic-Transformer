@@ -1,7 +1,329 @@
-@BOOK{Lamport:LaTeX,
-    AUTHOR = "Leslie Lamport",
-    TITLE = "LaTeX User's Guide and Document Reference Manual",
-    PUBLISHER = "Addison-Wesley Publishing Company",
-    ADDRESS = "Reading, Massachusetts",
-    YEAR = "1986"
+
+@article{baevskiData2vecGeneralFramework2022,
+  title = {Data2vec: {{A General Framework}} for {{Self-supervised Learning}} in {{Speech}}, {{Vision}} and {{Language}}},
+  shorttitle = {Data2vec},
+  author = {Baevski, Alexei and Hsu, Wei-Ning and Xu, Qiantong and Babu, Arun and Gu, Jiatao and Auli, Michael},
+  year = {2022},
+  month = apr,
+  journal = {arXiv:2202.03555 [cs]},
+  eprint = {2202.03555},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {While the general idea of self-supervised learning is identical across modalities, the actual algorithms and objectives differ widely because they were developed with a single modality in mind. To get us closer to general self-supervised learning, we present data2vec, a framework that uses the same learning method for either speech, NLP or computer vision. The core idea is to predict latent representations of the full input data based on a masked view of the input in a self-distillation setup using a standard Transformer architecture. Instead of predicting modality-specific targets such as words, visual tokens or units of human speech which are local in nature, data2vec predicts contextualized latent representations that contain information from the entire input. Experiments on the major benchmarks of speech recognition, image classification, and natural language understanding demonstrate a new state of the art or competitive performance to predominant approaches.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Machine Learning},
+  file = {/Users/siddhantray/Zotero/storage/EJVRNSTI/Baevski et al. - 2022 - data2vec A General Framework for Self-supervised .pdf;/Users/siddhantray/Zotero/storage/JTRHEY9V/2202.html}
 }
+
+@article{beltagyLongformerLongDocumentTransformer2020,
+  title = {Longformer: {{The Long-Document Transformer}}},
+  shorttitle = {Longformer},
+  author = {Beltagy, Iz and Peters, Matthew E. and Cohan, Arman},
+  year = {2020},
+  month = dec,
+  journal = {arXiv:2004.05150 [cs]},
+  eprint = {2004.05150},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {Transformer-based models are unable to process long sequences due to their self-attention operation, which scales quadratically with the sequence length. To address this limitation, we introduce the Longformer with an attention mechanism that scales linearly with sequence length, making it easy to process documents of thousands of tokens or longer. Longformer's attention mechanism is a drop-in replacement for the standard self-attention and combines a local windowed attention with a task motivated global attention. Following prior work on long-sequence transformers, we evaluate Longformer on character-level language modeling and achieve state-of-the-art results on text8 and enwik8. In contrast to most prior work, we also pretrain Longformer and finetune it on a variety of downstream tasks. Our pretrained Longformer consistently outperforms RoBERTa on long document tasks and sets new state-of-the-art results on WikiHop and TriviaQA. We finally introduce the Longformer-Encoder-Decoder (LED), a Longformer variant for supporting long document generative sequence-to-sequence tasks, and demonstrate its effectiveness on the arXiv summarization dataset.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language},
+  file = {/Users/siddhantray/Zotero/storage/UJPK2ACQ/Beltagy et al. - 2020 - Longformer The Long-Document Transformer.pdf;/Users/siddhantray/Zotero/storage/GJKBG4VZ/2004.html}
+}
+
+@article{brownLanguageModelsAre2020,
+  title = {Language {{Models}} Are {{Few-Shot Learners}}},
+  author = {Brown, Tom B. and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie and Kaplan, Jared and Dhariwal, Prafulla and Neelakantan, Arvind and Shyam, Pranav and Sastry, Girish and Askell, Amanda and Agarwal, Sandhini and {Herbert-Voss}, Ariel and Krueger, Gretchen and Henighan, Tom and Child, Rewon and Ramesh, Aditya and Ziegler, Daniel M. and Wu, Jeffrey and Winter, Clemens and Hesse, Christopher and Chen, Mark and Sigler, Eric and Litwin, Mateusz and Gray, Scott and Chess, Benjamin and Clark, Jack and Berner, Christopher and McCandlish, Sam and Radford, Alec and Sutskever, Ilya and Amodei, Dario},
+  year = {2020},
+  month = jul,
+  journal = {arXiv:2005.14165 [cs]},
+  eprint = {2005.14165},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {Recent work has demonstrated substantial gains on many NLP tasks and benchmarks by pre-training on a large corpus of text followed by fine-tuning on a specific task. While typically task-agnostic in architecture, this method still requires task-specific fine-tuning datasets of thousands or tens of thousands of examples. By contrast, humans can generally perform a new language task from only a few examples or from simple instructions - something which current NLP systems still largely struggle to do. Here we show that scaling up language models greatly improves task-agnostic, few-shot performance, sometimes even reaching competitiveness with prior state-of-the-art fine-tuning approaches. Specifically, we train GPT-3, an autoregressive language model with 175 billion parameters, 10x more than any previous non-sparse language model, and test its performance in the few-shot setting. For all tasks, GPT-3 is applied without any gradient updates or fine-tuning, with tasks and few-shot demonstrations specified purely via text interaction with the model. GPT-3 achieves strong performance on many NLP datasets, including translation, question-answering, and cloze tasks, as well as several tasks that require on-the-fly reasoning or domain adaptation, such as unscrambling words, using a novel word in a sentence, or performing 3-digit arithmetic. At the same time, we also identify some datasets where GPT-3's few-shot learning still struggles, as well as some datasets where GPT-3 faces methodological issues related to training on large web corpora. Finally, we find that GPT-3 can generate samples of news articles which human evaluators have difficulty distinguishing from articles written by humans. We discuss broader societal impacts of this finding and of GPT-3 in general.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language},
+  file = {/Users/siddhantray/Zotero/storage/DKX47QSK/Brown et al. - 2020 - Language Models are Few-Shot Learners.pdf;/Users/siddhantray/Zotero/storage/2Z8JUV56/2005.html}
+}
+
+@article{devlinBERTPretrainingDeep2019,
+  title = {{{BERT}}: {{Pre-training}} of {{Deep Bidirectional Transformers}} for {{Language Understanding}}},
+  shorttitle = {{{BERT}}},
+  author = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
+  year = {2019},
+  month = may,
+  journal = {arXiv:1810.04805 [cs]},
+  eprint = {1810.04805},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE score to 80.5\% (7.7\% point absolute improvement), MultiNLI accuracy to 86.7\% (4.6\% absolute improvement), SQuAD v1.1 question answering Test F1 to 93.2 (1.5 point absolute improvement) and SQuAD v2.0 Test F1 to 83.1 (5.1 point absolute improvement).},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language},
+  file = {/Users/siddhantray/Zotero/storage/2YT9M2VZ/Devlin et al. - 2019 - BERT Pre-training of Deep Bidirectional Transform.pdf;/Users/siddhantray/Zotero/storage/6H2S6WY2/1810.html}
+}
+
+@article{dosovitskiyImageWorth16x162021,
+  title = {An {{Image}} Is {{Worth}} 16x16 {{Words}}: {{Transformers}} for {{Image Recognition}} at {{Scale}}},
+  shorttitle = {An {{Image}} Is {{Worth}} 16x16 {{Words}}},
+  author = {Dosovitskiy, Alexey and Beyer, Lucas and Kolesnikov, Alexander and Weissenborn, Dirk and Zhai, Xiaohua and Unterthiner, Thomas and Dehghani, Mostafa and Minderer, Matthias and Heigold, Georg and Gelly, Sylvain and Uszkoreit, Jakob and Houlsby, Neil},
+  year = {2021},
+  month = jun,
+  journal = {arXiv:2010.11929 [cs]},
+  eprint = {2010.11929},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {While the Transformer architecture has become the de-facto standard for natural language processing tasks, its applications to computer vision remain limited. In vision, attention is either applied in conjunction with convolutional networks, or used to replace certain components of convolutional networks while keeping their overall structure in place. We show that this reliance on CNNs is not necessary and a pure transformer applied directly to sequences of image patches can perform very well on image classification tasks. When pre-trained on large amounts of data and transferred to multiple mid-sized or small image recognition benchmarks (ImageNet, CIFAR-100, VTAB, etc.), Vision Transformer (ViT) attains excellent results compared to state-of-the-art convolutional networks while requiring substantially fewer computational resources to train.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Artificial Intelligence,Computer Science - Computer Vision and Pattern Recognition,Computer Science - Machine Learning},
+  file = {/Users/siddhantray/Zotero/storage/6D65SQTJ/Dosovitskiy et al. - 2021 - An Image is Worth 16x16 Words Transformers for Im.pdf;/Users/siddhantray/Zotero/storage/832627XR/2010.html}
+}
+
+@book{goodfellowDeepLearning2016,
+  title = {Deep {{Learning}}},
+  author = {Goodfellow, Ian and Bengio, Yoshua and Courville, Aaron},
+  year = {2016},
+  month = nov,
+  publisher = {{MIT Press}},
+  abstract = {An introduction to a broad range of topics in deep learning, covering mathematical and conceptual background, deep learning techniques used in industry, and research perspectives.``Written by three experts in the field, Deep Learning is the only comprehensive book on the subject.''\textemdash Elon Musk, cochair of OpenAI; cofounder and CEO of Tesla and SpaceXDeep learning is a form of machine learning that enables computers to learn from experience and understand the world in terms of a hierarchy of concepts. Because the computer gathers knowledge from experience, there is no need for a human computer operator to formally specify all the knowledge that the computer needs. The hierarchy of concepts allows the computer to learn complicated concepts by building them out of simpler ones; a graph of these hierarchies would be many layers deep. This book introduces a broad range of topics in deep learning. The text offers mathematical and conceptual background, covering relevant concepts in linear algebra, probability theory and information theory, numerical computation, and machine learning. It describes deep learning techniques used by practitioners in industry, including deep feedforward networks, regularization, optimization algorithms, convolutional networks, sequence modeling, and practical methodology; and it surveys such applications as natural language processing, speech recognition, computer vision, online recommendation systems, bioinformatics, and videogames. Finally, the book offers research perspectives, covering such theoretical topics as linear factor models, autoencoders, representation learning, structured probabilistic models, Monte Carlo methods, the partition function, approximate inference, and deep generative models. Deep Learning can be used by undergraduate or graduate students planning careers in either industry or research, and by software engineers who want to begin using deep learning in their products or platforms. A website offers supplementary material for both readers and instructors.},
+  googlebooks = {Np9SDQAAQBAJ},
+  isbn = {978-0-262-03561-3},
+  langid = {english},
+  keywords = {Computers / Artificial Intelligence / General,Computers / Computer Science}
+}
+
+@misc{heMaskedAutoencodersAre2021,
+  title = {Masked {{Autoencoders Are Scalable Vision Learners}}},
+  author = {He, Kaiming and Chen, Xinlei and Xie, Saining and Li, Yanghao and Doll{\'a}r, Piotr and Girshick, Ross},
+  year = {2021},
+  month = dec,
+  number = {arXiv:2111.06377},
+  eprint = {2111.06377},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  institution = {{arXiv}},
+  abstract = {This paper shows that masked autoencoders (MAE) are scalable self-supervised learners for computer vision. Our MAE approach is simple: we mask random patches of the input image and reconstruct the missing pixels. It is based on two core designs. First, we develop an asymmetric encoder-decoder architecture, with an encoder that operates only on the visible subset of patches (without mask tokens), along with a lightweight decoder that reconstructs the original image from the latent representation and mask tokens. Second, we find that masking a high proportion of the input image, e.g., 75\%, yields a nontrivial and meaningful self-supervisory task. Coupling these two designs enables us to train large models efficiently and effectively: we accelerate training (by 3x or more) and improve accuracy. Our scalable approach allows for learning high-capacity models that generalize well: e.g., a vanilla ViT-Huge model achieves the best accuracy (87.8\%) among methods that use only ImageNet-1K data. Transfer performance in downstream tasks outperforms supervised pre-training and shows promising scaling behavior.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/Users/siddhantray/Zotero/storage/LVGPABTP/He et al. - 2021 - Masked Autoencoders Are Scalable Vision Learners.pdf;/Users/siddhantray/Zotero/storage/IQXS7TNN/2111.html}
+}
+
+@inproceedings{hePERTPayloadEncoding2020,
+  title = {{{PERT}}: {{Payload Encoding Representation}} from {{Transformer}} for {{Encrypted Traffic Classification}}},
+  shorttitle = {{{PERT}}},
+  booktitle = {2020 {{ITU Kaleidoscope}}: {{Industry-Driven Digital Transformation}} ({{ITU K}})},
+  author = {He, Hong Ye and Guo Yang, Zhi and Chen, Xiang Ning},
+  year = {2020},
+  month = dec,
+  pages = {1--8},
+  doi = {10.23919/ITUK50268.2020.9303204},
+  abstract = {Traffic identification becomes more important yet more challenging as related encryption techniques are rapidly developing nowadays. In difference to recent deep learning methods that apply image processing to solve such encrypted traffic problems, in this paper, we propose a method named Payload Encoding Representation from Transformer (PERT) to perform automatic traffic feature extraction using a state-of-the-art dynamic word embedding technique. Based on this, we further provide a traffic classification framework in which unlabeled traffic is utilized to pre-train an encoding network that learns the contextual distribution of traffic payload bytes. Then, the downward classification reuses the pre-trained network to obtain an enhanced classification result. By implementing experiments on a public encrypted traffic data set and our captured Android HTTPS traffic, we prove the proposed method can achieve an obvious better effectiveness than other compared baselines. To the best of our knowledge, this is the first time the encrypted traffic classification with the dynamic word embedding alone with its pre-training strategy has been addressed.},
+  keywords = {Cryptography,Deep learning,dynamic word embedding,encrypted traffic classification,Feature extraction,Image coding,natural language processing,Payloads,Task analysis,Telecommunication traffic,traffic identification},
+  file = {/Users/siddhantray/Zotero/storage/NJPKY52R/He et al. - 2020 - PERT Payload Encoding Representation from Transfo.pdf;/Users/siddhantray/Zotero/storage/7RXZ67EC/9303204.html}
+}
+
+@inproceedings{jayDeepReinforcementLearning2019,
+  title = {A {{Deep Reinforcement Learning Perspective}} on {{Internet Congestion Control}}},
+  booktitle = {Proceedings of the 36th {{International Conference}} on {{Machine Learning}}},
+  author = {Jay, Nathan and Rotman, Noga and Godfrey, Brighten and Schapira, Michael and Tamar, Aviv},
+  year = {2019},
+  month = may,
+  pages = {3050--3059},
+  publisher = {{PMLR}},
+  issn = {2640-3498},
+  abstract = {We present and investigate a novel and timely application domain for deep reinforcement learning (RL): Internet congestion control. Congestion control is the core networking task of modulating traffic sources' data-transmission rates to efficiently utilize network capacity, and is the subject of extensive attention in light of the advent of Internet services such as live video, virtual reality, Internet-of-Things, and more. We show that casting congestion control as RL enables training deep network policies that capture intricate patterns in data traffic and network conditions, and leverage this to outperform the state-of-the-art. We also highlight significant challenges facing real-world adoption of RL-based congestion control, including fairness, safety, and generalization, which are not trivial to address within conventional RL formalism. To facilitate further research and reproducibility of our results, we present a test suite for RL-guided congestion control based on the OpenAI Gym interface.},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/CPD88YJG/Jay et al. - 2019 - A Deep Reinforcement Learning Perspective on Inter.pdf}
+}
+
+@inproceedings{maoNeuralAdaptiveVideo2017,
+  title = {Neural {{Adaptive Video Streaming}} with {{Pensieve}}},
+  booktitle = {Proceedings of the {{Conference}} of the {{ACM Special Interest Group}} on {{Data Communication}}},
+  author = {Mao, Hongzi and Netravali, Ravi and Alizadeh, Mohammad},
+  year = {2017},
+  month = aug,
+  pages = {197--210},
+  publisher = {{ACM}},
+  address = {{Los Angeles CA USA}},
+  doi = {10.1145/3098822.3098843},
+  abstract = {Client-side video players employ adaptive bitrate (ABR) algorithms to optimize user quality of experience (QoE). Despite the abundance of recently proposed schemes, state-of-the-art ABR algorithms suffer from a key limitation: they use fixed control rules based on simplified or inaccurate models of the deployment environment. As a result, existing schemes inevitably fail to achieve optimal performance across a broad set of network conditions and QoE objectives. We propose Pensieve, a system that generates ABR algorithms using reinforcement learning (RL). Pensieve trains a neural network model that selects bitrates for future video chunks based on observations collected by client video players. Pensieve does not rely on pre-programmed models or assumptions about the environment. Instead, it learns to make ABR decisions solely through observations of the resulting performance of past decisions. As a result, Pensieve automatically learns ABR algorithms that adapt to a wide range of environments and QoE metrics. We compare Pensieve to state-of-theart ABR algorithms using trace-driven and real world experiments spanning a wide variety of network conditions, QoE metrics, and video properties. In all considered scenarios, Pensieve outperforms the best state-of-the-art scheme, with improvements in average QoE of 12\%\textendash 25\%. Pensieve also generalizes well, outperforming existing schemes even on networks for which it was not explicitly trained.},
+  isbn = {978-1-4503-4653-5},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/XCG5ZBUF/Mao et al. - 2017 - Neural Adaptive Video Streaming with Pensieve.pdf}
+}
+
+@misc{nickelPoincarEmbeddingsLearning2017,
+  title = {Poincar\textbackslash 'e {{Embeddings}} for {{Learning Hierarchical Representations}}},
+  author = {Nickel, Maximilian and Kiela, Douwe},
+  year = {2017},
+  month = may,
+  number = {arXiv:1705.08039},
+  eprint = {1705.08039},
+  eprinttype = {arxiv},
+  primaryclass = {cs, stat},
+  institution = {{arXiv}},
+  abstract = {Representation learning has become an invaluable approach for learning from symbolic data such as text and graphs. However, while complex symbolic datasets often exhibit a latent hierarchical structure, state-of-the-art methods typically learn embeddings in Euclidean vector spaces, which do not account for this property. For this purpose, we introduce a new approach for learning hierarchical representations of symbolic data by embedding them into hyperbolic space -- or more precisely into an n-dimensional Poincar\textbackslash 'e ball. Due to the underlying hyperbolic geometry, this allows us to learn parsimonious representations of symbolic data by simultaneously capturing hierarchy and similarity. We introduce an efficient algorithm to learn the embeddings based on Riemannian optimization and show experimentally that Poincar\textbackslash 'e embeddings outperform Euclidean embeddings significantly on data with latent hierarchies, both in terms of representation capacity and in terms of generalization ability.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Artificial Intelligence,Computer Science - Machine Learning,Statistics - Machine Learning},
+  file = {/Users/siddhantray/Zotero/storage/N33SFVNB/Nickel and Kiela - 2017 - Poincar'e Embeddings for Learning Hierarchical Re.pdf;/Users/siddhantray/Zotero/storage/ZZ2XINT2/1705.html}
+}
+
+@misc{sarkarNs3dumbelltopologysimulation2022,
+  title = {Ns3-Dumbell-Topology-Simulation},
+  author = {Sarkar, Pritam},
+  year = {2022},
+  month = mar,
+  abstract = {Analyze and compare TCP Reno, TCP Westwood, and TCP Fack performance using NS3 simulator},
+  copyright = {MIT},
+  keywords = {congestion-loss,dumbbell-topology,ns3-simulator,routers,tcp-reno,tcp-westwood,throughput,topology}
+}
+
+@misc{Spearmint2020,
+  title = {Spearmint},
+  year = {2020},
+  month = mar,
+  abstract = {Spearmint Bayesian optimization codebase},
+  howpublished = {Stanford Systems and Networking Research}
+}
+
+@misc{vaswaniAttentionAllYou2017,
+  title = {Attention {{Is All You Need}}},
+  author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+  year = {2017},
+  month = dec,
+  number = {arXiv:1706.03762},
+  eprint = {1706.03762},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  publisher = {{arXiv}},
+  doi = {10.48550/arXiv.1706.03762},
+  abstract = {The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning},
+  file = {/Users/siddhantray/Zotero/storage/4HJMA3V9/Vaswani et al. - 2017 - Attention Is All You Need.pdf;/Users/siddhantray/Zotero/storage/XLZRDKJL/1706.html}
+}
+
+@article{wettigShouldYouMask,
+  title = {Should {{You Mask}} 15\% in {{Masked Language Modeling}}?},
+  author = {Wettig, Alexander and Gao, Tianyu and Chen, Zexuan Zhong Danqi},
+  pages = {12},
+  abstract = {Masked language models conventionally use a masking rate of 15\% due to the belief that more masking would provide insufficient context to learn good representations, and less masking would make training too expensive. Surprisingly, we find that masking up to 40\% of input tokens can outperform the 15\% baseline, and even masking 80\% can preserve most of the performance, as measured by finetuning on downstream tasks. Increasing the masking rates has two distinct effects, which we investigate through careful ablations: (1) A larger proportion of input tokens are corrupted, reducing the context size and creating a harder task, and (2) models perform more predictions, which benefits training. We observe that larger models in particular favor higher masking rates, as they have more capacity to perform the harder task. We also connect our findings to sophisticated masking schemes such as span masking and PMI masking, as well as BERT's curious 80-10-10 corruption strategy, and find that simple uniform masking with [MASK] replacements can be competitive at higher masking rates. Our results contribute to a better understanding of masked language modeling and point to new avenues for efficient pre-training.},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/DV8WF6GB/Wettig et al. - Should You Mask 15% in Masked Language Modeling.pdf}
+}
+
+@misc{xiaAutomaticCurriculumGeneration2022,
+  title = {Automatic {{Curriculum Generation}} for {{Learning Adaptation}} in {{Networking}}},
+  author = {Xia, Zhengxu and Zhou, Yajie and Yan, Francis Y. and Jiang, Junchen},
+  year = {2022},
+  month = feb,
+  number = {arXiv:2202.05940},
+  eprint = {2202.05940},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  institution = {{arXiv}},
+  abstract = {As deep reinforcement learning (RL) showcases its strengths in networking and systems, its pitfalls also come to the public's attention--when trained to handle a wide range of network workloads and previously unseen deployment environments, RL policies often manifest suboptimal performance and poor generalizability. To tackle these problems, we present Genet, a new training framework for learning better RL-based network adaptation algorithms. Genet is built on the concept of curriculum learning, which has proved effective against similar issues in other domains where RL is extensively employed. At a high level, curriculum learning gradually presents more difficult environments to the training, rather than choosing them randomly, so that the current RL model can make meaningful progress in training. However, applying curriculum learning in networking is challenging because it remains unknown how to measure the "difficulty" of a network environment. Instead of relying on handcrafted heuristics to determine the environment's difficulty level, our insight is to utilize traditional rule-based (non-RL) baselines: If the current RL model performs significantly worse in a network environment than the baselines, then the model's potential to improve when further trained in this environment is substantial. Therefore, Genet automatically searches for the environments where the current model falls significantly behind a traditional baseline scheme and iteratively promotes these environments as the training progresses. Through evaluating Genet on three use cases--adaptive video streaming, congestion control, and load balancing, we show that Genet produces RL policies which outperform both regularly trained RL policies and traditional baselines in each context, not only under synthetic workloads but also in real environments.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Networking and Internet Architecture},
+  file = {/Users/siddhantray/Zotero/storage/XRSJ8ZTI/Xia et al. - 2022 - Automatic Curriculum Generation for Learning Adapt.pdf;/Users/siddhantray/Zotero/storage/MEQ4UVFL/2202.html}
+}
+
+@article{yanLearningSituRandomized,
+  title = {Learning in Situ: A Randomized Experiment in Video Streaming},
+  author = {Yan, Francis Y and Hong, James and Ayers, Hudson and Zhang, Keyi and Zhu, Chenzhi and Levis, Philip and Fouladi, Sadjad and Winstein, Keith},
+  pages = {18},
+  abstract = {We describe the results of a randomized controlled trial of video-streaming algorithms for bitrate selection and network prediction. Over the last year, we have streamed 38.6 years of video to 63,508 users across the Internet. Sessions are randomized in blinded fashion among algorithms.},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/JFIJ86KI/Yan et al. - Learning in situ a randomized experiment in video.pdf}
+}
+
+@article{yanPantheonTrainingGround,
+  title = {Pantheon: The Training Ground for {{Internet}} Congestion-Control Research},
+  author = {Yan, Francis Y and Ma, Jestin and Hill, Greg D and Raghavan, Deepti and Wahby, Riad S and Levis, Philip and Winstein, Keith},
+  pages = {13},
+  abstract = {Internet transport algorithms are foundational to the performance of network applications. But a number of practical challenges make it difficult to evaluate new ideas and algorithms in a reproducible manner. We present the Pantheon, a system that addresses this by serving as a community ``training ground'' for research on Internet transport protocols and congestion control (https: //pantheon.stanford.edu). It allows network researchers to benefit from and contribute to a common set of benchmark algorithms, a shared evaluation platform, and a public archive of results.},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/2YYZCDPL/Yan et al. - Pantheon the training ground for Internet congest.pdf}
+}
+
+@misc{zaheerDeepSets2018,
+  title = {Deep {{Sets}}},
+  author = {Zaheer, Manzil and Kottur, Satwik and Ravanbakhsh, Siamak and Poczos, Barnabas and Salakhutdinov, Ruslan and Smola, Alexander},
+  year = {2018},
+  month = apr,
+  number = {arXiv:1703.06114},
+  eprint = {1703.06114},
+  eprinttype = {arxiv},
+  primaryclass = {cs, stat},
+  institution = {{arXiv}},
+  abstract = {We study the problem of designing models for machine learning tasks defined on \textbackslash emph\{sets\}. In contrast to traditional approach of operating on fixed dimensional vectors, we consider objective functions defined on sets that are invariant to permutations. Such problems are widespread, ranging from estimation of population statistics \textbackslash cite\{poczos13aistats\}, to anomaly detection in piezometer data of embankment dams \textbackslash cite\{Jung15Exploration\}, to cosmology \textbackslash cite\{Ntampaka16Dynamical,Ravanbakhsh16ICML1\}. Our main theorem characterizes the permutation invariant functions and provides a family of functions to which any permutation invariant objective function must belong. This family of functions has a special structure which enables us to design a deep network architecture that can operate on sets and which can be deployed on a variety of scenarios including both unsupervised and supervised learning tasks. We also derive the necessary and sufficient conditions for permutation equivariance in deep models. We demonstrate the applicability of our method on population statistic estimation, point cloud classification, set expansion, and outlier detection.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Machine Learning,Statistics - Machine Learning},
+  file = {/Users/siddhantray/Zotero/storage/II5MMC34/Zaheer et al. - 2018 - Deep Sets.pdf;/Users/siddhantray/Zotero/storage/WYX48DVA/1703.html}
+}
+
+@inproceedings{zhangMimicNetFastPerformance2021,
+  title = {{{MimicNet}}: Fast Performance Estimates for Data Center Networks with Machine Learning},
+  shorttitle = {{{MimicNet}}},
+  booktitle = {Proceedings of the 2021 {{ACM SIGCOMM}} 2021 {{Conference}}},
+  author = {Zhang, Qizhen and Ng, Kelvin K. W. and Kazer, Charles and Yan, Shen and Sedoc, Jo{\~a}o and Liu, Vincent},
+  year = {2021},
+  month = aug,
+  pages = {287--304},
+  publisher = {{ACM}},
+  address = {{Virtual Event USA}},
+  doi = {10.1145/3452296.3472926},
+  abstract = {At-scale evaluation of new data center network innovations is becoming increasingly intractable. This is true for testbeds, where few, if any, can afford a dedicated, full-scale replica of a data center. It is also true for simulations, which while originally designed for precisely this purpose, have struggled to cope with the size of today's networks.},
+  isbn = {978-1-4503-8383-7},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/EGUVK8RD/Zhang et al. - 2021 - MimicNet fast performance estimates for data cent.pdf}
+}
+
+@inproceedings{zhuNetworkPlanningDeep2021,
+  title = {Network Planning with Deep Reinforcement Learning},
+  booktitle = {Proceedings of the 2021 {{ACM SIGCOMM}} 2021 {{Conference}}},
+  author = {Zhu, Hang and Gupta, Varun and Ahuja, Satyajeet Singh and Tian, Yuandong and Zhang, Ying and Jin, Xin},
+  year = {2021},
+  month = aug,
+  pages = {258--271},
+  publisher = {{ACM}},
+  address = {{Virtual Event USA}},
+  doi = {10.1145/3452296.3472902},
+  abstract = {Network planning is critical to the performance, reliability and cost of web services. This problem is typically formulated as an Integer Linear Programming (ILP) problem. Today's practice relies on handtuned heuristics from human experts to address the scalability challenge of ILP solvers. In this paper, we propose NeuroPlan, a deep reinforcement learning (RL) approach to solve the network planning problem. This problem involves multi-step decision making and cost minimization, which can be naturally cast as a deep RL problem. We develop two important domain-specific techniques. First, we use a graph neural network (GNN) and a novel domain-specific node-link transformation for state encoding, in order to handle the dynamic nature of the evolving network topology during planning decision making. Second, we leverage a two-stage hybrid approach that first uses deep RL to prune the search space and then uses an ILP solver to find the optimal solution. This approach resembles today's practice, but avoids human experts with an RL agent in the first stage. Evaluation on real topologies and setups from large production networks demonstrates that NeuroPlan scales to large topologies beyond the capability of ILP solvers, and reduces the cost by up to 17\% compared to hand-tuned heuristics.},
+  isbn = {978-1-4503-8383-7},
+  langid = {english},
+  file = {/Users/siddhantray/Zotero/storage/96T28PR9/Zhu et al. - 2021 - Network planning with deep reinforcement learning.pdf}
+}
+
+@article{Robbins2007ASA,
+  title={A Stochastic Approximation Method},
+  author={Herbert E. Robbins},
+  journal={Annals of Mathematical Statistics},
+  year={2007},
+  volume={22},
+  pages={400-407}
+}
+
+@misc{rnnattention,
+  doi = {10.48550/ARXIV.1409.0473},
+  
+  url = {https://arxiv.org/abs/1409.0473},
+  
+  author = {Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  
+  keywords = {Computation and Language (cs.CL), Machine Learning (cs.LG), Neural and Evolutionary Computing (cs.NE), Machine Learning (stat.ML), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  
+  title = {Neural Machine Translation by Jointly Learning to Align and Translate},
+  
+  publisher = {arXiv},
+  
+  year = {2014},
+  
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
+
+@misc{trans,
+  title = {The Illustrated Transformer},
+  howpublished = {https://jalammar.github.io/illustrated-transformer/},
+  note = {Accessed: 2022-07-15}
+}
+
