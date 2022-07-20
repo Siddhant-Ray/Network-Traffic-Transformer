@@ -4,9 +4,31 @@ import numpy as np
 import seaborn as sns
 import sys
 
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.ticker import FormatStrFormatter
+
 BIG = False
 TEST = True
 val = sys.argv[1]
+
+sns.set_theme("paper", "whitegrid")
+mpl.rcParams.update({
+    'text.usetex': True,
+    'font.family': 'serif',
+    'text.latex.preamble': r'\usepackage{amsmath,amssymb}',
+
+    'lines.linewidth': 2,
+    'lines.markeredgewidth': 0,
+
+    'scatter.marker': '.',
+    'scatter.edgecolors': 'none',
+
+    # Set image quality and reduce whitespace around saved figure.
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.pad_inches': 0.01,
+})
 
 if not TEST:
     frame = pd.read_csv("small_test_no_disturbance{}.csv".format(val))
@@ -19,10 +41,10 @@ print(frame.head())
 
 frame = (
     frame
-    .assign(delay=lambda df: df['delay'] * 1000)  # to ms.
+    .assign(delay=lambda df: df['delay'])  # to ms.
 )
 
-plt.figure()
+plt.figure(figsize=(5,5))
 sbs = sns.displot(
     data=frame,
     kind='ecdf',
@@ -30,8 +52,12 @@ sbs = sns.displot(
 )
 
 sbs.fig.suptitle('Delay plot with multiple senders')
-
-plt.savefig("delay"+".png")
+sbs.set(xlabel='Delay (seconds)', ylabel='Fraction of packets')
+plt.xlim([0,0.5])
+plt.ylim(bottom=0)
+# Tight layout
+sbs.fig.tight_layout()
+plt.savefig("delay"+".pdf")
 
 
 frame['delay'].quantile([0.5, 0.99])
@@ -44,7 +70,7 @@ bottleneck_source = "/NodeList/0/DeviceList/0/$ns3::CsmaNetDevice/TxQueue/Packet
 bottleneck_queue = queueframe[queueframe["source"] == bottleneck_source]
 print(bottleneck_source)
 
-plt.figure()
+plt.figure(figsize=(5,5))
 scs = sns.relplot(
     data=bottleneck_queue,
     kind='line',
@@ -55,7 +81,7 @@ scs = sns.relplot(
 )
 
 scs.fig.suptitle('Bottleneck queue plot with multiple senders')
-plt.savefig("Queuesize"+".png")
+plt.savefig("Queuesize"+".pdf")
 
 ## Bottleneck plots for switches A, B, D, G
 
@@ -79,7 +105,7 @@ for value in values:
     bottleneck_queue = queueframe[queueframe["source"] == bottleneck_source]
     print(bottleneck_source)
 
-    plt.figure()
+    plt.figure(figsize=(5,5))
     scs = sns.relplot(
         data=bottleneck_queue,
         kind='line',
@@ -90,7 +116,13 @@ for value in values:
     )
 
     scs.fig.suptitle('Bottleneck queue on switch {} '.format(dict_switches[value]))
-    save_name = "Queue profile on switch {}".format(dict_switches[value]) + ".png"
+    scs.fig.suptitle('Queue on bottleneck switch')
+    scs.set(xlabel='Simulation Time (seconds)', ylabel='Queue Size (packets)')
+    plt.xlim([0,60])
+    plt.ylim(bottom=0)
+    
+    save_name = "Queue profile on switch {}".format(dict_switches[value]) + ".pdf"
+    scs.fig.tight_layout()
     plt.savefig(save_name) 
 
 dropframe = pd.read_csv("drops.csv", names=["source", "time", "packetsize"])
