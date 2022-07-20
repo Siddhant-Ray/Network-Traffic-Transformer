@@ -19,9 +19,10 @@ variables:
 build:
   image: $LATEX_IMAGE
   script:
-    - latexmk -c ./report
-    - latexmk -pdf ./report/main.tex
+    - cd report 
+    - latexmk -c 
+    - latexmk -pdf main.tex
 
   artifacts:
     paths:
-      - "./report/test.pdf"
+      - "./test.pdf"
