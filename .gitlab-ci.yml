@@ -21,7 +21,7 @@ build:
   script:
     - cd report/ 
     - latexmk -c 
-    - latexmk -pdf 
+    - latexmk -pdf main.tex
 
   artifacts:
     paths:
