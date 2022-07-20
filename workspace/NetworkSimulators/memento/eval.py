@@ -12,7 +12,7 @@ BIG = False
 TEST = True
 val = sys.argv[1]
 
-sns.set_theme("paper", "whitegrid")
+sns.set_theme("paper", "whitegrid", font_scale=1.5)
 mpl.rcParams.update({
     'text.usetex': True,
     'font.family': 'serif',
@@ -119,7 +119,7 @@ for value in values:
     scs.fig.suptitle('Queue on bottleneck switch')
     scs.set(xlabel='Simulation Time (seconds)', ylabel='Queue Size (packets)')
     plt.xlim([0,60])
-    plt.ylim(bottom=0)
+    plt.ylim([0,1000])
     
     save_name = "Queue profile on switch {}".format(dict_switches[value]) + ".pdf"
     scs.fig.tight_layout()
