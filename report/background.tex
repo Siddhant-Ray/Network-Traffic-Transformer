@@ -7,6 +7,7 @@ A large part of the work undertaken during this project requires a significant u
 \label{sec:background}
 
 \subsection{Sequence modelling with attention}
+\label{ssec:bgsequence}
 
 Transformers are built around the \emph{attention mechanism}, which maps an input sequence to an output sequence of the same length.
 Every output encodes its own information and its context, ie information from related elements in the sequence, regardless of how far they are apart.
@@ -64,6 +65,7 @@ Each transformer block alternates between attention and linear layers, ie betwee
 \end{figure}
 
 \subsection{Pre-training and fine-tuning}
+\label{ssec:bgtraining}
 
 Due to the highly efficient and parallelizable nature of Transformers, they can be widely used a variety of tasks based on the principle of \emph{transfer learning}. The most common strategy for that is to use the architecture for two phases, \emph{pre-training} and \emph{fine-tuning}. Inspired by the original Transformers success on the task of language translation, the use of Transformers has become ubiquitous in solving NLP problems. We present one such state of the the art NLP Transformer model, 
 called BERT\cite{devlinBERTPretrainingDeep2019}, one of the most widely used transformer models today.
@@ -98,6 +100,7 @@ As it is just a pre-trained model, it does not outperform fine-tuned models on s
 
 
 \subsection{Vision transformers}
+\label{ssec:bgvit}
 
 Following their success in NLP, the use of Transformers were explored as a possibility to learn structural information in other kinds of data. One such field where they gained a lot of traction in in the field of CV.
 However adapting the use of Transformers to vision tasks came with a few major challenges: 
@@ -126,7 +129,7 @@ Finally, ViT's authors also observe that domain-specific architectures that impl
 
 
 \section{Related Work}
-\label{sec:related_worl}
+\label{sec:related_work}
 
 Is there much to add here? We claim that no one really tried to solve this problem as it was a "lost" cause. However, maybe some references such as MimicNet/Aurora can be added here added here, as we did look at them to an extent.
 

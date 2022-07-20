@@ -185,31 +185,40 @@
   howpublished = {Stanford Systems and Networking Research}
 }
 
-@misc{vaswaniAttentionAllYou2017,
-  title = {Attention {{Is All You Need}}},
-  author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
-  year = {2017},
-  month = dec,
-  number = {arXiv:1706.03762},
-  eprint = {1706.03762},
-  eprinttype = {arxiv},
-  primaryclass = {cs},
-  publisher = {{arXiv}},
-  doi = {10.48550/arXiv.1706.03762},
-  abstract = {The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.},
-  archiveprefix = {arXiv},
-  keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning},
-  file = {/Users/siddhantray/Zotero/storage/4HJMA3V9/Vaswani et al. - 2017 - Attention Is All You Need.pdf;/Users/siddhantray/Zotero/storage/XLZRDKJL/1706.html}
+
+@inproceedings{vaswaniAttentionAllYou2017,
+ author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, \L ukasz and Polosukhin, Illia},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {I. Guyon and U. Von Luxburg and S. Bengio and H. Wallach and R. Fergus and S. Vishwanathan and R. Garnett},
+ pages = {},
+ publisher = {Curran Associates, Inc.},
+ title = {Attention is All you Need},
+ url = {https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf},
+ volume = {30},
+ year = {2017}
 }
 
-@article{wettigShouldYouMask,
-  title = {Should {{You Mask}} 15\% in {{Masked Language Modeling}}?},
-  author = {Wettig, Alexander and Gao, Tianyu and Chen, Zexuan Zhong Danqi},
-  pages = {12},
-  abstract = {Masked language models conventionally use a masking rate of 15\% due to the belief that more masking would provide insufficient context to learn good representations, and less masking would make training too expensive. Surprisingly, we find that masking up to 40\% of input tokens can outperform the 15\% baseline, and even masking 80\% can preserve most of the performance, as measured by finetuning on downstream tasks. Increasing the masking rates has two distinct effects, which we investigate through careful ablations: (1) A larger proportion of input tokens are corrupted, reducing the context size and creating a harder task, and (2) models perform more predictions, which benefits training. We observe that larger models in particular favor higher masking rates, as they have more capacity to perform the harder task. We also connect our findings to sophisticated masking schemes such as span masking and PMI masking, as well as BERT's curious 80-10-10 corruption strategy, and find that simple uniform masking with [MASK] replacements can be competitive at higher masking rates. Our results contribute to a better understanding of masked language modeling and point to new avenues for efficient pre-training.},
-  langid = {english},
-  file = {/Users/siddhantray/Zotero/storage/DV8WF6GB/Wettig et al. - Should You Mask 15% in Masked Language Modeling.pdf}
+
+@misc{wettigShouldYouMask,
+  doi = {10.48550/ARXIV.2202.08005},
+  
+  url = {https://arxiv.org/abs/2202.08005},
+  
+  author = {Wettig, Alexander and Gao, Tianyu and Zhong, Zexuan and Chen, Danqi},
+  
+  keywords = {Computation and Language (cs.CL), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  
+  title = {Should You Mask 15% in Masked Language Modeling?},
+  
+  publisher = {arXiv},
+  
+  year = {2022},
+  
+  copyright = {arXiv.org perpetual, non-exclusive license}
 }
+
+
+
 
 @misc{xiaAutomaticCurriculumGeneration2022,
   title = {Automatic {{Curriculum Generation}} for {{Learning Adaptation}} in {{Networking}}},
@@ -323,7 +332,80 @@
 
 @misc{trans,
   title = {The Illustrated Transformer},
+  author = {Jay Alammar},
   howpublished = {https://jalammar.github.io/illustrated-transformer/},
   note = {Accessed: 2022-07-15}
 }
+
+@misc{shaw2018selfattention,
+      title={Self-Attention with Relative Position Representations}, 
+      author={Peter Shaw and Jakob Uszkoreit and Ashish Vaswani},
+      year={2018},
+      eprint={1803.02155},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+
+@misc{gehring2017convolutional,
+      title={Convolutional Sequence to Sequence Learning}, 
+      author={Jonas Gehring and Michael Auli and David Grangier and Denis Yarats and Yann N. Dauphin},
+      year={2017},
+      eprint={1705.03122},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+
+@article{scikit-learn,
+ title={Scikit-learn: Machine Learning in {P}ython},
+ author={Pedregosa, F. and Varoquaux, G. and Gramfort, A. and Michel, V.
+         and Thirion, B. and Grisel, O. and Blondel, M. and Prettenhofer, P.
+         and Weiss, R. and Dubourg, V. and Vanderplas, J. and Passos, A. and
+         Cournapeau, D. and Brucher, M. and Perrot, M. and Duchesnay, E.},
+ journal={Journal of Machine Learning Research},
+ volume={12},
+ pages={2825--2830},
+ year={2011}
+}
+
+@Inbook{ns3,
+author="Riley, George F.
+and Henderson, Thomas R.",
+title="The ns-3 Network Simulator",
+bookTitle="Modeling and Tools for Network Simulation",
+year="2010",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="15--34",
+abstract="As networks of computing devices grow larger and more complex, the need for highly accurate and scalable network simulation technologies becomes critical. Despite the emergence of large-scale testbeds for network research, simulation still plays a vital role in terms of scalability (both in size and in experimental speed), reproducibility, rapid prototyping, and education. With simulation based studies, the approach can be studied in detail at varying scales, with varying data applications, varying field conditions, and will result in reproducible and analyzable results.",
+isbn="978-3-642-12331-3",
+doi="10.1007/978-3-642-12331-3_2",
+url="https://doi.org/10.1007/978-3-642-12331-3_2"
+}
+
+@article{generalizingdnn,
+  title={Exploring generalization in deep learning},
+  author={Neyshabur, Behnam and Bhojanapalli, Srinadh and McAllester, David and Srebro, Nati},
+  journal={Advances in neural information processing systems},
+  volume={30},
+  year={2017}
+}
+
+@inproceedings{homa,
+author = {Montazeri, Behnam and Li, Yilong and Alizadeh, Mohammad and Ousterhout, John},
+title = {Homa: A Receiver-Driven Low-Latency Transport Protocol Using Network Priorities},
+year = {2018},
+isbn = {9781450355674},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3230543.3230564},
+doi = {10.1145/3230543.3230564},
+abstract = {Homa is a new transport protocol for datacenter networks. It provides exceptionally low latency, especially for workloads with a high volume of very short messages, and it also supports large messages and high network utilization. Homa uses in-network priority queues to ensure low latency for short messages; priority allocation is managed dynamically by each receiver and integrated with a receiver-driven flow control mechanism. Homa also uses controlled overcommitment of receiver downlinks to ensure efficient bandwidth utilization at high load. Our implementation of Homa delivers 99th percentile round-trip times less than 15 μs for short messages on a 10 Gbps network running at 80% load. These latencies are almost 100x lower than the best published measurements of an implementation. In simulations, Homa's latency is roughly equal to pFabric and significantly better than pHost, PIAS, and NDP for almost all message sizes and workloads. Homa can also sustain higher network loads than pFabric, pHost, or PIAS.},
+booktitle = {Proceedings of the 2018 Conference of the ACM Special Interest Group on Data Communication},
+pages = {221–235},
+numpages = {15},
+keywords = {data centers, network stacks, low latency, transport protocols},
+location = {Budapest, Hungary},
+series = {SIGCOMM '18}
+}
+
 
