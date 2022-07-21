@@ -24,13 +24,13 @@ compile_pdf:
         - pdflatex thesis # build the pdf just as you would on your computer
   artifacts:
     paths: 
-      - ./report/test.pdf  # instruct GitLab to keep the test.pdf file
+      - thesis.pdf  # instruct GitLab to keep the thesis.pdf file
 
 pages:
   stage: deploy
   script:
     - mkdir test_report  # create a folder called public
-    - cp report/test.pdf test_report  # copy the pdf file into the public folder
+    - cp report/thesis.pdf test_report  # copy the pdf file into the public folder
   artifacts:
     paths: 
       - test_report  # instruct GitLab to keep the public folder
