@@ -24,7 +24,7 @@ compile_pdf:
         - pdflatex thesis # build the pdf just as you would on your computer
   artifacts:
     paths: 
-      - thesis.pdf  # instruct GitLab to keep the thesis.pdf file
+      - ./report/thesis.pdf  # instruct GitLab to keep the thesis.pdf file
 
 pages:
   stage: deploy
