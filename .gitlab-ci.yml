@@ -18,10 +18,10 @@ compile_pdf:
   image: timnn/texlive  # use a Docker image for LaTeX from https://hub.docker.com/
   script: 
         - cd report/
-        - pdflatex thesis.tex
-        - bibtex thesis.tex
-        - pdflatex thesis.tex
-        - pdflatex thesis.tex # build the pdf just as you would on your computer
+        - pdflatex thesis
+        - bibtex thesis
+        - pdflatex thesis
+        - pdflatex thesis # build the pdf just as you would on your computer
   artifacts:
     paths: 
       - test.pdf  # instruct GitLab to keep the test.pdf file
@@ -30,7 +30,7 @@ pages:
   stage: deploy
   script:
     - mkdir test_report  # create a folder called public
-    - cp test.pdf test_report  # copy the pdf file into the public folder
+    - cp report/test.pdf test_report  # copy the pdf file into the public folder
   artifacts:
     paths: 
       - test_report  # instruct GitLab to keep the public folder
