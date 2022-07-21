@@ -82,7 +82,7 @@ We argue this is sub-optimal for two reasons:
 \item Second, since the features are not learned from data, they may end up sub-optimal for the task. Choosing the right features for training an ML model is incredibly hard. The only foolproof method is to perform an exhaustive search over all possible combinations of features, and then choose the best performing set/subset of features. Several methods which do this are GridSearchCV and KFoldCV\cite{scikit-learn} but these methods are extremely slow and resource intensive.
 \end{itemize}
 
-We propose to let the model learn useful features from raw data. To learn traffic dynamics from a sequence of packets, we must provide the model with information about the packets as well as their fate in the network. Since we do not want to define a priori how important the individual pieces of information are, we feed them all into a first embedding layer~(\ref{fig:ntt}). The layer is applied to every packet separately. The embedding layer itself is a linear projection layer, which helps increase the representation of the information present in the selected features. Also, as these embeddings are learnable parameters in our NTT, over the training process, the model can learn which is the best representation for our input features, from the point of view of feeding information into the transformer encoder.
+We propose to let the model learn useful features from raw data. To learn traffic dynamics from a sequence of packets, we must provide the model with information about the packets as well as their fate in the network. Since we do not want to define a priori how important the individual pieces of information are, we feed them all into a first embedding layer~(\ref{fig:ntt}). The layer is applied to every packet separately. We also tried variations with using a single embedding for the entire sequence and no embeddings at all, both of which performed extremely poorly. The embedding layer itself is a linear projection layer, which helps increase the representation of the information present in the selected features. Also, as these embeddings are learnable parameters in our NTT, over the training process, the model can learn which is the best representation for our input features, from the point of view of feeding information into the transformer encoder. 
 
 We argue that we need both information about the packet state and the network state to capture the overall network dynamics. In our proof-of-concept NTT, we use minimal packet and network
 information and argue that the selected features have enough information to model the network dynamics which is needed for our training objectives.
@@ -124,7 +124,7 @@ Coming up with an aggregation scheme which works universally is hard. While comi
 In order to achieve this, we keep the most recent packets without aggregation and the longer traffic is in the past, the more we aggregate, as packet-level details become less relevant to predict the current traffic dynamics. We do this on the argument that most recent information at the packet level is more useful for predict next element's behaviour, whereas individual packets much further in the past matter less and less depending on to which extent in the past they are present.
 
 
-In our initial NTT experiments, we reduce our initial sequence length of $1024$, ,using a two layer aggregation scheme, which we aggregate into $48$ elements. The right-hand side of Figure \ref{fig:ntt} shows the aggregation details. We present further details in Table \ref{des:table1}.
+In our initial NTT experiments, we reduce our initial sequence length of $1024$, using a two layer aggregation scheme, which we aggregate into $48$ elements. The right-hand side of Figure \ref{fig:ntt} shows the aggregation details. We present further details in Table \ref{des:table1}.
 
 \begin{table}[htbp]
 \centering
@@ -143,26 +143,32 @@ Most recent 32 & None & 16-48 \\
 \end{table}
 
 
-Our multi-timescale aggregation can easily be adapted to a larger sizes of past history without sacrificing recent packet details. The initial choice of numbers to map our initial sequence length to our aggregated sequence are slightly arbitrary and do not have a theoretical basis yet. However, we justify our choice of $48$ as a final sequence length, as given our infrastructure, the Transformer performed reasonably well on these numbers in reasonable training time.\footnote{We will discuss this in further detail in the evaluation chapter.} Thus, we show that this aggregation is beneficial for both efficiency and performance, but remains an open question which levels of aggregation generalize best.\footnote{We will revisit this in the future work chapter.}
+Our multi-timescale aggregation can easily be adapted to a larger sizes of past history without sacrificing recent packet details. The initial choice of numbers to map our initial sequence length to our aggregated sequence are slightly arbitrary and do not have a theoretical basis yet. However, we justify our choice of $48$ as a final sequence length, as given our infrastructure, the Transformer performed reasonably well on these numbers in reasonable training time.\footnote{We will discuss this in further detail in the evaluation chapter.} Thus, we show that this aggregation is beneficial for both efficiency and performance, but it remains an open question which levels of aggregation generalize best.\footnote{We will revisit this in the future work chapter.}
 
 
-\subsection{Learning network patterns}
+\subsection{Training objectives}
 \label{ssec:despatt}
 % ========================================
 
-Finally, we need a training task that allows NTT to learn network dynamics: in our proof-of-concept, we use end-to-end delay prediction.
-We aim to get the pre-trained NTT to generalize well for a large set of fine-tuning tasks.
-Consequently, we need a pre-training task that is generic enough to be affected by many network effects.
-%Only then does learning the task lead to learning the dynamics.
-As almost everything in a network affects packet delays (\eg path length, buffer sizes, etc.), a delay prediction task seems a rational choice.
-%learning to predict them appears appropriate.
+We aim to learn fundamental network dynamics, for which we need a pre-training task which allows us to learn this information from the packet data. As mentioned in \ref{ssec:desfeat}, we use end-to-end delay as the feature which represents the fate of the packet in the network. As we argued, almost everything in a network affects packet delays (\eg path length, buffer sizes, etc.). This makes prediction of delays a natural first choice for learning network dynamics, and we need to design a method which allows us to learn this representation. We also know that we can only generalize to a large set of fine-tuning tasks if we have a generic and robust pre-training process. Keeping all this in mind, and given the nature of end-to-end delays as we mention, we feel that capturing the dynamics using this, should be a generic enough task to learn the underlying dynamics.
 
-To pre-train NTT, we mask the delay of the most recent packet in the sequence and use a decoder with simple linear layers to predict the actual delay.
-During training, the NTT must learn which features are useful (embedding layer), how to aggregate them over time (aggregation layer), and how the aggregated elements influence each other (transformer encoder layers).
 
-During fine-tuning, one can replace the decoder~(\ref{fig:ntt}) to adapt NTT to a new environment (\eg a different network) or to new tasks (\eg predicting message completion times).
-%new task---\eg predicting message completion times---or networking context---\eg in another network.
-This is efficient as the knowledge accumulated by NTT during pre-training generalizes well to the new task, as we demonstrate in the next section.
+We take inspiration from masked language models\cite{closemask} in NLP used for training, and argue that masking certain values in a sequence, and reconstructing them, allows for effectively learning the structure in the sequence.
+
+For our initial experiments, we mask the delay of the most recent packet in the sequence to pre-train our NTT.  We used as a fixed mask, the number $0$, to replace our actual value, exploiting the fact that the value $0$ never appears in our training data in either the delay or the size values. We can also extend this mask value to more complex data with more features, combining our domain knowledge in networks and shifting possible actual $0$ values by a given constant, using the argument that shifting all values by a constant doesn't change the structure in the data. After the packet is masked, the input sequence is passed through the embedding layer, the transformer encoder, and finally we use a multi-layer perceptron as a decoder to predict the actual delay. As in this pre-training method, we do not have to worry about any of the packets which are aggregated, as those packets are never masked.
+
+During pre-training, the NTT must learn which useful representation from the input features using the embedding layer, how to aggregate them over time using the aggregation layers, and how the aggregated elements influence each other using the transformer encoder layers. Following this, during the fine-tuning, we replace replace the decoder(Figure \ref{fig:ntt}) to adapt NTT to a new environment(\eg a different network) or to new tasks(\eg predicting message completion times).This is efficient as the knowledge accumulated by NTT during pre-training generalizes well to the new task.\footnote{We demonstrate the findings in the evaluation chapter}
+
+Following the initial experiments, we also extend our pre-training process to include the following, newer techniques, with the hypothesis that this makes the pre-training process harder and in turn, more generic. We expect this to be beneficial as it prevents the NTT from overfitting on using all elements in the sequence to always predict a value at the same position. (Write more about bidirectional learning when we have results from the experiments)
+
+\begin{itemize}
+\item Mask over last 16 non-aggregated packets
+\item Mask over last 32 non-aggregated packets 
+\item Mask over all packets, choose over encoded elements uniformly
+\item Mask over all packets, choose between levels of aggregation equally 
+\end{itemize}
+
+Complete this section later, findings not ready yet.
 
 
 
