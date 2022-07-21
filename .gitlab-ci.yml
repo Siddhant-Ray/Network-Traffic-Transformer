@@ -18,6 +18,7 @@ compile_pdf:
   image: timnn/texlive  # use a Docker image for LaTeX from https://hub.docker.com/
   script: 
         - cd report/
+        - rm -f *.dvi *.log *.aux *.bbl *.blg *.toc *.lof *.lot *.cb *.~ *.out *.fdb_latexmk *.fls
         - pdflatex thesis
         - bibtex thesis
         - pdflatex thesis
