@@ -24,7 +24,7 @@ compile_pdf:
         - pdflatex thesis # build the pdf just as you would on your computer
   artifacts:
     paths: 
-      - test.pdf  # instruct GitLab to keep the test.pdf file
+      - ./report/test.pdf  # instruct GitLab to keep the test.pdf file
 
 pages:
   stage: deploy
@@ -35,4 +35,4 @@ pages:
     paths: 
       - test_report  # instruct GitLab to keep the public folder
   only: 
-    - master  # deploy the pdf only for commits made to the main branch 
+    - main  # deploy the pdf only for commits made to the main branch 
