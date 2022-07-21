@@ -44,7 +44,7 @@ It is important to ensure that we do not have too much average behaviour in the 
 \section{Network Traffic Transformer (NTT)}
 \label{sec:ntt}
 
-We present our proof of concept Network Traffic Transformer (NTT~\ref{fig:ntt}) as a first Transformer model which is trained to learn sequence structure in network packet data and capture the underlying dynamics of the same, and generalize to new tasks based on the transfer learning principles from deep learning . However, learning the structure from network packet data can be extremely challenging. We face several major problems which need to be addressed.
+We present our proof of concept Network Traffic Transformer(NTT) as a first Transformer model which is trained to learn sequence structure in network packet data and capture the underlying dynamics of the same, and generalize to new tasks based on the transfer learning principles from deep learning . However, learning the structure from network packet data can be extremely challenging. We face several major problems which need to be addressed.
 
 \begin{enumerate}
 \item \emph{Complexity of Data:} Network packet data is much more complex as compared to data from images(pixels) or from sentences(words). Packet data comes with several layers of hierarchy in terms of headers, protocol stack etc. We need to devise an effective way to choose features for learning, which captures all of the required information. At the same time, we need to ensure that we don't have redundancy in choosing the features,\ eg some fields across protocols and headers may present the same information in multiple ways. Choosing the features from packets which are the best learning becomes an incredibly hard task.
@@ -66,27 +66,11 @@ We present our proof of concept Network Traffic Transformer (NTT~\ref{fig:ntt}) 
 
 \subsection{Sequence definition}
 \label{ssec:desseq}
-An initial challenge which came up in our sequence modelling problem was choosing an appropriate sequence definition for our training and evaluation samples. In using Transformers for NLP, the concept of sequence is well defined in terms of either sentences or paragraphs, which come from the structure of most languages itself\footnote{We talk about structure in Indo-European languages here which is not universally true for all language families}. In using Transformers for CV, concept of sequence was artificially constructed using the concept of splitting the image into fixed size patches, which has been covered in detail in Section \ref{ssec:bgvit}. In our case, we have as pre-training data, a time-series dataset, in increasing order of timestamp from the first packet in the network trace.
+An initial challenge which came up in our sequence modelling problem was choosing an appropriate sequence definition for our training and evaluation samples. In using Transformers for NLP, the concept of sequence is well defined in terms of either sentences or paragraphs, which come from the structure of most languages itself\footnote{We talk about structure in Indo-European languages here which is not universally true for all language families.} In using Transformers for CV, concept of sequence was artificially constructed using the concept of splitting the image into fixed size patches, which has been covered in detail in Section \ref{ssec:bgvit}. In our case, we have as pre-training data, a time-series dataset, in increasing order of timestamp from the first packet in the network trace.
 
-As our network packet data sequence does not have natural delimiters, we introduce a concept of a sliding window over our packets, in order to create a fixed sequence length, which will then we provided as input to our NTT. We choose a \emph{one-step} sliding window of $1024$ packets as our sequence, which roughly matches the size of the queue on the bottleneck switch. At every step, we shift the sliding window forward by a single step and we illustrate this in Figure \ref{fig:sliding}. We expect that this will capture network behaviour when the queue is full and we hypothesise such a condition to be important for learning the dynamics. The concept of sliding windows has also been successfully used in cases on NLP data, which doesn't have the necessary delimiters in the data itself\cite{beltagyLongformerLongDocumentTransformer2020}, which makes such a design choice a natural starting point in our case. Our sliding window becomes a sequence of elements, which each individual element containing a certain number of features which are required for learning on our training objective.
+As our network packet data sequence does not have natural delimiters, we introduce a concept of a sliding window over our packets, in order to create a fixed sequence length, which will then we provided as input to our NTT. We choose a \emph{one-step} sliding window of $1024$ packets,, which roughly matches the size of the queue on the bottleneck switch, over our entire network trace, and each of these windows becomes a single sequence for us. At every step, we shift the sliding window forward by a single step and we illustrate this in Figure \ref{fig:sliding}. We expect that this will capture network behaviour when the queue is full and we hypothesise such a condition to be important for learning the dynamics. The concept of sliding windows has also been successfully used in cases on NLP data, which doesn't have the necessary delimiters in the data itself\cite{beltagyLongformerLongDocumentTransformer2020}, which makes such a design choice a natural starting point in our case. Our sliding window becomes a sequence of elements, which each individual element containing a certain number of features which are required for learning on our training objective.
 
 Our pre-training data contains traces from multiple runs of simulation, in order to increase the richness of our pre-training data and enable us to learn variation in dynamics and generalise to a wide variety of tasks. These simulations represent network measurements taken at different points of time and it is important that our sliding windows always contain elements from the same run of simulation. Since data from different simulation represents independent measurements, we ensure that we construct our sliding windows independently over each run of the simulation data, and then use the data from the combination of these sliding windows as our training samples.
-
-\begin{figure}[!hbt]
-  \begin{center}
-    \includegraphics[scale=1.5]{figures/architecture_ntt.pdf}
-    \caption{The Network Traffic Transformer (NTT) contains three main stages:  %
-        an embedding layer, % for feature extraction,
-        an aggregation layer, and
-        a transformer encoder.
-        It outputs a context-rich encoded sequence that is fed into a task-specific decoder.
-        %
-        The aggregation layer aggregates 1024 packet embeddings into 48 in two stages.
-        The most recent packets are kept as-is, less recent packets are aggregated once, and the least recent twice.
-    Credits: Alex, HotNets '22}
-    \label{fig:ntt}
-  \end{center}
-\end{figure}
 
 \subsection{Feature selection for the NTT}
 \label{ssec:desfeat}
@@ -104,40 +88,62 @@ We argue that we need both information about the packet state and the network st
 information and argue that the selected features have enough information to model the network dynamics which is needed for our training objectives.
 \begin{itemize}
 \item \emph{relative timestamp:} Transformer architectures process items in a sequence in parallel, hence they need some positional information in the input in order to understand the relative order of the elements in the sequence. These positional embeddings can be provided as fixed absolute\cite{vaswaniAttentionAllYou2017} or relative\cite{shaw2018selfattention} or as learned positional embeddings\cite{gehring2017convolutional}. Since our packet data is a time-series sequence, we use the relative timestamp to our first packet as a direct feature for our positional encoding information. The relative timestamp is part of the features passed through the embedding layer, and thus becomes a learnable value for a positional encoding.
-\item \emph{packet size: } The packet size is used as a feature as it determines the fate of the packet from the packet state. The size of the packet affects the number of packets which can be accommodated in the queue buffer, \eg larger packets means less packets are present in the queue at the particular point in time. This helps in learning the dynamics of the fate of the packet which is directly affected by the state of other packets.
-\item \emph{end-to-end delay: } The end to end delay in our setup includes both the queueing delay of the packet, along with the path delay. This delay reflects the state of the network at any given point of time, as the delay is caused by the complex interaction between packets and also reflects effects of tangible networks conditions such as congestion, packet drops etc.
+\item \emph{packet size:} The packet size is used as a feature as it determines the fate of the packet from the packet state. The size of the packet affects the number of packets which can be accommodated in the queue buffer, \eg larger packets means less packets are present in the queue at the particular point in time. This helps in learning the dynamics of the fate of the packet which is directly affected by the state of other packets.
+\item \emph{end-to-end delay:} The end to end delay in our setup includes both the queueing delay of the packet, along with the path delay. This delay reflects the state of the network at any given point of time, as the delay is caused by the complex interaction between packets and also reflects effects of tangible networks conditions such as congestion, packet drops etc.
 \end{itemize}
 These enable learning embeddings with temporal(evolution of delays over time) and spatial(impact of packet size on the delay) patterns.We discuss the challenge of embedding more information in future section.
+
+\begin{figure}[!hbt]
+  \begin{center}
+    \includegraphics[scale=1.5]{figures/architecture_ntt.pdf}
+    \caption{The Network Traffic Transformer (NTT) contains three main stages:  %
+        an embedding layer, % for feature extraction,
+        an aggregation layer, and
+        a transformer encoder.
+        It outputs a context-rich encoded sequence that is fed into a task-specific decoder.}
+    \label{fig:ntt}
+  \end{center}
+\end{figure}
+
 
 
 \subsection{Learning packet aggregation}
 \label{ssec:desagg}
 
 
-CHANGES: A lot, right now the same as the HotNets paper
+As we hope to learn network dynamics, packet sequences must be sufficiently long to capture both the short-term and the long term effects effectively. In Section \ref{ssec:desseq}, we discuss our reasoning behind choosing  $1024$ packets as an appropriate sequence size choice for our initial learning objective. However as the training time of Transformers scales quadratically with the sequence length, we face practical limitations, which we have discussed in Table \ref{bg:table1}. In other fields this is not a a problem, for \eg in NLP, the maximum sequence size in BERT is limited to 512 elements only\cite{devlinBERTPretrainingDeep2019}. Network packet data is extremely fine-grained and depending on the extent of effects we want to capture in our sequence, we may require extremely large sequences of packets, sometimes even in the order of $10000s$ or more.
 
-Packet sequences must be sufficiently long to capture more than short-term effects in traffic dynamics.
-But as the training time of Transformers scales quadratically with the sequence length, we face practical limitations.
-%to sequences tens-of-packets long.
-% \alex{I have discussed this quickly with Siddhant. Transformers handle a few hundreds of inputs (e.g. BERT 512, ViT 256). We could also train with a sequence of about 600 packets, so there was no Transformer limitation. But: with the GPUs we have available, we are limited by memory -- if the sequences are too long, we cannot fit enough of them into memory at the same time, which slows down training a lot. So we train with 48, but the quadratic scaling is not the main bottleneck at this size.}
+We address this problem by using multi-timescale aggregation in Figure \ref{fig:ntt}. We aggregate a long packet sequence into a shorter one while letting the model learn to extract relevant historical information from the aggregated sub-sequence.
+Coming up with an aggregation scheme which works universally is hard. While coming up with always a fixed aggregation scheme over a constant number of packets is the easiest and probable first choice\footnote{This is similar to the pixel patch aggregation in ViT\cite{dosovitskiyImageWorth16x162021}.}
+, we argue that this is suboptimal for two reasons.
+\begin{itemize}
+\item First, it is not easy to choose such a fixed number, as this might be extremely dependent on the future tasks we want to use our NTT for.
+\item Secondly, we hypothesise that due to the nature of structure of packet data, it is more useful to have representation of both aggregated and individual packets.  A fixed aggregation size would mean giving up packet level details completely.\footnote{We do explore the results of fixed aggregation sizes in the evaluation chapter.}
+\end{itemize}
+ 
+In order to achieve this, we keep the most recent packets without aggregation and the longer traffic is in the past, the more we aggregate, as packet-level details become less relevant to predict the current traffic dynamics. We do this on the argument that most recent information at the packet level is more useful for predict next element's behaviour, whereas individual packets much further in the past matter less and less depending on to which extent in the past they are present.
 
-We address this problem by using multi-timescale aggregation~(\ref{fig:ntt}).
-We aggregate a long packet sequence into a shorter one while letting the model learn how to aggregate the relevant historical information.%
-%
-\footnote{This is similar to the pixel patch aggregation in ViT~\cite{dosovitskiyImageWorth16x162021}.}
-% Similar to transformers in CV which aggregate pixels in patches to scale, we need to aggregate packets to support packet sequences of more than tens of packets.
-%
-However, we aim to both aggregate \emph{and} retain recent packet-level details.
-To achieve this, we keep the most recent packets without aggregation and the longer traffic is in the past, the more we aggregate, as packet-level details become less relevant to predict the current traffic dynamics.
-%~(\cref{fig:aggregation}).
-% However, a fixed aggregation size would mean giving up packet-level details.
-% We leverage the time-series nature of traffic to get the best of both worlds.
 
-In our proof-of-concept, we set the initial sequence length to 1024, matching roughly the number of in-flight packets in our experiments, which we aggregate into 48 elements. The right-hand side of \ref{fig:ntt} shows the aggregation details.
-% Notably, we only pick rough `bin sizes' while the model learns how to perform the aggregation. 
-Our multi-timescale aggregation is easy to adapt to a larger history without sacrificing recent packet details.
-We show in eval that this aggregation is beneficial, but it is unclear which levels of aggregation generalize best; we discuss this further in future.
-%We discuss this idea question further in~\cref{sec:future}.
+In our initial NTT experiments, we reduce our initial sequence length of $1024$, ,using a two layer aggregation scheme, which we aggregate into $48$ elements. The right-hand side of Figure \ref{fig:ntt} shows the aggregation details. We present further details in Table \ref{des:table1}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ c   c   c  }
+\toprule
+Packets in & \# times   & Position in \\
+Initial Sequence & aggregated & Final Sequence \\
+\midrule
+Most recent 32 & None & 16-48 \\
+512-992 & Once & 1-16 \\
+1-512 & Twice & 1 \\
+\bottomrule
+\end{tabular}
+\caption{Multi-level packet aggregating in the sequence of 1024. The most recent 32 packets are not aggregated, the 480 packets between 512 and 992 are aggregated once, and the packets from 1-512 are aggregated twice. All packets are individually embedded before aggregation.}
+\label{des:table1}
+\end{table}
+
+
+Our multi-timescale aggregation can easily be adapted to a larger sizes of past history without sacrificing recent packet details. The initial choice of numbers to map our initial sequence length to our aggregated sequence are slightly arbitrary and do not have a theoretical basis yet. However, we justify our choice of $48$ as a final sequence length, as given our infrastructure, the Transformer performed reasonably well on these numbers in reasonable training time.\footnote{We will discuss this in further detail in the evaluation chapter.} Thus, we show that this aggregation is beneficial for both efficiency and performance, but remains an open question which levels of aggregation generalize best.\footnote{We will revisit this in the future work chapter.}
 
 
 \subsection{Learning network patterns}
