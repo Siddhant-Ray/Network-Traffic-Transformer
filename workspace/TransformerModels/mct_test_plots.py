@@ -99,4 +99,4 @@ fig.legend(["Fixed Mask", "Var Mask 16", "Var Mask 32"],loc = "upper right", bbo
 ax[1].get_legend().remove()
 ax[0].get_legend().remove()
 fig.tight_layout()
-fig.savefig("../../figures/finetune_mct_loss_comparison.pdf")
+fig.savefig("../../figures_test/finetune_mct_loss_comparison.pdf")
