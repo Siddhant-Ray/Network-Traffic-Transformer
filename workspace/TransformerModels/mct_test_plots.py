@@ -42,7 +42,7 @@ val_loss_epoch_df_pretrained2.reset_index(inplace=True, drop=True)
 print(train_loss_epoch_df_pretrained2.shape)
 print(val_loss_epoch_df_pretrained2.shape)
 
-sns.set_theme("paper", "whitegrid")
+sns.set_theme("paper", "whitegrid", font_scale=1.5)
 mpl.rcParams.update({
     'text.usetex': True,
     'font.family': 'serif',
