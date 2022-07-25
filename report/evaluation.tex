@@ -41,9 +41,9 @@ In our initial experiments, we compare several versions of our NTT, vary both ou
 
 We demonstrate our initial comparison in Table \ref{eval:table1} The \emph{pre-trained} model first learns from the pre-training and then from the fine-tuning dataset, while the \emph{from scratch} version only learns from the fine-tuning dataset. In these experiments, the fine-tuning dataset is only around $1/10$\textsuperscript{th} of the size of the pre-training dataset. In all the NTT variants presented here, we only mask the last packet delay during the pre-training process.
 
-In order to evaluate the choice of our feature selection for pre-training , we perform some ablation studies on the input data. We argue that we need both packet state information and network state information to effectively learn network dynamics. In order to investigate this, we pre-train two additional versions of the NTT, one \emph{without delay} and one \emph{without packet size} information, in the respective input sequences.
+In order to evaluate the choice of our feature selection for pre-training , we perform some ablation studies on the input data. We argue that we need both packet state information and network state information to effectively learn network dynamics. In order to investigate this, we pre-train two additional versions of the NTT, one \emph{without delay} and one \emph{without packet size} information, in the respective input sequences. For both our pre-training and fine-tuning, we reserve a part of the datasets for testing, which is always constant, unknown to the model and same across every NTT variant.
 
-We also perform ablation studies to investigate the effects of aggregating features in our input, which we feed into the encoder stage of our NTT. Concretely, we compare our multi-step aggregation of $1024$ packets into $48$ aggregates (see Section \ref{ssec:desagg}) with \emph{no aggregation} (using only $48$ individual packets) and \emph{fixed aggregation} (using $48 $aggregates of $21$ packets each, \ie $1008$ packet sequences). Due to limits of our training infrastructure and Transformer's quadratic scaling behaviour with increasing sequence size, it is infeasible to evaluate the effects of having no aggregation on very large sequences.
+We also perform ablation studies to investigate the effects of aggregating features in our input, which we feed into the encoder stage of our NTT. Concretely, we compare our multi-step aggregation of $1024$ packets into $48$ aggregates (see Section \ref{ssec:desagg}) with \emph{no aggregation} (using only $48$ individual packets) and \emph{fixed aggregation} (using $48 $ aggregates of $21$ packets each, \ie $1008$ packet sequences). Due to limits of our training infrastructure and Transformer's quadratic scaling behaviour with increasing sequence size, it is infeasible to evaluate the effects of having no aggregation on very large sequences.
 
 
 
@@ -73,15 +73,15 @@ We also perform ablation studies to investigate the effects of aggregating featu
      \bottomrule
 
 \end{tabular}
-\caption{Mean Squared Error for all initial NTT models and tasks.}
+\caption{Mean Squared Error for all initial NTT models and tasks. The MSE is computed on the task specific actual value vs the predicted value of the particular model. The MSE is always calculated on the same test dataset}
 \label{eval:table1}
 \end{table}
 
 We also to ensure that we understand if our NTT learns useful information in the first place. To put this into perspective, we use the following three simple baselines in order to compare the performance of our different NTT variants. 
 \begin{itemize}
-\item \emph{Auto-Regressive Moving Average (ARMA):} In this method, we predict the mean delay of all the previous delay values in our sequence as our target delay value.
+\item \emph{Auto-Regressive Moving Average (ARMA)\cite{arma}:} In this method, we predict the mean delay of all the previous delay values in our sequence as our target delay value.
 \item \emph{Last observed:} In this method, we predict the last observed delay over all the previous delay values in our sequence as our target delay value.
-\item \emph{Exponentially Weighted Moving Average (EWMA):}  In this method, we predict a weighted smoothed mean delay of all the previous delay values in our sequence as our target delay value.\footnote{For our EWMA, we use the decay factor $\alpha=0.01$} 
+\item \emph{Exponentially Weighted Moving Average (EWMA)\cite{ewma}:}  In this method, we predict a weighted smoothed mean delay of all the previous delay values in our sequence as our target delay value.\footnote{For our EWMA, we use the decay factor $\alpha=0.01$} 
 \end{itemize}
 
 \paragraph*{NTT can learn some network dynamics:}
@@ -94,7 +94,8 @@ This suggests that there is something to learn from the \emph{sequence dynamics}
 \begin{figure*}[!h]
   \begin{center}
     \includegraphics[scale=1]{figures/MCT_loss.pdf}
-    \caption{Mean-square error for prediction of messagetime completion over training epochs}
+    \caption{Mean-square error for prediction of message
+time completion over training epochs}
     \label{fig:loss_mct}
   \end{center}
 \end{figure*}
@@ -103,22 +104,22 @@ This suggests that there is something to learn from the \emph{sequence dynamics}
 
 \paragraph*{NTT can generalize across environments and tasks:}
 
-We observe that pre-training is beneficial: on both fine-tuning tasks, the \emph{pre-trained} NTT outperforms the \emph{from scratch} version.The pre-training knowledge generalizes to a new environment \ie unobserved cross-traffic and to a new task \ie MCT prediction. In our current NTT variants, we pre-train and fine-tuning for delay prediction in the exact same way, by learning to predict the last delay in the sequence. Pre-training also improves the speed of the fine-tuning process, in addition to the overall performance. We see this in Figure \ref{fig:loss_mct} shows that pre-training allows faster learning on the fine-tuning dataset: the \emph{pre-trained} NTT reaches a lower error after a few (only 3) training epochs and finishes training, \ie no further improvement, after fewer epochs (16 vs 24), with a lower MSE on the test set in the end (Table \ref{eval:table1})
+We observe that pre-training is beneficial: on both fine-tuning tasks, the \emph{pre-trained} NTT outperforms the \emph{from scratch} version.The pre-training knowledge generalizes to a new environment \ie unobserved cross-traffic and to a new task \ie MCT prediction. In our current NTT variants, we pre-train and fine-tuning for delay prediction in the exact same way, by learning to predict the last delay in the sequence. Pre-training also improves the speed of the fine-tuning process, in addition to the overall performance. We see this in Figure \ref{fig:loss_mct} shows that pre-training allows faster learning on the fine-tuning dataset: the \emph{pre-trained} NTT reaches a lower error after a few (only 3) training epochs and finishes training, \ie no further improvement, after fewer epochs (17 vs 25), with a lower MSE on the test set in the end (Table \ref{eval:table1})
 
 
 \paragraph*{NTT specific features help:}
-Finally, we observe the benefits of the two NTT-specific features we propose: \ie the hierarchical aggregation layer and the mix of network and traffic information in the raw data.
+Finally, we argue about about the benefits of the two NTT-specific features we propose: \ie the hierarchical aggregation layer and the mix of network and traffic information in the raw data.
 
-With \emph{no aggregation}, the model has little history available; we observe that, perhaps surprisingly, this affects the delay predictions, but not the MCT ones. Conversely, with a \emph{fixed aggregation}, the model loses recent packet-level details but has access to longer history; this seems sufficient to predict delays but affects the MCT.\footnote{In the vision transformer\cite{dosovitskiyImageWorth16x162021}, they got extremely good results with fixed size aggregations and very large training datasets.}
+With \emph{no aggregation}, the model has little history available; we observe that, perhaps surprisingly, this affects the predictions on the delay, but not on the MCT. Conversely, with a \emph{fixed aggregation}, the model loses recent packet-level details but has access to longer history; this seems sufficient to predict delays but affects the MCT.\footnote{In the vision transformer\cite{dosovitskiyImageWorth16x162021}, they got extremely good results with fixed size aggregations and very large training datasets.}
 It is a little early to map the exactness of these effects at this point, however we can conclude from this initial result suggests that both recent packet level information and longer historical aggregates are useful to generalize to a large set of tasks.
 
 
 Considering the NTT versions \emph{without packet size} and \emph{without delay} information (Table \ref{eval:table1}), we observe that neither generalize well.
-Without the packet size, the model overfits the pre-training dataset and performs poorly on predicting delay for fine-tuning.
-Without delay information, the model can logically not produce any useful prediction related to packet delays or MCTs.
+Without the packet size, the model overfits the pre-training dataset and performs poorly on predicting delay for fine-tuning. This is not surprising as given only a single feature, the model cannot learn relational information well.
+Without delay information, the model does not produce any useful prediction related to packet delays or MCTs. This is also not surprising as we cannot expect to predict any useful information about the network dynamics, without using any data from it.
 
 
-Based on the promising nature of our initial results, we now move to more robust evaluation, harder and more generic pre-training and fine-tuning objectives, in order to explore to what further extent can our NTT perform. We explore further methods to improve our NTT in the following Section \ref{eval:fres}
+Based on the promising nature of our initial results, we now move to more robust evaluation, harder and more generic pre-training and fine-tuning objectives, in order to explore to what further extent can our NTT perform. We explore further methods to analyse and improve our NTT in the following Section \ref{eval:fres}
 
 
 \section{Further Results}
@@ -127,20 +128,94 @@ Based on the promising nature of our initial results, we now move to more robust
 \subsection{NTT vs improved baselines}
 \label{ssec:impbase}
 
-\begin{itemize}
-\item ARIMA (both 10000 and 30000 history)
-\item Bi-LSTM (all studies)
-\end{itemize}
+Our initial experiments show that our NTT learns sequence structure from the packet data reasonably well, and we have several baselines to argue that we learn useful information. Since our initial baselines are rather simple, we now present further analysis against more improved and tuned-baselines, in order to understand the learning behaviour of our NTT better. Our objective of using these new baselines is \emph{NOT} to show that our NTT outperforms them by significant order (given that we work in a small setup with limited data), but rather to put into perspective the nature and complexity of learning the sequence structure of our in general. We argue that learning structure from our data is not trivial, even across a variety of models which learn structural information in very different ways.
 
-\subsection{Robust fine-tuning evaluation}
+\paragraph*{Auto Regressive Integrated Moving Average:}
+
+We first present an Auto Regressive Integrated Moving Average (ARIMA)\cite{arima} model as a method to learn structure in the data. As the ARIMA algorithm is capable of only learning from a single time-series of real numbers, we present it the past history of \emph{delay values}, and fit the model on these values, in order to predict the subsequent delay value. Our choice of this model as a baseline is due to the fact that the ARIMA  model has successfully been used in several types of time-series forecasting\cite{arimasuc}. We have a \emph{one-step rolling} ARIMA forecast, where at every stage, we fit the entire history of all previous delay values to predict the next delay, following which we shift our window forward by $1$, and carry out the same procedure. We carry out the ARIMA rolling forecast over the delay values from our pre-training dataset (see Section \ref{sec:ns3}) and keep the minimum past history size of $1023$ values, in order to have enough past values and also in conjunction with our bottleneck queue size, as we did for the NTT's sequence definition.
+
+We refer to the learnt behaviour by fitting ARIMA in Figure \ref{fig:arima} and present two models, one with increasing history size up to the previous $10000$ and another with upto $30000$ past delay values.It is evident that the squared errors in the ARIMA models do not stabilise even after fitting on increasing past history sizes. This shows that the structure in our packet data cannot be trivially learnt by just fitting on previous values, we need some features which help understand the network dynamics, and this is the very problem we try to solve using our NTT. Even in terms of efficiency, the one step rolling forecast ARIMA model on increasing history size, doesn't scale. We require a fitting time of $\sim1.5$ hours for a window size upto $10000$ and $\sim13$ hours upto a window size of $30000$, which also practically limits us from fitting larger windows. In similar time orders to fitting on upto the $30000$ past history, our NTT learns network dynamics to a significant extent and is able to generalize to new tasks (demonstrated in Table \ref{eval:table1}).
+
+\begin{figure*}[h]
+    \centering
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.55]{figures/SE_trend_arima_10000.pdf}
+        \caption{ARIMA on history upto past 10000}
+    \end{subfigure}%
+    ~ 
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{figures/SE_trend_arima_30000.pdf}
+        \caption{ARIMA on history upto past 30000}
+    \end{subfigure}
+    \caption{Second figure is WRONG, need to be updated but need to run arima again as I accidentally deleted the saved files, running now, this is a place holder}
+    \label{fig:arima}
+\end{figure*}
+
+\paragraph*{Bi-Directional Long Short-Term Memory: }
+Long Short-Term Memory (LSTM) memory networks\cite{lstm} have been the state-of-the-art models for sequence modelling for many years, before the introduction of the Transformer architecture. Prior to the same, LSTMs have successfully been used to successful solve several sequence-to-sequence tasks in NLP and time-series forecasting. Being a specialised RNN architecture, LSTMs suffer from the weaknesses of dependence on sequential processing and also vanishing gradients compared to the Transformer, as discussed in Section \ref{ssec:bgsequence}. However, in our project, it is is useful to include it as a baseline comparison, as it is a deep learning model designed to solve a very similar task. This in turn is helpful for us, in order to understand the learning behaviour of the Transformer to a greater extent.
+
+We choose a Bi-Directional LSTM (Bi-LSTM)\cite{bilstm} architecture as a baseline, as it was the best known LSTM model for sequence tasks, prior to the use of Transformers becoming the norm for similar problems and present several variants of a trained Bi-LSTM model. In order to keep the comparison meaningful, we ensure that the total number of trainable parameters in the Bi-LSTM models, are similar to those in our NTT (${\sim}4M$ parameters). We only compare the pre-training task using the Bi-LSTM model, for our baseline. The pre-training process is the same as the NTT, we mask the \emph{last delay} in the in the input sequence of features, in the exact same manner in which we pre-train our initial NTT (as discussed in Section \ref{ssec:despatt}). The pre-training dataset is kept constant across all these models for uniformity in learning.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ l   c   c  c }
+\toprule
+\emph{all values $\times10^{-3}$} & Pre-training by  \\
+                                                       & {masking last delay}        \\
+\midrule
+\em{NTT}                                          &                \\
+    \smallindent Standard                & 0.072           \\
+     \noalign{\vskip 1mm}
+\em{Bi-LSTM}                               &                \\
+    \smallindent Aggregation + input embedding      & 0.062        \\
+     \smallindent Aggregation + no input embedding     & 15.8        \\
+     \smallindent No aggregation + no input embedding    & -       \\
+     \smallindent  No aggregation + input embedding    & -       \\
+
+\bottomrule
+
+\end{tabular}
+\caption{Mean Squared Error on pre-training NTT vs Bi-LSTM}
+\label{eval:table2}
+\end{table}
+
+The evaluation of pre-training Bi-LSTMs has been summarised in the Table \ref{eval:table2}. A-priori, we do not assume that the Bi-LSTM requires input data in a form equivalent to the NTT, in terms of aggregating our input features and passing the input features through an embedding layer before feeding it to the Bi-LSTM encoder layers. However, it is observed that the Bi-LSTM model learns efficiently and equally well as our NTT, only when we provide it the input data in the exact same method. The fact that it learns well under these conditions is not surprising at all, given that our aggregated sequences are not very long (limited to $48$ as of now). However the pre-training time for our NTT is much shorter (${\sim}12$ hours till convergence) as compared to pre-training the Bi-LSTM with the same input (${\sim}19$ hours till convergence) on identical hardware resources. We observe that if we do not use an embedding layer on the input to the Bi-LSTM, it performs poorly on the same pre-training objective, re-emphasising that such a learnable embedding is necessary to learn useful information from the features. Training the Bi-LSTM on non-aggregated input features (sequence size of $1024$) doesn't converge in practical time periods (a single epoch takes ${\sim}21$  hours to run on the same hardware) and hence, we do not evaluate those experiments further in our current scope.
+
+
+\subsection{Evaluation on robust fine-tuning}
 \label{ssec:robeval}
 
-\begin{itemize}
-\item pre-train + fine-tune on $10 \%$  
-\item pre-train + fine-tune on  $100 \%$  
-\item from scratch + fine-tune on $10 \%$  
-\item from scratch + fine-tune on $100 \%$  
-\end{itemize}
+In the process of fine-tuning on our initial pre-trained NTT architecture, we showed that it generalised to predicting the \emph{last delay} value in a new environment, where the topology introduces $2$ bottlenecks using cross traffic (see Figure \ref{fig:topo_ft}). The fine-tuning data was much less than the pre-training data, and we argued that with good enough,generic pre-training, we could achieve extremely good performance on new datasets with relatively less amounts of fine-tuning. We now analyse this behaviour further and demonstrate the pre-training on a single bottleneck indeed helps in generalizing to topologies with multiple bottlenecks, in terms of requiring less data or less training effort or both. 
+
+For this, we generate a large amount of fine-tuning data, which is comparable in magnitude to the pre-training data (${\sim}1.2$ million packets). We always have as a testing dataset, a constant subset of the fine-tuning dataset, which is unknown to and identical for every model variant. The NTT is now fine-tuned in multiple ways, we use the pre-trained NTT and fine-tune it on the entire fine-tuning dataset and on $10\%$ of the fine-tuning dataset. Simultaneously, we also fine-tune the NTT with randomly initialised weights, both on the entire fine-tuning dataset and on $10\%$ of the dataset. The $10\%$ subset of the fine-tuning data is the same across all variants. 
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ l   c   c  c }
+\toprule
+\emph{Model} &  MSE: Delay Prediction    & Layers Trained  & 	\# of Epochs Trained\\
+			&		\emph{all values$\times10^{-3}$} 	&   	& \\ 
+			
+
+\midrule
+\em{NTT}                                                               &                                             &   &  \\
+    \smallindent Pre-trained  +   Fine-tune (full)                                  & 0.033                             & MLP Head only        & 5\\
+    \smallindent Pre-trained  +   Fine-tune ($10\%$)                                  & 0.037                             & MLP Head only         & 9\\
+    \smallindent From scratch  + Fine-tune (full)                                       & 0.036                             & Full NTT     & 13\\
+     \smallindent From scratch  + Fine-tune ($10\%$)                                    & 0.118                             & Full NTT      &  15 \\
+     \smallindent Pre-trained  +   No Fine-tune                                  & 0.108                             & -          & -\\
+ 
+ \bottomrule
+
+\end{tabular}
+\caption{Comparing NTT across fine-tuning variants. The MSE is computed on the actual delay value vs the predicted delay value. The MSE is always calculated on the test dataset.}
+\label{eval:table3}
+\end{table}
+
+The results on the fine-tuning variants are summarised in Table \ref{eval:table3}. From these experiments, it is evident that the initialising the NTT with \emph{pre-trained} weights helps the fine-tuning. With pre-training, using the entire fine-tuning dataset, we can reach a low MSE value in very few fine-tuning epochs (only $5$), whereas when we use only $10\%$ of the fine-tuning data, we can still reach similar values of MSE with just a few more epochs (only $9$). Also, with pre-training, it is only required to train the linear layers at the end of the NTT, which also reduces the training time on the whole. When we initialise \emph{from scratch}, we need much more effort to reach similar performance on the fine-tuning dataset. Using the entire fine-tuning dataset in this case, we achieve the same order of MSE, but only with training the entire NTT, for many more epochs. This behaviour is as expected as it is equivalent to performing pre-training on the fine-tuning dataset of approximately equal size. However, if we use only $10\%$ of the fine-tuning data in this case, we hardly learn anything which is seen in the MSE, as in this case, it is the same level of performance as initialising with pre-trained weights and not perform any fine-tuning. Based on these, we can effectively demonstrate that pre-training our NTT, does indeed help in a much quicker fine-tuning process \ie the NTT is able to generalise on learnt behaviour during pre-training.
+
 
 \subsection{Improved pre-training for NTT}
 \label{ssec:impptt}
