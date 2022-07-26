@@ -7,7 +7,7 @@ from datetime import datetime
 import warnings
 import pandas as pd, numpy as np
 import argparse
-import seaborn as sns, matplotlib.pyplot as plt
+import seaborn as sns, matplotlib.pyplot as plt, matplotlib as mpl
 
 from generate_sequences import generate_ARIMA_delay_data
 
@@ -105,6 +105,37 @@ if __name__ == "__main__":
 
         # Plot the index vs squared error
         # Set figure size
+
+        sns.set_theme("paper", "whitegrid", font_scale=1.5)
+        mpl.rcParams.update({
+            'text.usetex': True,
+            'font.family': 'serif',
+            'text.latex.preamble': r'\usepackage{amsmath,amssymb}',
+
+            'lines.linewidth': 2,
+            'lines.markeredgewidth': 0,
+
+            'scatter.marker': '.',
+            'scatter.edgecolors': 'none',
+
+            # Set image quality and reduce whitespace around saved figure.
+            'savefig.dpi': 300,
+            'savefig.bbox': 'tight',
+            'savefig.pad_inches': 0.01,
+        })
+
+        # Plot the index vs squared error
+        plt.figure(figsize=(5, 5))
+        sns.lineplot(x=df.index, y=df["Squared Error"], color="red")
+        plt.xlabel("History Length")
+        plt.ylabel("Squared Error")
+        #plt.title("Squared Error on predictions vs History Length upto 10000")
+        plt.xlim(1023, 10000)
+        # place legend to the right, bbox is the box around the legend 
+        # plt.legend(loc='upper right', bbox_to_anchor=(0.67, 1.02), ncol=1)
+        plt.savefig("SE_trend_arima_10000.pdf")
+        
+
         
         ## Do the plots over a loop of xlims 
         xlims = [0, 6000, 12000, 18000, 24000, 30000]

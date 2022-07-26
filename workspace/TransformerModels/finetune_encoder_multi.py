@@ -424,7 +424,7 @@ def main():
                                                                 NUM_BOTTLENECKS)
     if PRETRAINED:
         ## Model definition with delay scaling params (from pretrained model)
-        cpath = "encoder_delay_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+        cpath = "encoder_delay_varmask_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
         model = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                                 loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                                 delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
