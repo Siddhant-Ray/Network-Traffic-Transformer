@@ -59,7 +59,7 @@ Each transformer block alternates between attention and linear layers, ie betwee
 \begin{figure}[!hbt]
   \begin{center}
     \includegraphics[scale=1.5]{figures/architecture_transformer.pdf}
-    \caption{Original Transfomer Architecture, Credits: Alex, HotNets '22}
+    \caption{Original Transformer Architecture, Credits: Alex, HotNets '22}
     \label{fig:transformer}
   \end{center}
 \end{figure}
@@ -74,7 +74,7 @@ While the original Transformer had both an encoder and decoder with attention, B
 \begin{itemize}
 \item In the first step, BERT is \emph{pre-trained} with a task that requires learning the underlying language structure. Linguists' research has shown that a Masked Language Model is optimal for deep learning models for learning structure in natural languages.\cite{wettigShouldYouMask}
 Concretely, a fraction of words in the input sequence is masked out (15\% in the original model), and the decoder is tasked to predict the original words from the encoded input sequence.
-BERT is used to generate contextual encodings of, which is only possible due to the bi-directionality of the attention mechanism in BERT. This allows the model to infer the context of the word from both sides in a gicen sentence, which was not possible earlier when elements in a sequence were only processed in a given order.\footnote{
+BERT is used to generate contextual encodings of, which is only possible due to the bi-directionality of the attention mechanism in BERT. This allows the model to infer the context of the word from both sides in a given sentence, which was not possible earlier when elements in a sequence were only processed in a given order.\footnote{
     BERT is pre-trained from text corpora with several billion words and fine-tuned with $\sim$100 thousand examples per task.
 }
 
@@ -96,7 +96,7 @@ Furthermore, BERTs pre-training step is unsupervised/self-supervised, \ie it req
 
 
 Another extremely useful feature of Transformer is its generalization ability, which is  possible due to its highly efficient parallelization during training, which in turn helps transfer of knowledge to a variety of tasks during the process of fine-tuning. The OpenAI GPT-3\cite{brownLanguageModelsAre2020} model that investigates few-shot learning with only a pre-trained model.
-As it is just a pre-trained model, it does not outperform fine-tuned models on specific tasks. However, GPT-3 delivers impressive performance on various tasks, including translation, determining the sentiment of tweets, or generating completely novel text. As per requirement, it can also be fine-tuned on specific tasks, which showcase further, the generalization power of transformers.
+As it is just a pre-trained model, it does not outperform fine-tuned models on specific tasks. However, GPT-3 delivers impressive performance on various tasks, including translation, determining the sentiment of tweets, or generating completely novel text. As per requirement, it can also be fine-tuned on specific tasks, which showcases further, the generalization power of transformers.
 
 
 \subsection{Vision transformers}
@@ -131,7 +131,16 @@ Finally, ViT's authors also observe that domain-specific architectures that impl
 \section{Related Work}
 \label{sec:related_work}
 
-Is there much to add here? We claim that no one really tried to solve this problem as it was a "lost" cause. However, maybe some references such as MimicNet/Aurora can be added here added here, as we did look at them to an extent.
+Direct comparison wise, there is not much to add here. We claim that no one really tried to solve this problem as it was a ``lost" cause. However, we will add some ML in Networking examples as, as we did look at them to an extent. For the relevant ML part, the previous section covers Transformers in more than enough detail.
 
-If we refer to another paper, book, website, \dots we add a
-citation.
+Will mention a bit about 
+\begin{itemize}
+\item MimicNet\cite{zhangMimicNetFastPerformance2021}
+\item Puffer\cite{puffer} 
+\item Aurora\cite{jayDeepReinforcementLearning2019}
+\item Pensieve\cite{maoNeuralAdaptiveVideo2017}
+\item More can be added later  
+\end{itemize}
+
+
+
