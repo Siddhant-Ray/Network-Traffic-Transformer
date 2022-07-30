@@ -6,7 +6,7 @@ In this chapter, we present the first set of results and insights drawn from our
 \section{Initial Evaluation Setup}
 \label{eval:evaldat}
 
-We have already discussed in detail the dataset used for pre-training in Section \ref{sec:ns3} and the objectives in Section \ref{ssec:despatt}. For testing the initial performance of our pre-training process, we reserve a random $10\%$ of the sequences from our pre-training data. This data is always used just for testing and the model does not see this data during the pre-training phase ever. 
+We have already discussed in detail the dataset used for pre-training in Section \ref{sec:ns3} and the objectives in Section \ref{ssec:despatt}. For testing the initial performance of our pre-training process, we reserve a random $10\%$ of the sequences from our pre-training data. This data is always used just for testing, the model does not see this data during the pre-training phase ever, and the testing dataset is always the same across any kind of comparing experiment.
 
 \begin{figure}[h]
   \begin{center}
@@ -177,7 +177,7 @@ We choose a Bi-Directional LSTM (Bi-LSTM)\cite{bilstm} architecture as a baselin
 \bottomrule
 
 \end{tabular}
-\caption{Mean Squared Error on pre-training NTT vs Bi-LSTM}
+\caption{Mean Squared Error on pre-training NTT vs Bi-LSTM. The MSE is calculated on the predicted delay vs the actual delay value.}
 \label{eval:table2}
 \end{table}
 
@@ -210,7 +210,7 @@ For this, we generate a large amount of fine-tuning data, which is comparable in
  \bottomrule
 
 \end{tabular}
-\caption{Comparing NTT across fine-tuning variants. The MSE is computed on the actual delay value vs the predicted delay value. The MSE is always calculated on the test dataset.}
+\caption{Comparing NTT across fine-tuning variants. The MSE is calculated on the predicted delay vs the actual delay value.}
 \label{eval:table3}
 \end{table}
 
@@ -220,16 +220,76 @@ The results on the fine-tuning variants are summarised in Table \ref{eval:table3
 \subsection{Improved pre-training for NTT}
 \label{ssec:impptt}
 
+We also evaluate our NTT by pre-training it with different masking strategies, concretely we no longer mask only the last packet delay in the sequence for pre-training and learning the sequence structure, but different positions in the sequence, as introduced in Section \ref{ssec:despatt}. The challenges and approaches to combining the masking of delays in the past, and the aggregation levels have already been discussed there; now we evaluate and compare the performance by using different masking strategies for pre-training. The fine-tuning objectives haven't changed, we still use the same two fine-tuning environments, \emph{first} where we try to predict the delay of the last packet in the sequence data generated from the $2$ bottleneck topology and \emph{second} where we try to predict the MCT, based on the most recent packet data. Given the nature of the new pre-training, our primary expectation  is that the MCT prediction task should benefit from it. This is because for MCT prediction, we use the average pooled encoded state from the NTT's Transformer Encoder output stage and we expect the information contained in this ``average state'' to be higher with better, overall learning sequence structure, enabled by bi-directional pre-training. 
+
+The final challenge is to decide on the frequency of masking packets across variable levels of packet aggregation \ie how often should one mask non-aggregated packets and how often should one mask aggregated packets. To handle this, we experiment with several masking strategies, in increasing order of complexity and number of elements masked at every step, and evaluate the performance in every case.
 \begin{itemize}
-\item variable masking, last 16
-\item variable masking, last 32
-\item mask over non-aggregate + aggregate, uniform choice over states
-\item mask over non-aggregate + aggregate, uniform choice over aggregation level 
-\item multi instances of decoders 
+\item \emph{Choose from last $16$:} We always mask one delay, by choosing uniformly over one element in the $16$ most recent delays. In this method, we never mask a delay which is aggregated.
+\item \emph{Choose from last $32$:} We always mask one delay, by choosing uniformly over one element in the $32$ most recent delays. In this method, we also never mask a delay which is aggregated.
+\item \emph{Choose from NTT encoded states:} We choose uniformly over all $48$ encoded states of the NTT's output. If the encoded state corresponds to a single non-aggregated delay, we mask that delay value. If the encoded state corresponds to aggregated delays, we mask all delays aggregated to that given value. In this method, we do not distinguish between levels of aggregation.
+\item \emph{Choose from aggregation levels:} We choose uniformly over all $3$ (non)aggregation levels. If we end up with a non-aggregated level, we mask $1$ delay uniformly chosen over the non-aggregated delays. If we end up with \emph{one level} of aggregation, we uniformly choose $1$ aggregated value and we mask all delays aggregated to the chosen encoded state. If we end up with \emph{two levels} of aggregation, we mask all the delays in the first half ($512$) of the sequence, which aggregate to the chosen encoded state.
 \end{itemize}
 
-\subsection{Evaluation on complex topologies}
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ l   c   c  c  c}
+\toprule
+\emph{all values $\times10^{-3}$} & Pre-training  & \multicolumn{3}{c}{Fine-tuning} \\
+\cmidrule{3-5}
+                                                       & {Delay}        & {Delay(on full)}  & {Delay(on 10\%)}                           & {log MCT} \\
+\midrule
+\em{NTT}                                              & 		 &			  & 						   &          \\
+    \smallindent Last 16                                &    0.054            &  0.042  &        0.046                        &    64        \\
+    \smallindent Last 32                                & 0.063         & 0.052                   &        0.057  		   &  55        \\
+     \smallindent From encoded states        & 0.063          & 0.049              &   0.053             	  &   51        \\
+     \smallindent From aggregation levels     & 0.087          & 0.053              &  0.057              & 61       \\
+
+     \bottomrule
+
+\end{tabular}
+\caption{Mean Squared Error for all differently masked pre-trained NTT models and tasks. The MSE is calculated on the predicted vs the actual value.}
+\label{eval:table4}
+\end{table}
+
+Referring to Table \ref{eval:table4}, we see that the different masking strategies do help learning structural information from the sequence of packet data better, especially for the MCT prediction task. If we compare with Table \ref{eval:table3}, we see a slight drop in performance when we fine-tune on the last position delay prediction, as opposed to the time when we pre-trained the NTT to predict the last delay too. This is expected behaviour as now the pre-training and fine-tuning tasks for delay prediction are not identical. If we compare with Table \ref{eval:table1}, we do see quite a bit of improvement in the MCT prediction. We evaluate the MCT prediction further and refer to Figure \ref{fig:mct_mask}. We see that with variable position masking, we reach lower levels of error with much fewer epochs of training in general, as opposed to when we have the masked pre-training only on the last delay position, it is significantly slower. Given our current datasets, it is not possible to conclusively decide on a particular masking strategy for pre-training. However, we can definitively conclude that masking on variable position does help in better sequence learning and in turn, better generalization, which is our ultimate goal.
+
+\begin{figure*}[h]
+    \centering
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.71]{figures/finetune_mct_loss_comparison.pdf}
+        \caption{Pre-train with no mask over aggregated delays}
+    \end{subfigure}%
+    ~ 
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.71]{figures/finetune_mct_loss_comparison_agg.pdf}
+        \caption{Pre-train with also mask over aggregated delays}
+    \end{subfigure}
+    \caption{Mean-square error for prediction of message
+time completion over different pre-training masks}
+    \label{fig:mct_mask}
+\end{figure*}
+
+Finally, the NTT architecture for pre-training needs to be modified slightly, when we change the masking strategy for learning. For the cases of \emph{choosing from last $16$}, \emph{choosing from last $32$} or \emph{choosing from NTT encoded states}, we use the standard NTT model, with aggregation, followed by a Transformer encoder, followed by a set of linear layers. This method works well in all of the above cases, but does not work in the case of \emph{choosing from aggregation levels}. The most probable reason for this is, that due to equally choosing between the levels of aggregation, every $1/3^{rd}$ of the choices, a completely different type and number of delay values are masked. To handle this, we use three independent instances of the same set of linear layers, one for each kind of aggregation level, in order to effectively learn from each aggregation, and not have a single set of neurons ``pulled" in different directions for every type of masked value.\footnote{We move further studies on using multiple instances of linear layers to Appendix \ref{app:a}}
+
+
+\subsection{Evaluation on bigger topologies}
 \label{ssec:comptop}
+
+Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay }and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers. We will always have cross-traffic as the data we generate is for fine-tuning.
+
+We hypothesise that learning the network dynamics effectively from a single bottleneck, should be enough to generalise to similar dynamics on multiple bottlenecks , as shown in our new setup in Figure \ref {fig:topo_ft_big}, to a reasonable extent. Hence we will use our pre-trained NTT and fine-tune the model on the packet data generated in our new topology, and expect to generalise based on the prior learnt behaviour. For these experiments, we will use the NTT, which is pre-trained on masking the \emph{last delay}, as our objective is to explore the possibilities and ease of generalizing network dynamics to larger topologies, based on pre-training, rather than achieving the best possible results from it.
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[scale=0.7]{figures/complex_topo.pdf}
+    \caption{Fine-tuning data generation on larger topology}
+    \label{fig:topo_ft_big}
+  \end{center}
+\end{figure}
+
+Will add results here after the experiments are done, as they are not ready yet. Table will be similar  in layout to Table \ref{eval:table1}.
 
 
 
