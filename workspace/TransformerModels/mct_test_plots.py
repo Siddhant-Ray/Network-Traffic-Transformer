@@ -62,12 +62,12 @@ mpl.rcParams.update({
 
 # Test figure, makse subplots for train and val 
 fig, ax = plt.subplots(2,figsize=(5, 5), sharex=True)
-t0 = sns.lineplot(x=train_loss_epoch_df_pretrained0.index, y="value", data=train_loss_epoch_df_pretrained0, color = 'blue', label="FixMask Last", ax = ax[0])
-t1 = sns.lineplot(x=train_loss_epoch_df_pretrained1.index, y="value", data=train_loss_epoch_df_pretrained1, color = 'green', label="VarMask Last 16", ax = ax[0])
-t2 = sns.lineplot(x=train_loss_epoch_df_pretrained2.index, y="value", data=train_loss_epoch_df_pretrained2, color = 'red', label="VarMask Last 32", ax = ax[0])
+t0 = sns.lineplot(x=train_loss_epoch_df_pretrained0.index, y="value", data=train_loss_epoch_df_pretrained0, color = 'blue', label="Fixed Mask Last", ax = ax[0])
+t1 = sns.lineplot(x=train_loss_epoch_df_pretrained1.index, y="value", data=train_loss_epoch_df_pretrained1, color = 'green', label="Last 16", ax = ax[0])
+t2 = sns.lineplot(x=train_loss_epoch_df_pretrained2.index, y="value", data=train_loss_epoch_df_pretrained2, color = 'red', label="Last 32", ax = ax[0])
 # Label plot 
-ax[0].set_xlabel("Training Epoch", fontsize=8)
-ax[0].set_ylabel("Training MSE",fontsize=8)
+ax[0].set_xlabel("Training Epoch", fontsize=10)
+ax[0].set_ylabel("Training MSE",fontsize=10)
 ax[0].lines[0].set_linestyle("dotted")
 ax[0].lines[1].set_linestyle("--")
 ax[0].lines[2].set_linestyle("-.")
@@ -78,13 +78,13 @@ ax[0].yaxis.set_ticklabels(tickLabels)
 ax[0].axis(ymin=0,ymax=1)
 ax[0].axis(xmin=0,xmax=18)
 
-v0 = sns.lineplot(x=val_loss_epoch_df_pretrained0.index, y="value", data=val_loss_epoch_df_pretrained0, color = 'blue', label="FixMask Last", ax = ax[1])
-v1 = sns.lineplot(x=val_loss_epoch_df_pretrained1.index, y="value", data=val_loss_epoch_df_pretrained1, color = 'green', label="VarMask Last 16", ax = ax[1])
-v2 = sns.lineplot(x=val_loss_epoch_df_pretrained2.index, y="value", data=val_loss_epoch_df_pretrained2, color = 'red', label="VarMask Last 32", ax = ax[1])
+v0 = sns.lineplot(x=val_loss_epoch_df_pretrained0.index, y="value", data=val_loss_epoch_df_pretrained0, color = 'blue', label="Fixed Mask Last", ax = ax[1])
+v1 = sns.lineplot(x=val_loss_epoch_df_pretrained1.index, y="value", data=val_loss_epoch_df_pretrained1, color = 'green', label="Last 16", ax = ax[1])
+v2 = sns.lineplot(x=val_loss_epoch_df_pretrained2.index, y="value", data=val_loss_epoch_df_pretrained2, color = 'red', label="Last 32", ax = ax[1])
 
 # Label plot
-ax[1].set_xlabel("Training Epoch", fontsize=8)
-ax[1].set_ylabel("Validation MSE",fontsize=8)
+ax[1].set_xlabel("Training Epoch", fontsize=10)
+ax[1].set_ylabel("Validation MSE",fontsize=10)
 ax[1].lines[0].set_linestyle("dotted")
 ax[1].lines[1].set_linestyle("--")
 ax[1].lines[2].set_linestyle("-.")
@@ -95,7 +95,7 @@ ax[1].yaxis.set_ticklabels(tickLabels)
 ax[1].axis(ymin=0,ymax=1)
 ax[1].axis(xmin=0,xmax=18)
 
-fig.legend(["Fixed Mask", "Var Mask 16", "Var Mask 32"],loc = "upper right", bbox_to_anchor=(0.968, 0.973), ncol=1, fontsize=8)
+fig.legend(["Fixed Mask Last", "Last 16", "Last 32"],loc = "upper right", bbox_to_anchor=(0.968, 0.958), ncol=1, fontsize=10)
 ax[1].get_legend().remove()
 ax[0].get_legend().remove()
 fig.tight_layout()
@@ -124,30 +124,46 @@ train_loss_epoch_df_pretrained4.reset_index(inplace=True, drop=True)
 val_loss_epoch_df_pretrained4 = df_pretrained4[df_pretrained4["tag"] == "Val loss"]
 val_loss_epoch_df_pretrained4.reset_index(inplace=True, drop=True)
 
+mct_log_dir_pretrained5 = "../../logs/finetune_mct_logs7/"
+reader_pretrained5 = SummaryReader(mct_log_dir_pretrained5)
+df_pretrained5 = reader_pretrained5.scalars
+
+train_loss_epoch_df_pretrained5 = df_pretrained5[df_pretrained5["tag"] == "Avg loss per epoch"]
+train_loss_epoch_df_pretrained5.reset_index(inplace=True, drop=True)
+
+val_loss_epoch_df_pretrained5 = df_pretrained5[df_pretrained5["tag"] == "Val loss"]
+val_loss_epoch_df_pretrained5.reset_index(inplace=True, drop=True)
+
+
 ## Plot the loss for aggregated masking
 fig, ax = plt.subplots(2,figsize=(5, 5), sharex=True)
-t0 = sns.lineplot(x=train_loss_epoch_df_pretrained3.index, y="value", data=train_loss_epoch_df_pretrained3, color = 'blue', label="Equal Choice Agg Level", ax = ax[0])
-t1 = sns.lineplot(x=train_loss_epoch_df_pretrained4.index, y="value", data=train_loss_epoch_df_pretrained4, color = 'green', label="Equal Choice Enc", ax = ax[0])
+t0 = sns.lineplot(x=train_loss_epoch_df_pretrained0.index, y="value", data=train_loss_epoch_df_pretrained0, color = 'blue', label="Fixed Mask Last", ax = ax[0])
+t1 = sns.lineplot(x=train_loss_epoch_df_pretrained4.index, y="value", data=train_loss_epoch_df_pretrained4, color = 'green', label="Choose Enc. State", ax = ax[0])
+t2 = sns.lineplot(x=train_loss_epoch_df_pretrained3.index, y="value", data=train_loss_epoch_df_pretrained3, color = 'red', label="Choose Agg. Level", ax = ax[0])
+
 # Label plot
-ax[0].set_xlabel("Training Epoch", fontsize=8)
-ax[0].set_ylabel("Training MSE",fontsize=8)
+ax[0].set_xlabel("Training Epoch", fontsize=10)
+ax[0].set_ylabel("Training MSE",fontsize=10)
 ax[0].lines[0].set_linestyle("dotted")
 ax[0].lines[1].set_linestyle("--")
+ax[0].lines[2].set_linestyle("-.")
 ticks = [0, 0.25, 0.5, 0.75, 1]
 ax[0].yaxis.set_ticks(ticks)
 tickLabels = map(str, ticks)
 ax[0].yaxis.set_ticklabels(tickLabels)
 ax[0].axis(ymin=0,ymax=1)
-ax[0].axis(xmin=0,xmax=18)
+ax[0].axis(xmin=0,xmax=13)
 
-v0 = sns.lineplot(x=val_loss_epoch_df_pretrained3.index, y="value", data=val_loss_epoch_df_pretrained3, color = 'blue', label="Equal Choice Agg Level", ax = ax[1])
-v1 = sns.lineplot(x=val_loss_epoch_df_pretrained4.index, y="value", data=val_loss_epoch_df_pretrained4, color = 'green', label="Equal Choice Enc", ax = ax[1])
+v0 = sns.lineplot(x=val_loss_epoch_df_pretrained0.index, y="value", data=val_loss_epoch_df_pretrained0, color = 'blue', label="Fixed Mask Last", ax = ax[1])
+v1 = sns.lineplot(x=val_loss_epoch_df_pretrained4.index, y="value", data=val_loss_epoch_df_pretrained4, color = 'green', label="Choose Enc. State", ax = ax[1])
+v2 = sns.lineplot(x=val_loss_epoch_df_pretrained3.index, y="value", data=val_loss_epoch_df_pretrained3, color = 'red', label="Choose Agg. Level", ax = ax[1])
 
 # Label plot
-ax[1].set_xlabel("Training Epoch", fontsize=8)
-ax[1].set_ylabel("Validation MSE",fontsize=8)
+ax[1].set_xlabel("Training Epoch", fontsize=10)
+ax[1].set_ylabel("Validation MSE",fontsize=10)
 ax[1].lines[0].set_linestyle("dotted")
 ax[1].lines[1].set_linestyle("--")
+ax[1].lines[2].set_linestyle("-.")
 ticks = [0, 0.25, 0.5, 0.75, 1]
 ax[1].yaxis.set_ticks(ticks)
 tickLabels = map(str, ticks)
@@ -156,7 +172,7 @@ ax[1].axis(ymin=0,ymax=1)
 ax[1].axis(xmin=0,xmax=18)
 
 # Make legend
-fig.legend(["Equal Choice Agg Level", "Equal Choice Enc"],loc = "upper right", bbox_to_anchor=(0.968, 0.973), ncol=1, fontsize=8)
+fig.legend(["Fixed Mask Last","Choose Enc. State","Choose Agg. Level"],loc = "upper right", bbox_to_anchor=(0.968, 0.958), ncol=1, fontsize=10)
 ax[1].get_legend().remove()
 ax[0].get_legend().remove()
 fig.tight_layout()
