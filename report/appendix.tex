@@ -1,9 +1,53 @@
-\chapter{My Appendix}
+\chapter{NTT training details}
 \label{app:a}
 
-If you want to add material which is not absolutely necessary to understand and
-follow your work, put it in the appendix. Here you could also show important
-code snippets or additional plots.
+We present here further specifics about the choices made during pre-training and fine-tuning our NTT architecture. We also present the common hyper-parameters used for both. In the scope of our project, we do not perform a search to find the best performing hyper-parameters. Our objective is to explore what can be learnt, and not to achieve state-of-the-art results. The hyper-parameters for us are chosen based on Transformers trained in other domains, and with some tweaking, work reasonably well for our use case.
 
-Put hyper parameters (learning rate, etc.)  for the NTT in a table here.
-Can also put code snippets (probably not though) 
+We implement our NTT in Python, using the PyTorch\cite{pytorch} and PyTorch Lightning\cite{pytorchlit} libraries. We implement our NTT in a Debian $10$ environment. For our training process, we use NVIDIA Titan Xp GPUs, with $12$ GB of GPU memory. For pre-training and fine-tuning on the full datasets, we use 2 GPUs with PyTorch's DataParallel implementation. For pre-processing our data, generating our input sliding window sequences and converting our data into training, validation and test batches, we use $4$, $2.40$ GHz Dual Tetrakaideca-Core Xeon E5-2680 v4 CPUs and   between $60-80$ GB of RAM. 
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ l   c  }
+\toprule
+\emph{Hyper-parameter} & Value  \\
+                                                       
+\midrule
+ Learning rate                                         &     $1\times10^{-4}$           \\
+ Weight decay					  &       $1\times10^{-5}$          \\
+ \# of attention heads 			  &          $8$      \\
+ \# of Transformer layers			  &          $6$        \\
+ Batch size 			  		&            $64$      \\
+ Dropout prob.					&            $0.2$   \\
+ Pkt embedding dim.			&                   $120$     \\
+    
+\bottomrule
+
+\end{tabular}
+\caption{Hyper-parameters for NTT training}
+\label{app:table1}
+\end{table}
+
+We refer to Table \ref{app:table1} to discuss our training hyper-parameters. The number of attention heads refers to the number of attention matrices used inside the Transformer encoder layers, which are processed in parallel. In our NTT architecture (Figure \ref{fig:ntt}), we have $691K$ trainable parameters from the embedding and aggregation layers, $3.3M$ trainable parameters from the Transformer encoder layers and $163K$ trainable parameters from linear layers in the decoder. We use $4$ linear layers in the decoder, with activation and layer-weight normalisation\cite{layernorm} between each linear layer.  We also use a layer-weight normalisation layer, as a pre-normalising layer, on the output of the embedding and aggregation. During training, we use a dropout probability\cite{dropout} of $0.2$ and a weight decay\cite{weightdecay} over the weights, in order to prevent overfitting. We use a batch size of $64$, to reduce the noise during our training process.
+
+We use the ADAM\cite{adam} optimiser with $\beta_1=0.9$, $\beta_2=0.98$ and $\epsilon=1\times10^{-9}$, for our training and the Huber loss\cite{huber} function for training loss (\ref{eq:huber}), as it is not super-sensitive to outliers but neither ignores their effects entirely. The loss function is computed on the residual \ie the difference between the observed  and predicted values, $y$ and $f(x)$ respectively.
+\begin{equation}
+L_\delta(y, f(x))=
+    \begin{cases}
+        \frac{1}{2}(y - f(x))^2 & \text{for } \lvert y - f(x) \rvert \leq \delta, \\
+        \delta  \cdot (\lvert y - f(x) \rvert - \frac{1}{2}\delta) & \text{otherwise}
+    \end{cases}
+\label{eq:huber}
+\end{equation}
+
+We use a warm-up scheduler over our base learning rate (lr) of  $1\times10^{-4}$, as mentioned in the original Transformer paper\cite{vaswaniAttentionAllYou2017}. We present the governing equation for that as (\ref {eq:lr})
+
+\begin{equation}
+lr = d_{model}^{-0.5} \cdot \min{(step\_num^{-0.5}, warmup\_steps^{-0.5})}
+\label{eq:lr}
+\end{equation}
+
+This corresponds to increasing the learning rate linearly for the first \emph{warmup\_steps} training steps, and decreasing it thereafter proportionally to the inverse square root of the step number. We used $warmup\_steps = 4000$ and our pre-training data has ${\sim}17K$ steps.
+
+
+\chapter{Learning using multi-instance decoders}
+\label{app:b}
