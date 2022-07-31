@@ -1,28 +1,60 @@
 \chapter{Outlook}
 \label{cha:outlook}
 
-What are consequences of your work? Do you see possibilities for future work? Will write about how to take NTT further, depending on the extent of evaluation of the bigger topology, some parts of that can also be put here.
+The evaluation for our current NTT design is extremely promising, and indicates that such an architecture can be built for learning and generalizing on network dynamics. However, the process does not end here, there is huge amount of possible future research and multiple directions, in which the NTT can be improved. We present some ideas which we feel can be the next steps for these improvements.
+
+\section{Learning on bigger topologies}
+\label{sec:biggertopos}
+
+We evaluate our NTT on simple topologies in our project, as we are still in the initial phase of building such an architecture. Real networks are undeniably much more complex than our current training environment. Topologies from these networks (\eg a large datacenter, ISP etc.) are larger with traffic flowing along multiple paths; there are many different applications, transport protocols, queueing disciplines, etc. and the interactions across these traces, lead to extremely complex network dynamics. Additionally, there are many more fine-tuning tasks to consider, \eg flow classification for security or anomaly detection. While we evaluate pre-training on a small topology and its generalising behaviour on a larger topology, based on learnt behaviour of network dynamics of bottleneck queues in Section ref{ssec:comptop}, but this scratches the surface and doesn't match the scale of complexity of dynamics on real networks. 
+
+Apart from this, our current network traces for training and evaluation are only drawn from a small subset of Internet traffic distributions\cite{homa}. Testing our NTT prototype in real, diverse environments and with multiple fine-tuning tasks will provide many more invaluable insights. We can not only better understand the strengths and weaknesses of our NTT architecture but also into the ``fundamental learnability'' of network dynamics. A first step for this can be conducting more extensive, more complex simulations and analysing real-world datasets such as Caida\cite{caida}, M-LAB\cite{mlab}, or Crawdad\cite{crawdad} or Rocketfuel\cite{rocketfuel}. Concretely, we get the following question:  
+
+%\hl{\emph{How does the NTT hold up with more diverse environments and fine-tuning tasks? Which aspects of network dynamics are easy to generalize to, and which are difficult?}}
+\emph{How does the NTT hold up with more diverse environments and fine-tuning tasks? Which aspects of network dynamics are easy to generalize to, and which are difficult?}
 
 \section{Learning more complex features}
-\label{sec:compfut}
+\label{sec:compftt}
+
+More diverse environments, \ie with more diverse network dynamics, also present the opportunity to improve our NTT architecture. The better the learning of general network dynamics during pre-training, the more can other models benefit from the NTT during fine-tuning. The directions for improvement we see here are: 
 
 \begin{itemize}
-\item Multiple protocol embedding 
-\item Learning routing functions, subnets etc.
-\item Dealing better with rare network events
+\item \emph{Better sequence aggregation:} We base our current NTT's aggregation levels on the number of in-flight packets, \ie whether packets in the sequence may share their fate, usually determined by buffer sizes. We evaluate to show that the hypothesis holds; further packets are apart, the less likely they do share fate, and we aggregate such packets much more. We believe matching individual aggregation levels to common buffer sizes (\eg flow and switch buffers) may be beneficial. We still need more research to put this hypothesis to the test and determine the best sequence sizes and aggregation levels.
+
+\item \emph{Multiple protocol packet data:} Till now, we did not use network traces which combined different transport protocols or contained network prioritisation of different traffic classes, and thus did not use any specific packet header information in our features for learning. Considering such header information might be essential to learn behavioural differences between such categorisations. Raw packet headers can be challenging to provide as inputs to an ML model, as they may appear in many combinations and contain values that are difficult to learn, like IP addresses\cite{zhangMimicNetFastPerformance2021}. Some research ideas from the network verification community on header space analysis\cite{kazemianHeaderSpaceAnalysis} may provide valuable insights on header representations and potential first steps in this direction.
+
+\item \emph{Learning path identification:} Currently, we do not have a way for the NTT to learn differences between multiple possible paths in the network, a feature which might become important to learn on larger topologies. Networks today learn the required path information from the routing function (\eg shortest path, prefix matching, subnetting etc). While it maybe possible for the NTT to ``learn" the the path information and the routing function by giving it features like prefix, subnet mask etc., this might be suboptimal, hard and unnecessary. Coming up with possible ideas to learn path information better is a possible next step we see to improve the NTT.
+
+\item \emph{Dealing better with rare network events:} While in several fields of machine learning, it is enough to learn behaviour ``on average'', this doesn't translate to the domain of network data. Less frequently occurring events in networks (\eg packet drops from link failures) can lead to significant information loss. This kind of behaviour is hard to learn for machine learning algorithms due to these events have relatively very less representation in the training data but it is essential that our NTT learns outcomes of these events to an extent. One possible step is to collect telemetry data like packet drops or buffer occupancy as features. This may allow the model to learn the behaviour of networks better, though this will be hard to due to sparse nature of such data and future research is needed to solve this in an efficient way.
 \end{itemize}
+\vspace{-0.3cm}
+\emph{How can we improve the NTT design to learn efficiently from diverse environments? How can we deal with an information mismatch between environments?}
+
 
 \section{Collaborative pre-training}
 \label{sec:collab}
 
+Transformers in NLP and CV have only shown to truly outshine their competition when pre-trained with massive amounts of data. We envision that this would require a previously unseen collaboration across the industry. We see two main challenges:
 \begin{itemize}
-\item Federated learning 
-\item Share models, not data? Aggregate models.
-\item Data privacy? Trust?
+\item \emph{Training data volume:} Training an NTT to learn complex dynamics at the scale of large topologies will require a extremely large amount of data. Given the differences possible across networks, the pre-training data will need to be representative of this, which will require huge amount of network traces, which no single organisation might have access too and will require collaboration between severalof them.
+\item \emph{Data privacy:} Due to privacy concerns, it might not be possible to share a lot of this data publicly. Also several organisations might be unwilling to share their data anyway, as it would cost them their competitive advantage in the industry.
 \end{itemize}
 
-\section{Continual Learning}
+
+We see some possible solutions to these problems. ML models are known to effectively compress data. As an example, GPT-3\cite{brownLanguageModelsAre2020} is one of the largest Transformer models for text data to date and consists of 175 Billion parameters or roughly 350 Gigabytes. However, it contains information from over 45 Terabytes of text data. Another huge model is Data2Vec\cite{baevskiData2vecGeneralFramework2022} which is a general purpose Transformer which learns representations for text, images and audio using a task-agnostic training approach with knowledge distillation\cite{kd}, but is trained on trillions of datapoints. Sharing a pre-trained model is much more feasible than sharing all the underlying data, it also reduces training time and redundancy in re-training for already established results.
+Furthermore, sharing models instead of data could overcome privacy barriers via federated learning\cite{kairouzAdvancesOpenProblems2021}. Organizations can keep their data private and only share pre-trained models, which can then be combined into a final collectively pre-trained model. This brings up the problem of how can these models be trusted, but this can be solved by making the details of the pre-training process public, while keeping the training data private.
+
+\emph{Can we leverage pre-training and federated learning to learn from previously unavailable data?}
+
+\section{Continual learning}
 \label{sec:cont}
+
+Language and image structure does not evolve much over time. A cat's remains a cat's image, whether viewed today or $10$ years later. A sentence in English might change slightly over time, due to changes in grammar rules but the overall structure is similar. Pre-trained models on such data thus, do not need to be re-trained frequently.However, the Internet is an ever evolving environment. Protocols, applications, etc. may change over time. Interactions in networks due to addition of new network nodes sending traffic, may change the underlying network dynamics significantly.
+
+Though we are certain that underlying network dynamics will change over time, we do expect them change less frequently than changes in individual environments, and still argue that the same pre-trained NTT may be used for significant time, with just small amounts of fine-tuning now and then. Nevertheless, at some point, even the learnt NTT model on underlying dynamics may become outdated and will have to be re-trained. It is already difficult to determine when it is helpful to re-train a specific model\cite{puffer}, and for a model that is supposed to capture a large range of environments, this will likely be even more difficult.
+
+\emph{At which point should we consider an NTT outdated? When and with what data should it be re-trained?}
+
 
 
 
