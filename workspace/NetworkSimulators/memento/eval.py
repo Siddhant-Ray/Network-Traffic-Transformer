@@ -33,7 +33,11 @@ mpl.rcParams.update({
 if not TEST:
     frame = pd.read_csv("small_test_no_disturbance{}.csv".format(val))
 else:
-    frame = pd.read_csv("small_test_one_disturbance_with_message_ids{}.csv".format(val))
+    if not BIG:
+        frame = pd.read_csv("small_test_one_disturbance_with_message_ids{}.csv".format(val))
+    else:
+        frame = pd.read_csv("large_test_disturbance_with_message_ids{}.csv".format(val))
+
 # Get the time stamp, packet size and delay (from my format, Alex uses a different format)
 frame = frame[frame.columns[[1,7,-8]]]
 frame.columns = ["t", "size", "delay"]

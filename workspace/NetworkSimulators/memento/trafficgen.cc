@@ -82,6 +82,9 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
     TimestampTag timestampTag;
     IdTag idTag;
     FlowIdTag flowid;
+    MessageTag mTag;
+    p->PeekPacketTag(mTag);
+    
     if (p->PeekPacketTag(timestampTag) && p->PeekPacketTag(idTag))
     {
         auto current_time = Simulator::Now();
@@ -113,7 +116,8 @@ void logPacketInfo(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p)
                              << "TCP current window size is, "<< tcpHeader.GetWindowSize() << ", "
                              << "Delay is, "<< diff_time.GetSeconds() << ", "
                              << "Workload id is, "<< idTag.GetWorkload() << ','
-                             << "Application id is, "<< idTag.GetApplication() << ',';
+                             << "Application id is, "<< idTag.GetApplication() << ','
+                             << "Message id is, "<< mTag.GetSimpleValue() << ',';
 
         copy->Print(*stream->GetStream());
         *stream->GetStream() << "\n";
@@ -188,7 +192,7 @@ int main(int argc, char *argv[])
     DataRate linkrate("5Mbps");
     DataRate baserate("100kbps");
     int start_window = 1;
-    Time delay("5ms");
+    Time delay("15ms"); // Make this comparable to the queue delay, which goes up to 0.5 seconds.
     QueueSize queuesize("100p");
     auto seed = 1;
 
@@ -345,7 +349,7 @@ int main(int argc, char *argv[])
     CsmaHelper csma;
     csma.SetChannelAttribute("FullDuplex", BooleanValue(true));
     csma.SetChannelAttribute("DataRate", DataRateValue(linkrate));
-    csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(5)));
+    csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(15)));
 
     // Create the csma links
     // csma.Install(NodeContainer(sender, switchA));

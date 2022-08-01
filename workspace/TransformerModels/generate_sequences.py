@@ -52,6 +52,12 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
                         "small_test_one_disturbance_with_message_ids5_final.csv", "small_test_one_disturbance_with_message_ids6_final.csv",
                         "small_test_one_disturbance_with_message_ids7_final.csv", "small_test_one_disturbance_with_message_ids8_final.csv",
                         "small_test_one_disturbance_with_message_ids9_final.csv", "small_test_one_disturbance_with_message_ids10_final.csv"]
+            elif NUM_BOTTLENECKS == 4: # Big topology
+                files = ["large_test_disturbance_with_message_ids1_final.csv", "large_test_disturbance_with_message_ids2_final.csv",
+                        "large_test_disturbance_with_message_ids3_final.csv", "large_test_disturbance_with_message_ids4_final.csv",
+                        "large_test_disturbance_with_message_ids5_final.csv", "large_test_disturbance_with_message_ids6_final.csv",
+                        "large_test_disturbance_with_message_ids7_final.csv", "large_test_disturbance_with_message_ids8_final.csv",
+                        "large_test_disturbance_with_message_ids9_final.csv", "large_test_disturbance_with_message_ids10_final.csv"]
             else:
                 print("Invalid number of bottlenecks")
                 exit()
