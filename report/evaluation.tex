@@ -109,14 +109,10 @@ We observe that pre-training is beneficial: on both fine-tuning tasks, the \emph
 \paragraph*{NTT specific features help:}
 Finally, we argue about about the benefits of the two NTT-specific features we propose: \ie the hierarchical aggregation layer and the mix of network and traffic information in the raw data.
 
-With \emph{no aggregation}, the model has little history available; we observe that, perhaps surprisingly, this affects the predictions on the delay, but not on the MCT. Conversely, with a \emph{fixed aggregation}, the model loses recent packet-level details but has access to longer history; this seems sufficient to predict delays but affects the MCT.\footnote{In the vision transformer\cite{dosovitskiyImageWorth16x162021}, they got extremely good results with fixed size aggregations and very large training datasets.}
-It is a little early to map the exactness of these effects at this point, however we can conclude from this initial result suggests that both recent packet level information and longer historical aggregates are useful to generalize to a large set of tasks.
+With \emph{no aggregation}, the model has little history available; we observe that, perhaps surprisingly, this affects the predictions on the delay, but not on the MCT. Practically, our NTT will not scale to arbitrarily large sequences, so trying to learn from longer sequences with no aggregation is irrelevant. Conversely, with a \emph{fixed aggregation}, the model loses recent packet-level details but has access to longer history; this seems sufficient to predict delays but affects the MCT.\footnote{In the vision transformer\cite{dosovitskiyImageWorth16x162021}, they got extremely good results with fixed size aggregations and very large training datasets.} It is a little early to map the exactness of these effects at this point, however we can conclude from this initial result suggests that both recent packet level information and longer historical aggregates are useful to generalize to a large set of tasks.
 
 
-Considering the NTT versions \emph{without packet size} and \emph{without delay} information (Table \ref{eval:table1}), we observe that neither generalize well.
-Without the packet size, the model overfits the pre-training dataset and performs poorly on predicting delay for fine-tuning. This is not surprising as given only a single feature, the model cannot learn relational information well.
-Without delay information, the model does not produce any useful prediction related to packet delays or MCTs. This is also not surprising as we cannot expect to predict any useful information about the network dynamics, without using any data from it.
-
+When we consider the NTT versions \emph{without packet size} and \emph{without delay} information (Table \ref{eval:table1}), we observe that neither generalizes well. Without the packet size, the model overfits the pre-training dataset and performs poorly on predicting delay for fine-tuning. This is not surprising as given only a single feature, the model cannot learn relational information well. Without delay information, the model does not produce any useful prediction related to packet delays or MCTs. This is also not surprising as we cannot expect to predict any useful information about the network dynamics, without using any data from it in the pre-training process.
 
 Based on the promising nature of our initial results, we now move to more robust evaluation, harder and more generic pre-training and fine-tuning objectives, in order to explore to what further extent can our NTT perform. We explore further methods to analyse and improve our NTT in the following Section \ref{eval:fres}
 
@@ -194,8 +190,8 @@ For this, we generate a large amount of fine-tuning data, which is comparable in
 \centering
 \begin{tabular}{ l   c   c  c }
 \toprule
-\emph{Model} &  MSE: Delay Prediction    & Layers Trained  & 	\# of Epochs Trained\\
-			&		\emph{all values$\times10^{-3}$} 	&   	& \\ 
+\emph{Model} &  MSE: Delay Prediction    & Layers  & 	\# of Epochs \\
+			&		\emph{all values$\times10^{-3}$} 	& trained    	& trained \\ 
 			
 
 \midrule
@@ -237,9 +233,9 @@ The final challenge is to decide on the frequency of masking packet delays acros
 \cmidrule{3-5}
                                                        & {Delay}        & {Delay(on full)}  & {Delay(on 10\%)}                           & {log MCT} \\
 \midrule
-\em{NTT}                                              & 		 &			  & 						   &          \\
-    \smallindent Last 16                                &    0.054            &  0.042  &        0.046                        &    64        \\
-    \smallindent Last 32                                & 0.063         & 0.052                   &        0.057  		   &  55        \\
+\em{NTT: Chosen mask}                                              & 		 &			  & 						   &          \\
+    \smallindent From last 16                                &    0.054            &  0.042  &        0.046                        &    64        \\
+    \smallindent From last 32                                & 0.063         & 0.052                   &        0.057  		   &  55        \\
      \smallindent From encoded states        & 0.063          & 0.049              &   0.053             	  &   51        \\
      \smallindent From aggregation levels     & 0.087          & 0.053              &  0.057              & 61       \\
 

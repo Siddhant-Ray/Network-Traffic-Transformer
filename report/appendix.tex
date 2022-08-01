@@ -3,7 +3,7 @@
 
 We present here further specifics about the choices made during pre-training and fine-tuning our NTT architecture. We also present the common hyper-parameters used for both. In the scope of our project, we do not perform a search to find the best performing hyper-parameters. Our objective is to explore what can be learnt, and not to achieve state-of-the-art results. The hyper-parameters for us are chosen based on Transformers trained in other domains, and with some tweaking, work reasonably well for our use case.
 
-We implement our NTT in Python, using the PyTorch\cite{pytorch} and PyTorch Lightning\cite{pytorchlit} libraries. We implement our NTT in a Debian $10$ environment. For our training process, we use NVIDIA Titan Xp GPUs, with $12$ GB of GPU memory. For pre-training and fine-tuning on the full datasets, we use 2 GPUs with PyTorch's DataParallel implementation. For pre-processing our data, generating our input sliding window sequences and converting our data into training, validation and test batches, we use $4$, $2.40$ GHz Dual Tetrakaideca-Core Xeon E5-2680 v4 CPUs and   between $60-80$ GB of RAM. 
+We implement our NTT in Python, using the PyTorch\cite{pytorch} and PyTorch Lightning\cite{pytorchlit} libraries. We implement our NTT in a Debian $10$ environment. For our training process, we use NVIDIA\textsuperscript{\textregistered} Titan Xp GPUs, with $12$ GB of GPU memory. For pre-training and fine-tuning on the full datasets, we use 2 GPUs with PyTorch's DataParallel implementation. For pre-processing our data, generating our input sliding window sequences and converting our data into training, validation and test batches, we use $4$, Intel\textsuperscript{\textregistered} $2.40$ GHz Dual Tetrakaideca-Core Xeon E5-2680 v4 CPUs and   between $60-80$ GB of RAM. 
 
 \begin{table}[htbp]
 \centering
@@ -27,7 +27,7 @@ We implement our NTT in Python, using the PyTorch\cite{pytorch} and PyTorch Ligh
 \label{app:table1}
 \end{table}
 
-We refer to Table \ref{app:table1} to discuss our training hyper-parameters. The number of attention heads refers to the number of attention matrices used inside the Transformer encoder layers, which are processed in parallel. In our NTT architecture (Figure \ref{fig:ntt}), we have $691K$ trainable parameters from the embedding and aggregation layers, $3.3M$ trainable parameters from the Transformer encoder layers and $163K$ trainable parameters from linear layers in the decoder. We use $4$ linear layers in the decoder, with activation and layer-weight normalisation\cite{layernorm} between each linear layer.  We also use a layer-weight normalisation layer, as a pre-normalising layer, on the output of the embedding and aggregation. During training, we use a dropout probability\cite{dropout} of $0.2$ and a weight decay\cite{weightdecay} over the weights, in order to prevent overfitting. We use a batch size of $64$, to reduce the noise during our training process.
+We refer to Table \ref{app:table1} to discuss our training hyper-parameters. The number of attention heads refers to the number of attention matrices used inside the Transformer encoder layers, which are processed in parallel. In our NTT architecture (Figure \ref{fig:ntt}), we have $691K$ trainable parameters from the embedding and aggregation layers, $3.3M$ trainable parameters from the Transformer encoder layers and $163K$ trainable parameters from linear layers in the decoder. We use $4$ linear layers in the decoder, with activation and layer-weight normalisation\cite{layernorm} between each linear layer.  We also use a layer-weight normalisation layer, as a pre-normalising layer, on the output of the embedding and aggregation. During training, we use a dropout probability\cite{dropout} of $0.2$ and a weight decay\cite{weightdecay} over the weights (not biases), in order to prevent overfitting. We use a batch size of $64$, to reduce the noise during our training process.
 
 We use the ADAM\cite{adam} optimiser with $\beta_1=0.9$, $\beta_2=0.98$ and $\epsilon=1\times10^{-9}$, for our training and the Huber loss\cite{huber} function for training loss (\ref{eq:huber}), as it is not super-sensitive to outliers but neither ignores their effects entirely. The loss function is computed on the residual \ie the difference between the observed  and predicted values, $y$ and $f(x)$ respectively.
 \begin{equation}
@@ -46,8 +46,39 @@ lr = d_{model}^{-0.5} \cdot \min{(step\_num^{-0.5}, warmup\_steps^{-0.5})}
 \label{eq:lr}
 \end{equation}
 
-This corresponds to increasing the learning rate linearly for the first \emph{warmup\_steps} training steps, and decreasing it thereafter proportionally to the inverse square root of the step number. We used $warmup\_steps = 4000$ and our pre-training data has ${\sim}17K$ steps.
+This corresponds to increasing the learning rate linearly for the first \emph{warmup\_steps} training steps, and decreasing it thereafter proportionally to the inverse square root of the step number. We used $warmup\_steps = 4000$ and our pre-training data has ${\sim}17K$ steps, and our $d_{model}$ is $120$.
 
 
-\chapter{Learning using multi-instance decoders}
+\chapter{Learning with multiple decoders}
 \label{app:b}
+
+In Section \ref{ssec:impptt}, we evaluated the idea of masking different positions in the input sequence, in order to improve the pre-training phase of the NTT.  During this, we realised that with a variable masking approach, it is not always feasible to have a single set of linear layers to effectively act a combined MLP decoder, across all levels of aggregation. We present some further results on using different instances of identical MLP decoders, for different levels of aggregation, which are due to selecting the packet delays to be masked in different ways for pre-training. We summarise our findings in Table \ref{app:table2}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ l   c  }
+\toprule
+\emph{all values $\times10^{-3}$} & Pre-training \\
+(Masking + MLP instance) & (Delay)  \\
+                                                       
+\midrule
+\em{NTT: Chosen mask}                                              & 		 	 \\
+\smallindent From encoded states + 1 MLP decoder                                         &      0.063         \\
+\smallindent From encoded states + 3 MLP decoders                                         &     0.070          \\
+\smallindent From aggregation levels + 1 MLP decoder  					&     1.31          \\
+\smallindent  From aggregation levels + 3 MLP decoders  					&     0.087          \\
+ 
+    
+\bottomrule
+
+\end{tabular}
+\caption{MSE on delay prediction across NTT with multiple instances of linear MLP decoders}
+\label{app:table2}
+\end{table}
+
+Based on our experiments, it is evident that we will need different instances of MLP decoders, when we mask across different levels of aggregation, with varying frequency of masking. In the case, where we choose from \emph{the encoded states}, we only choose the packets which are aggregated twice $1/48$ of the times, and we mainly choose the non-aggregated packets ($32/48$ of the times). In this scenario, it doesn't hurt the performance even if we use a single set of linear layers to extract the learnt behaviour across level s of aggregation, as most of the times, the non-aggregated packets are chosen. In this case, using a single MLP decoder vs using $3$ MLP decoders for learning has very similar performance.
+
+When we choose from \emph{aggregation levels}, the situation is very different as we mask $1/2$ the packet delays, which are aggregated twice, $1/3$ of the times. In this scenario, a single MLP decoder cannot effectively learn across levels of aggregation, all of which are chosen frequently and in this case, using multiple MLP decoders, helps the learning process. 
+
+Based on the fact that different aggregation schemes may be used in future version of the NTT, different numbers of MLP decoders will be needed. One can certainly be sure that, with increasing complexity and aggregation, more complexity will also be required in the decoder architecture, to learn newer kinds of information.
+
