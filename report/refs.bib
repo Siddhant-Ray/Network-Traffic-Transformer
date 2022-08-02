@@ -724,8 +724,257 @@ URL = {https://doi.org/10.1214/aoms/1177703732}
 }
 
 
+@inproceedings{classic,
+author = {Abbasloo, Soheil and Yen, Chen-Yu and Chao, H. Jonathan},
+title = {Classic Meets Modern: A Pragmatic Learning-Based Congestion Control for the Internet},
+year = {2020},
+isbn = {9781450379557},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3387514.3405892},
+doi = {10.1145/3387514.3405892},
+abstract = {These days, taking the revolutionary approach of using clean-slate learning-based designs to completely replace the classic congestion control schemes for the Internet is gaining popularity. However, we argue that current clean-slate learning-based techniques bring practical issues and concerns such as overhead, convergence issues, and low performance over unseen network conditions to the table. To address these issues, we take a pragmatic and evolutionary approach combining classic congestion control strategies and advanced modern deep reinforcement learning (DRL) techniques and introduce a novel hybrid congestion control for the Internet named Orca1. Through extensive experiments done over global testbeds on the Internet and various locally emulated network conditions, we demonstrate that Orca is adaptive and achieves consistent high performance in different network conditions, while it can significantly alleviate the issues and problems of its clean-slate learning-based counterparts.},
+booktitle = {Proceedings of the Annual Conference of the ACM Special Interest Group on Data Communication on the Applications, Technologies, Architectures, and Protocols for Computer Communication},
+pages = {632–647},
+numpages = {16},
+keywords = {TCP, Congestion Control, Deep Reinforcement Learning},
+location = {Virtual Event, USA},
+series = {SIGCOMM '20}
+}
+
+@article{dynamic,
+  author={Nie, Xiaohui and Zhao, Youjian and Li, Zhihan and Chen, Guo and Sui, Kaixin and Zhang, Jiyang and Ye, Zijie and Pei, Dan},
+  journal={IEEE Journal on Selected Areas in Communications}, 
+  title={Dynamic TCP Initial Windows and Congestion Control Schemes Through Reinforcement Learning}, 
+  year={2019},
+  volume={37},
+  number={6},
+  pages={1231-1247},
+  doi={10.1109/JSAC.2019.2904350}}
+
+@article{10.1145/2534169.2486020,
+author = {Winstein, Keith and Balakrishnan, Hari},
+title = {TCP Ex Machina: Computer-Generated Congestion Control},
+year = {2013},
+issue_date = {October 2013},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {43},
+number = {4},
+issn = {0146-4833},
+url = {https://doi.org/10.1145/2534169.2486020},
+doi = {10.1145/2534169.2486020},
+abstract = {This paper describes a new approach to end-to-end congestion control on a multi-user network. Rather than manually formulate each endpoint's reaction to congestion signals, as in traditional protocols, we developed a program called Remy that generates congestion-control algorithms to run at the endpoints.In this approach, the protocol designer specifies their prior knowledge or assumptions about the network and an objective that the algorithm will try to achieve, e.g., high throughput and low queueing delay. Remy then produces a distributed algorithm---the control rules for the independent endpoints---that tries to achieve this objective.In simulations with ns-2, Remy-generated algorithms outperformed human-designed end-to-end techniques, including TCP Cubic, Compound, and Vegas. In many cases, Remy's algorithms also outperformed methods that require intrusive in-network changes, including XCP and Cubic-over-sfqCoDel (stochastic fair queueing with CoDel for active queue management). Remy can generate algorithms both for networks where some parameters are known tightly a priori, e.g. datacenters, and for networks where prior knowledge is less precise, such as cellular networks. We characterize the sensitivity of the resulting performance to the specificity of the prior knowledge, and the consequences when real-world conditions contradict the assumptions supplied at design-time.},
+journal = {SIGCOMM Comput. Commun. Rev.},
+month = {aug},
+pages = {123–134},
+numpages = {12},
+keywords = {computer-designed algorithms, congestion control}
+}
 
 
+@inproceedings{exmachina,
+author = {Winstein, Keith and Balakrishnan, Hari},
+title = {TCP Ex Machina: Computer-Generated Congestion Control},
+year = {2013},
+isbn = {9781450320566},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2486001.2486020},
+doi = {10.1145/2486001.2486020},
+abstract = {This paper describes a new approach to end-to-end congestion control on a multi-user network. Rather than manually formulate each endpoint's reaction to congestion signals, as in traditional protocols, we developed a program called Remy that generates congestion-control algorithms to run at the endpoints.In this approach, the protocol designer specifies their prior knowledge or assumptions about the network and an objective that the algorithm will try to achieve, e.g., high throughput and low queueing delay. Remy then produces a distributed algorithm---the control rules for the independent endpoints---that tries to achieve this objective.In simulations with ns-2, Remy-generated algorithms outperformed human-designed end-to-end techniques, including TCP Cubic, Compound, and Vegas. In many cases, Remy's algorithms also outperformed methods that require intrusive in-network changes, including XCP and Cubic-over-sfqCoDel (stochastic fair queueing with CoDel for active queue management). Remy can generate algorithms both for networks where some parameters are known tightly a priori, e.g. datacenters, and for networks where prior knowledge is less precise, such as cellular networks. We characterize the sensitivity of the resulting performance to the specificity of the prior knowledge, and the consequences when real-world conditions contradict the assumptions supplied at design-time.},
+booktitle = {Proceedings of the ACM SIGCOMM 2013 Conference on SIGCOMM},
+pages = {123–134},
+numpages = {12},
+keywords = {congestion control, computer-designed algorithms},
+location = {Hong Kong, China},
+series = {SIGCOMM '13}
+}
+
+@inproceedings{oboe,
+author = {Akhtar, Zahaib and Nam, Yun Seong and Govindan, Ramesh and Rao, Sanjay and Chen, Jessica and Katz-Bassett, Ethan and Ribeiro, Bruno and Zhan, Jibin and Zhang, Hui},
+title = {Oboe: Auto-Tuning Video ABR Algorithms to Network Conditions},
+year = {2018},
+isbn = {9781450355674},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3230543.3230558},
+doi = {10.1145/3230543.3230558},
+abstract = {Most content providers are interested in providing good video delivery QoE for all users, not just on average. State-of-the-art ABR algorithms like BOLA and MPC rely on parameters that are sensitive to network conditions, so may perform poorly for some users and/or videos. In this paper, we propose a technique called Oboe to auto-tune these parameters to different network conditions. Oboe pre-computes, for a given ABR algorithm, the best possible parameters for different network conditions, then dynamically adapts the parameters at run-time for the current network conditions. Using testbed experiments, we show that Oboe significantly improves BOLA, MPC, and a commercially deployed ABR. Oboe also betters a recently proposed reinforcement learning based ABR, Pensieve, by 24% on average on a composite QoE metric, in part because it is able to better specialize ABR behavior across different network states.},
+booktitle = {Proceedings of the 2018 Conference of the ACM Special Interest Group on Data Communication},
+pages = {44–58},
+numpages = {15},
+keywords = {video delivery, adaptive bitrate algorithms},
+location = {Budapest, Hungary},
+series = {SIGCOMM '18}
+}
+
+@inproceedings{auto,
+author = {Chen, Li and Lingys, Justinas and Chen, Kai and Liu, Feng},
+title = {AuTO: Scaling Deep Reinforcement Learning for Datacenter-Scale Automatic Traffic Optimization},
+year = {2018},
+isbn = {9781450355674},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3230543.3230551},
+doi = {10.1145/3230543.3230551},
+abstract = {Traffic optimizations (TO, e.g. flow scheduling, load balancing) in datacenters are difficult online decision-making problems. Previously, they are done with heuristics relying on operators' understanding of the workload and environment. Designing and implementing proper TO algorithms thus take at least weeks. Encouraged by recent successes in applying deep reinforcement learning (DRL) techniques to solve complex online control problems, we study if DRL can be used for automatic TO without human-intervention. However, our experiments show that the latency of current DRL systems cannot handle flow-level TO at the scale of current datacenters, because short flows (which constitute the majority of traffic) are usually gone before decisions can be made.Leveraging the long-tail distribution of datacenter traffic, we develop a two-level DRL system, AuTO, mimicking the Peripheral &amp; Central Nervous Systems in animals, to solve the scalability problem. Peripheral Systems (PS) reside on end-hosts, collect flow information, and make TO decisions locally with minimal delay for short flows. PS's decisions are informed by a Central System (CS), where global traffic information is aggregated and processed. CS further makes individual TO decisions for long flows. With CS&amp;PS, AuTO is an end-to-end automatic TO system that can collect network information, learn from past decisions, and perform actions to achieve operator-defined goals. We implement AuTO with popular machine learning frameworks and commodity servers, and deploy it on a 32-server testbed. Compared to existing approaches, AuTO reduces the TO turn-around time from weeks to ~100 milliseconds while achieving superior performance. For example, it demonstrates up to 48.14% reduction in average flow completion time (FCT) over existing solutions.},
+booktitle = {Proceedings of the 2018 Conference of the ACM Special Interest Group on Data Communication},
+pages = {191–205},
+numpages = {15},
+keywords = {reinforcement learning, datacenter networks, traffic optimization},
+location = {Budapest, Hungary},
+series = {SIGCOMM '18}
+}
+
+@inproceedings{learnroute,
+author = {Valadarsky, Asaf and Schapira, Michael and Shahaf, Dafna and Tamar, Aviv},
+title = {Learning to Route},
+year = {2017},
+isbn = {9781450355698},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3152434.3152441},
+doi = {10.1145/3152434.3152441},
+abstract = {Recently, much attention has been devoted to the question of whether/when traditional network protocol design, which relies on the application of algorithmic insights by human experts, can be replaced by a data-driven (i.e., machine learning) approach. We explore this question in the context of the arguably most fundamental networking task: routing. Can ideas and techniques from machine learning (ML) be leveraged to automatically generate "good" routing configurations? We focus on the classical setting of intradomain traffic engineering. We observe that this context poses significant challenges for data-driven protocol design. Our preliminary results regarding the power of data-driven routing suggest that applying ML (specifically, deep reinforcement learning) to this context yields high performance and is a promising direction for further research. We outline a research agenda for ML-guided routing.},
+booktitle = {Proceedings of the 16th ACM Workshop on Hot Topics in Networks},
+pages = {185–191},
+numpages = {7},
+location = {Palo Alto, CA, USA},
+series = {HotNets-XVI}
+}
+
+@inproceedings{flow,
+author = {Vojislav dhukic and Sangeetha Abdu Jyothi and Bojan Karlas and Muhsen Owaida and Ce Zhang and Ankit Singla},
+title = {Is advance knowledge of flow sizes a plausible assumption?},
+booktitle = {16th USENIX Symposium on Networked Systems Design and Implementation (NSDI 19)},
+year = {2019},
+isbn = {978-1-931971-49-2},
+address = {Boston, MA},
+pages = {565--580},
+url = {https://www.usenix.org/conference/nsdi19/presentation/dukic},
+publisher = {USENIX Association},
+month = feb,
+}
+
+@inproceedings{onlineflow, 
+ author={Poupart, Pascal and Chen, Zhitang and Jaini, Priyank and Fung, Fred and Susanto, Hengky and Yanhui Geng and Li Chen and Chen, Kai and Hao Jin}, 
+ booktitle={2016 IEEE 24th International Conference on Network Protocols (ICNP)}, 
+  title={Online flow size prediction for improved network routing},  
+ year={2016},
+  volume={},  
+number={},  pages={1-6}, 
+ doi={10.1109/ICNP.2016.7785324}}
+
+@inproceedings{oneproto,
+author = {Suraj Jog and Zikun Liu and Antonio Franques and Vimuth Fernando and Sergi Abadal and Josep Torrellas and Haitham Hassanieh},
+title = {One Protocol to Rule Them All: Wireless {Network-on-Chip} using Deep Reinforcement Learning},
+booktitle = {18th USENIX Symposium on Networked Systems Design and Implementation (NSDI 21)},
+year = {2021},
+isbn = {978-1-939133-21-2},
+pages = {973--989},
+url = {https://www.usenix.org/conference/nsdi21/presentation/jog},
+publisher = {USENIX Association},
+month = apr,
+}
+
+@article{heterowire, 
+ author={Yu, Yiding and Wang, Taotao and Liew, Soung Chang}, 
+ journal={IEEE Journal on Selected Areas in Communications},  
+ title={Deep-Reinforcement Learning Multiple Access for Heterogeneous Wireless Networks}, 
+  year={2019}, 
+ volume={37}, 
+ number={6}, 
+ pages={1277-1290}, 
+ doi={10.1109/JSAC.2019.2904329}}
+
+@inproceedings{datadriven,
+author = {Bartulovic, Mihovil and Jiang, Junchen and Balakrishnan, Sivaraman and Sekar, Vyas and Sinopoli, Bruno},
+title = {Biases in Data-Driven Networking, and What to Do About Them},
+year = {2017},
+isbn = {9781450355698},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3152434.3152448},
+doi = {10.1145/3152434.3152448},
+abstract = {Recent efforts highlight the promise of data-driven approaches to optimize network decisions. Many such efforts use trace-driven evaluation; i.e., running offline analysis on network traces to estimate the potential benefits of different policies before running them in practice. Unfortunately, such frameworks can have fundamental pitfalls (e.g., skews due to previous policies that were used in the data collection phase and insufficient data for specific subpopulations) that could lead to misleading estimates and ultimately suboptimal decisions. In this paper, we shed light on such pitfalls and identify a promising roadmap to address these pitfalls by leveraging parallels in causal inference, namely the Doubly Robust estimator.},
+booktitle = {Proceedings of the 16th ACM Workshop on Hot Topics in Networks},
+pages = {192–198},
+numpages = {7},
+location = {Palo Alto, CA, USA},
+series = {HotNets-XVI}
+}
+
+@inproceedings{blackbox,
+author = {Silvery Fu and Saurabh Gupta and Radhika Mittal and Sylvia Ratnasamy},
+title = {On the Use of {ML} for Blackbox System Performance Prediction},
+booktitle = {18th USENIX Symposium on Networked Systems Design and Implementation (NSDI 21)},
+year = {2021},
+isbn = {978-1-939133-21-2},
+pages = {763--784},
+url = {https://www.usenix.org/conference/nsdi21/presentation/fu},
+publisher = {USENIX Association},
+month = apr,
+}
+
+@misc{factor,
+  doi = {10.48550/ARXIV.1703.10722},
+  
+  url = {https://arxiv.org/abs/1703.10722},
+  
+  author = {Kuchaiev, Oleksii and Ginsburg, Boris},
+  
+  keywords = {Computation and Language (cs.CL), Neural and Evolutionary Computing (cs.NE), Machine Learning (stat.ML), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  
+  title = {Factorization tricks for LSTM networks},
+  
+  publisher = {arXiv},
+  
+  year = {2017},
+  
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
+
+@misc{recentnlp,
+  doi = {10.48550/ARXIV.1904.01172},
+  
+  url = {https://arxiv.org/abs/1904.01172},
+  
+  author = {Storks, Shane and Gao, Qiaozi and Chai, Joyce Y.},
+  
+  keywords = {Computation and Language (cs.CL), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  
+  title = {Recent Advances in Natural Language Inference: A Survey of Benchmarks, Resources, and Approaches},
+  
+  publisher = {arXiv},
+  
+  year = {2019},
+  
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
+
+@article{cvsurvey,
+	doi = {10.1109/tpami.2022.3152247},
+  
+	url = {https://doi.org/10.1109%2Ftpami.2022.3152247},
+  
+	year = 2022,
+	publisher = {Institute of Electrical and Electronics Engineers ({IEEE})},
+  
+	pages = {1--1},
+  
+	author = {Kai Han and Yunhe Wang and Hanting Chen and Xinghao Chen and Jianyuan Guo and Zhenhua Liu and Yehui Tang and An Xiao and Chunjing Xu and Yixing Xu and Zhaohui Yang and Yiman Zhang and Dacheng Tao},
+  
+	title = {A Survey on Vision Transformer},
+  
+	journal = {{IEEE} Transactions on Pattern Analysis and Machine Intelligence}
+}
+@techreport{biases,
+    author = {Tom M. Mitchell},
+    title = {The Need for Biases in Learning Generalizations},
+    institution = {Carnegie Mellon University},
+    year = {1980}
+}
 
 
 
