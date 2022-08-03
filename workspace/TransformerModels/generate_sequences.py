@@ -5,6 +5,7 @@ import pickle
 import seaborn as sns; import matplotlib.pyplot as plt
 
 from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
+from utils import vectorize_features_to_numpy_memento_with_receiver_IP_identifier
 from utils import vectorize_features_to_numpy_memento
 from utils import sliding_window_features, sliding_window_delay
 from utils import make_windows_features, make_windows_delay
@@ -92,7 +93,10 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
         df["Normalised Packet Size"] = df["Packet Size"].apply(lambda x: (x - mean_size)/std_size)
 
         if MEMENTO:
-            feature_df, label_df = vectorize_features_to_numpy_memento(df, reduced=True, normalize=True)
+            if NUM_BOTTLENECKS == 1 or NUM_BOTTLENECKS == 2:
+                feature_df, label_df = vectorize_features_to_numpy_memento(df, reduced=True, normalize=True)
+            elif NUM_BOTTLENECKS == 4:
+                feature_df, label_df = vectorize_features_to_numpy_memento_with_receiver_IP_identifier(df, reduced=True, normalize=True)
         else:
             feature_df, label_df = vectorize_features_to_numpy(df)
 

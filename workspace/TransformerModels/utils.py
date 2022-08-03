@@ -125,6 +125,33 @@ def vectorize_features_to_numpy_memento(data_frame, reduced = False, normalize =
         return feature_frame_reduced, label_frame
     return feature_frame, label_frame
 
+def vectorize_features_to_numpy_memento_with_receiver_IP_identifier(data_frame, reduced = False, normalize = True):
+    feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
+    label_frame = data_frame['Delay'] # Scale to ms 
+    feature_frame["Delay"] = feature_frame['Delay'] # Scale to ms 
+    ### Keep the ddelay, mask nth delay in batch during training
+
+    ## Convert the destination IP to single IDs
+    feature_frame["Destination IP"] = feature_frame["Destination IP"].apply(lambda x: get_last_digit(x))
+    # Normalise the destination IP with mean and std 
+    mean_ip = np.mean(feature_frame["Destination IP"])
+    std_ip = np.std(feature_frame["Destination IP"])
+    feature_frame["Destination IP"] = (feature_frame["Destination IP"] - mean_ip) / std_ip
+
+    # feature_frame.drop(['Delay'], axis = 1, inplace=True)
+    feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
+
+    ## Only keep packet size and delay 
+    if normalize:
+        feature_frame_reduced = feature_frame[["Timestamp", "Destination IP", "Normalised Packet Size", "Normalised Delay"]]
+    else:
+        feature_frame_reduced = feature_frame[["Timestamp", "Destination IP", "Packet Size", "Delay"]]
+    feature_frame_reduced["Combined"] = feature_frame_reduced.apply(lambda row: row.to_numpy(), axis=1)
+
+    if reduced:
+        return feature_frame_reduced, label_frame
+    return feature_frame, label_frame
+
 def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False, normalize = True):
     feature_frame = data_frame.drop(['Packet ID', 'Workload ID', 'Application ID'], axis = 1)
     # Shift the IP ID, ECN and the DSCP values by 1
@@ -351,3 +378,7 @@ def reverse_index(index):
     start = 992
     index -= 16
     return (start + index - 1, start + index)
+
+# Extract last digit of the IP integer
+def get_last_digit(ip):
+    return ip % 10

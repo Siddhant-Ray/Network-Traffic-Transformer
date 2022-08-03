@@ -388,8 +388,16 @@ def main():
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    num_features = 3 # If only timestamp, packet size and delay, else 16
-    input_size = sl_win_size * num_features
+    # Hack this a bit due to size mismatch, should be fixed in the future!!
+    if NUM_BOTTLENECKS == 1 or NUM_BOTTLENECKS == 2:  
+        num_features = 3 # If only timestamp, packet size and delay, else 16
+        input_size = sl_win_size * num_features
+    elif NUM_BOTTLENECKS == 4:
+        # Using receiver IP identifier, keep size as same for loading checkpoint, overwrite custom layers
+        # Should be 4 here, but we keep it 3 to enable checkpoint loading and not run into size mismatch
+        # We overwrite custom layers in the model class later, as they are only the linear layers, not Transformer layers
+        num_features = 4 
+        input_size = sl_win_size * (num_features - 1) # Keep this as 3
     output_size = 1
 
     full_feature_arr = []
@@ -412,9 +420,9 @@ def main():
                                                                 checkpoint_path=cpath,
                                                                 strict=True)
 
-        # Freeze everything!!
+        # Freeze or unfreeze everything!!
         for params in model.parameters(): 
-            params.requires_grad = False
+            params.requires_grad = True
         
         # Unfreeze the linear layers
         for params in model.norm1.parameters():
@@ -440,6 +448,18 @@ def main():
         # Do not freeeze anything for non pre-trained
         model = TransformerEncoder(input_size, output_size, LOSSFUNCTION, mean_delay, std_delay, PACKETS_PER_EMBEDDING, pool=False) 
 
+    ## Re-write model to use custom layers with new sizes (if bigger toopology only)
+    if NUM_BOTTLENECKS == 4: 
+        new_packet_size = 4
+        new_input_size = sl_win_size * new_packet_size
+        model.feature_transform1 = nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
+                                    seq=SLIDING_WINDOW_SIZE, feat= new_packet_size), # Make 1000                          
+                                    nn.Linear(new_packet_size, LINEARSIZE),
+                                    nn.LayerNorm(LINEARSIZE), # pre-normalization
+                                )
+        model.encoderpred1= nn.Linear(LINEARSIZE, new_input_size // 8)
+        model.encoderpred2= nn.Linear(new_input_size // 8, output_size)
+        
         
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
                                                             shuffle = True, random_state=42)
@@ -454,9 +474,9 @@ def main():
     # print(train_vectors[0].shape[0])
     # print(train_labels[0].shape[0])
 
-    ## Take 10% fine-tuning data only
+    '''## Take 10% fine-tuning data only
     train_vectors = train_vectors[:int(0.1*len(train_vectors))]
-    train_labels = train_labels[:int(0.1*len(train_labels))]
+    train_labels = train_labels[:int(0.1*len(train_labels))]'''
     
 
     train_dataset = PacketDataset(train_vectors, train_labels)

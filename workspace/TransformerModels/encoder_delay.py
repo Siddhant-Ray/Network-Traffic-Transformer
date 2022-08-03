@@ -447,7 +447,10 @@ def main():
     sl_win_size = SLIDING_WINDOW_SIZE
     sl_win_shift = SLIDING_WINDOW_STEP
 
-    num_features = 3 # If only timestamp, packet size and delay, else 16
+    if NUM_BOTTLENECKS == 1 or NUM_BOTTLENECKS == 2:  
+        num_features = 3 # If only timestamp, packet size and delay, else 16
+    elif NUM_BOTTLENECKS == 4:
+        num_features = 4 # Using receiver IP identifier
     input_size = sl_win_size * num_features
     output_size = 1
 
