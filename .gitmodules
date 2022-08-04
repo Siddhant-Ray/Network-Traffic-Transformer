@@ -1,0 +1,3 @@
+[submodule "workspace/MementoDataForNTT"]
+	path = workspace/MementoDataForNTT
+	url = git@gitlab.ethz.ch:sidray/memento-ns-3-for-ntt.git
