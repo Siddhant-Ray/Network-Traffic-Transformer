@@ -59,7 +59,7 @@ Each transformer block alternates between attention and linear layers, ie betwee
 \begin{figure}[!hbt]
   \begin{center}
     \includegraphics[scale=1.5]{figures/architecture_transformer.pdf}
-    \caption{Original Transformer Architecture, Credits: Alex, HotNets '22}
+    \caption{Original Transformer Architecture, Credits: Alexander Dietmüller}
     \label{fig:transformer}
   \end{center}
 \end{figure}
@@ -88,7 +88,7 @@ Furthermore, BERTs pre-training step is unsupervised/self-supervised, \ie it req
 \begin{figure}[!hbt]
   \begin{center}
     \includegraphics[scale=1.5]{figures/architecture_bert.pdf}
-    \caption{Original BERT Architecture, Credits: Alex, HotNets '22}
+    \caption{Original BERT Architecture, Credits: Alexander Dietmüller}
     \label{fig:bert}
   \end{center}
 \end{figure}
@@ -113,13 +113,13 @@ However adapting the use of Transformers to vision tasks came with a few major c
 To solve this problems, the authors of the Vision Transformer(ViT)\cite{dosovitskiyImageWorth16x162021}, came up with multiple ideas to solve each of these problems, in order to have the data in a form, on which a Transformer could be efficiently trained.
 \begin{itemize}
 \item \emph{Serialize and aggregate the data: } As image data does not have a natural sequence structure, such a structure was artificially introduced. Every image was split at the pixel level and aggregated into patches of dimension 16$\times$16 and each of these patches became a member of the new input ``sequence". As Transformers scale quadratically with increasing sequence size \ref{bg:table1}, this also solved the problem of efficiency and that encodings at the pixel level are too fine-grained to be useful. The embedding and transformer layers were then applied to the resulting sequence of patches, using an architecture similar to BERT.
-\item \emph{Domain Specific Pre-training: } At the heart, most CV problems have very similar training and inference objectives, one of the most common being image classification, which makes most of the vision tasks similar in objective, differing only in environment. This made classification a much more suited task for image data pre-training as opposed to masking and reconstruction. This was exploited by the ViT and both the pre-training and fine-tuning was done with the objective of classification, with only a change in environment between the stages. This also meant that understanding structure in image data, not only required information from the neighbouring patches but also from the whole image, which was possible by using all the encoded patches for classification. We present the details of ViT's pre-training and fine-tuning in Figure \ref{fig:vit}
+\item \emph{Domain Specific Pre-training: } At the heart, most CV problems have very similar training and inference objectives, one of the most common being image classification, which makes most of the vision tasks similar in objective, differing only in environment. This made classification a much more suited task for image data pre-training as opposed to masking and reconstruction. This was exploited by the ViT and both the pre-training and fine-tuning was done with the objective of classification, with only a change in environment between the stages. This also meant that understanding structure in image data, not only required information from the neighbouring patches but also from the whole image, which was possible by using all the encoded patches for classification. We present the details of ViT's pre-training and fine-tuning in Figure \ref{fig:vit}.
 \end{itemize}
 
 \begin{figure}[!hbt]
   \begin{center}
     \includegraphics[scale=1.5]{figures/architecture_vit.pdf}
-    \caption{Original ViT Architecture, Credits: Alex, HotNets '22}
+    \caption{Original ViT Architecture, Credits: Alexander Dietmüller}
     \label{fig:vit}
   \end{center}
 \end{figure}
@@ -131,18 +131,11 @@ Finally, ViT's authors also observe that domain-specific architectures that impl
 \section{Related Work}
 \label{sec:related_work}
 
-Direct comparison wise, there is not much to add here. We claim that no one really tried to solve this problem as it was a ``lost" cause. However, we will add some ML in Networking examples as, as we did look at them to an extent. For the relevant ML part, the previous section covers Transformers in more than enough detail.
+The problem of learning networks dynamics from packet data has been deemed a complex ``lost cause'',  and not a lot of the research community has made much direct effort in this direction. The idea of using large pre-trained machine learning models to learn from abstract network traces, has thus not been explored much. However, application specific adaptions of ML architectures have been used with varying amount of success on network data, and we present some of these efforts and successes here, which helped provide direction to our own ideas and thoughts for this project.
 
-Will mention a bit about 
-\begin{itemize}
-\item MimicNet\cite{zhangMimicNetFastPerformance2021}
-\item Puffer\cite{puffer} 
-\item Aurora\cite{jayDeepReinforcementLearning2019}
-\item Pensieve\cite{maoNeuralAdaptiveVideo2017}
-\item More can be added later  
-\end{itemize}
+In MimicNet\cite{zhangMimicNetFastPerformance2021}, the authors  show that they can provide users with the familiar abstraction of a packet-level simulation for a portion of the network while leveraging redundancy and recent advances in machine learning to quickly and accurately approximate portions of the network that are not directly visible. In Puffer\cite{puffer},  they use supervised learning in situ, with data from the real deployment environment, to train a probabilistic predictor of upcoming chunk transmission times for video streaming. The authors of Aurora\cite{jayDeepReinforcementLearning2019} show that casting congestion control as a reinforcement learning (RL) problem enables training deep network policies that capture intricate patterns in data traffic and network conditions but also claim that fairness, safety, and generalization, are not trivial to address within conventional RL formalism. Pensieve\cite{maoNeuralAdaptiveVideo2017} trains a neural network model that selects bitrates for future video chunks based on observations collected by client video players and  it learns to make ABR decisions solely through observations of the resulting performance of past decisions. Finally, in NeuroPlan\cite{planning} they propose to use a graph neural network (GNN) combined with a novel domain-specific node-link transformation for state encoding and following that, leverage a two-stage hybrid approach that first uses deep RL to prune the search space and then uses an ILP solver to find the optimal solution for the network planning problem.
 
-In hindsight, maybe this section is NOT needed anymore as relevant comparisons have already been made in the motivation section. However, since this is a thesis and not a paper, and over there we only mentioned briefly, maybe we can write some more details too about them here.
+
 
 
 

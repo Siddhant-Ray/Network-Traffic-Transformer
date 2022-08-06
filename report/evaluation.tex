@@ -272,9 +272,7 @@ Finally, the NTT architecture for pre-training needs to be modified slightly, wh
 \subsection{Evaluation on bigger topologies}
 \label{ssec:comptop}
 
-Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay} and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers. We will always have cross-traffic as the data we generate is for fine-tuning.
-
-We hypothesise that learning the network dynamics effectively from a single bottleneck, should be enough to generalise to similar dynamics on multiple bottlenecks , as shown in our new setup in Figure \ref {fig:topo_ft_big}, to a reasonable extent. Hence we will use our pre-trained NTT and fine-tune the model on the packet data generated in our new topology, and expect to generalise based on the prior learnt behaviour. For these experiments, we will use the NTT, which is pre-trained on masking the \emph{last delay}, as our objective is to explore the possibilities and ease of generalizing network dynamics to larger topologies, based on pre-training, rather than achieving the best possible results from it.
+Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay} and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers over different paths. For evaluation, we generate $10$ runs of fine-tuning data, which corresponds to ${\sim}1.7$ million packets, following which we use the sequences generated from this data, to fine-tune on our NTT model. We always have $20$ Mbps of cross traffic, creating altogether $4$ bottlenecks in the network setup , as shown in Figure \ref {fig:topo_ft_big}.
 
 \begin{figure}[h]
   \begin{center}
@@ -284,7 +282,41 @@ We hypothesise that learning the network dynamics effectively from a single bott
   \end{center}
 \end{figure}
 
-Will add results here after the experiments are done, as they are not ready yet. Table will be similar  in layout to Table \ref{eval:table3}. The idea is to generate a new big dataset on the bigger topology (similar to original pre-training dataset size) and  compare fine-tuning with the whole and 10\% vs training the NTT from scratch on the whole and 10\% on this new dataset for delay prediction.
+Learning the network dynamics effectively from a single bottleneck, should be enough to generalise to similar dynamics on multiple bottlenecks , to a reasonable extent. Hence we will use our pre-trained NTT and fine-tune the model on the packet data from the new topology. For these experiments, we will use the base NTT, which is pre-trained on masking the \emph{last delay}. To effectively learn dynamics of packets to different receivers, we will need a feature to distinguish receivers, and for this we add a new feature to our input packet data, an integer to represent the \emph{Receiver ID}. We train the entire NTT architecture, given the complexity in the new data.
 
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ l   c   c  c }
+\toprule
+\emph{Model} &  MSE: Delay Prediction & \# of Epochs    \\
+			&		\emph{all values$\times10^{-3}$}  & trained 	\\ 
+			
+
+\midrule
+\em{NTT}                                                               &       \\                                      
+    \smallindent Pre-trained  +   Fine-tune (full)                                  & 0.004   &     5    \\                  
+    \smallindent Pre-trained  +   Fine-tune ($10\%$)                                  & 0.035   & 12  \\                        
+    \smallindent From scratch  + Fine-tune (full)                                       & 5.2    &   10 \\                      
+     \smallindent From scratch  + Fine-tune ($10\%$)                                    & 8.2  & 15 \\                          
+ \em{Baselines} &       \\  
+    \smallindent ARMA  &       					4.2	& - \\  
+    \smallindent Last observed &     				11.2	& -  \\  
+    \smallindent  	EWMA &     					4.0	& -  \\  
+\em{NTT (Ablated)}           &       \\       
+     \smallindent Pre-trained  +   Fine-tune (full)  : No receiver ID                              & 2.8   &     8    \\   
+      \smallindent From scratch  + Fine-tune (full) : No receiver ID                                  & 2.7    & 15  \\         
+ 
+ \bottomrule
+
+\end{tabular}
+\caption{Fine-tuning NTT on larger topologies with multi-path and bottlenecks. The MSE is calculated on the predicted delay vs the actual delay value.}
+\label{eval:table5}
+\end{table}
+
+We refer to the results in Table \ref{eval:table5} and make the following \emph{key conclusions}, on fine-tuning and generalization behaviour of the NTT architecture.
+
+\paragraph*{Pre-trained NTT generalizes much better:} We observe that pre-training the NTT, prior to fine-tuning really shows very good generalization on learnt bottleneck and congestion behaviour. The learning of sequences structure on this new data is much harder than before, as the same baselines of \emph{ARMA}, \emph{last observed} and \emph{EWMA} perform extremely poorly, indicating the complexity increase in the data and reinforcing that underlying network dynamics need to be learnt in order to make general predictions on delay. We see that the NTT performs the best when when it is pre-trained and fine-tuned on the entire fine-tuning dataset, and also quite well when fine-tuned on $10\%$ of the dataset. Without the pre-training, the NTT fails to learn these dynamics and performs poorly on fine-tuning, even with a lot of fine-tuning data. In our experiments, all models are trained till there is no further improvement in performance, and we see that even with many more training epochs, the NTT \emph{from scratch} cannot learn the dynamics here. This shows that given the same model size, it is much harder to learn dynamics from complex network interactions, without pre-training on simpler data first.
+
+\paragraph*{Receiver ID is needed to learn dynamics:} It is clear from the \emph{ablated NTT}, when we do not use the \emph{Receiver ID} as a feature, the NTT fails to learn in both cases. With the removal of this feature, the NTT can no longer distinguish between traffic directed to different receivers and is unable to separate the bottleneck dynamics, between different sources. In the preliminary NTT training, this was not a problem as the NTT learnt that all congestion is always on the same link, which is not the case here. While we include this as a feature now, we cannot be certain this is the most optimal way, and future versions of NTT, may require different path identifiers. This is beyond the scope of the current project and we move this to future discussion in Section \ref{sec:compftt}.
 
 

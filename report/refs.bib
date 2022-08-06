@@ -984,6 +984,24 @@ note= {NIPS},
 URL= {https://nips.cc/Conferences/2016/ScheduleMultitrack?event=6203},
 }
 
+@inproceedings{planning,
+author = {Zhu, Hang and Gupta, Varun and Ahuja, Satyajeet Singh and Tian, Yuandong and Zhang, Ying and Jin, Xin},
+title = {Network Planning with Deep Reinforcement Learning},
+year = {2021},
+isbn = {9781450383837},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3452296.3472902},
+doi = {10.1145/3452296.3472902},
+abstract = {Network planning is critical to the performance, reliability and cost of web services. This problem is typically formulated as an Integer Linear Programming (ILP) problem. Today's practice relies on hand-tuned heuristics from human experts to address the scalability challenge of ILP solvers.In this paper, we propose NeuroPlan, a deep reinforcement learning (RL) approach to solve the network planning problem. This problem involves multi-step decision making and cost minimization, which can be naturally cast as a deep RL problem. We develop two important domain-specific techniques. First, we use a graph neural network (GNN) and a novel domain-specific node-link transformation for state encoding, in order to handle the dynamic nature of the evolving network topology during planning decision making. Second, we leverage a two-stage hybrid approach that first uses deep RL to prune the search space and then uses an ILP solver to find the optimal solution. This approach resembles today's practice, but avoids human experts with an RL agent in the first stage. Evaluation on real topologies and setups from large production networks demonstrates that NeuroPlan scales to large topologies beyond the capability of ILP solvers, and reduces the cost by up to 17% compared to hand-tuned heuristics.},
+booktitle = {Proceedings of the 2021 ACM SIGCOMM 2021 Conference},
+pages = {258–271},
+numpages = {14},
+keywords = {reinforcement learning, graph neural network, network planning},
+location = {Virtual Event, USA},
+series = {SIGCOMM '21}
+}
+
 
 
 
