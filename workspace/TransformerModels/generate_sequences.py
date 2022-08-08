@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 import pandas as pd, numpy as np
 import os
 import pickle
@@ -32,7 +34,7 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
     full_target_arr = []
     test_loaders = []
 
-    # Choose fine-tuning dataset
+    # Choose fine-tuning dataset (always True for this project)
     MEMENTO = True
 
     if MEMENTO:
@@ -62,9 +64,10 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
             else:
                 print("Invalid number of bottlenecks")
                 exit()
-
+        # Stale branch, never used
         else:
             files = ["small_test_one_disturbance2_final.csv"]
+    # Stale branch, never used        
     else:
         path = "congestion_1/"
         files = ["endtoenddelay_test.csv"]
@@ -165,12 +168,15 @@ def generate_ARIMA_delay_data(NUM_BOTTLENECKS):
     MEMENTO = True 
 
     if MEMENTO:
-        path = "/local/home/sidray/packet_transformer/evaluations/memento_data/"
+        path = "memento_data/"
 
         if NUM_BOTTLENECKS == 1:
             files = ["small_test_no_disturbance1_final.csv"]
         elif NUM_BOTTLENECKS == 2:
             files = ["small_test_one_disturbance_with_message_ids1_final.csv"]
+        elif NUM_BOTTLENECKS == 4:
+            files = ["large_test_disturbance_with_message_ids1_final.csv"]
+
         else:
             print("Invalid number of bottlenecks")
             exit()
@@ -199,7 +205,7 @@ if __name__ == "__main__":
     final_df, mean_delay, std_delay, mean_mct, std_mct = generate_MTC_data()
     
     print(final_df)
-    final_df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/MCT.csv")
+    final_df.to_csv("memento_data/MCT.csv")
 
     print("Mean log size: ", np.mean(final_df["Log Message Size"]))
     print("90%ile log size: ", np.quantile(final_df["Log Message Size"], 0.90))

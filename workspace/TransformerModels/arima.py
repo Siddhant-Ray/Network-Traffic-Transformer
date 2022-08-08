@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from sklearn.metrics import mean_squared_error
@@ -20,6 +22,7 @@ def run_arima():
 
     # count = 0 
     # We want minimum 1023 for the first ARIMA prediction (size of the window)
+    # Make this 29990 -> 9990 for the 10000 history window ARIMA
     for value in range(1023, int(delay_data.shape[0]/116)+29990):
 
         # We want to predict the next value
@@ -64,11 +67,11 @@ if __name__ == "__main__":
 
         # Save the results
         df = pd.DataFrame({"Targets": targets, "Predictions": predictions})
-        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_30000.csv", index=False)
+        df.to_csv("memento_data/ARIMA_30000.csv", index=False)
     
     else:
         print("ARIMA load results from file")
-        df = pd.read_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_30000.csv")
+        df = pd.read_csv("memento_data/ARIMA_30000.csv")
 
         targets = df["Targets"]
         predictions = df["Predictions"].str.split(" ").str[4].str.split("\n").str[0].astype(float)
@@ -76,7 +79,7 @@ if __name__ == "__main__":
         squared_error, mse = evaluate_arima(targets, predictions)
         
         df = pd.DataFrame({"Squared Error": squared_error, "targets": targets, "predictions": predictions})
-        df.to_csv("/local/home/sidray/packet_transformer/evaluations/memento_data/ARIMA_evaluation_30000.csv", index=False)
+        df.to_csv("memento_data/ARIMA_evaluation_30000.csv", index=False)
 
         print(df.head())
 
