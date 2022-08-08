@@ -296,9 +296,9 @@ int main(int argc, char *argv[])
 
     // Network topology 2
     //
-    //                               disturbance1
-    //                                  |
-    //        sender(s) --- switchA --- switchB --- receiver1
+    //                                       disturbance1
+    //                                              |
+    //        3x n_apps(senders) --- switchA --- switchB --- receiver1
     //                      |
     //                      |
     //                      |        disturbance2
