@@ -14,6 +14,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+// Original author: Alexander Dietmüller
+// Modified by: Siddhant Ray
+// Modified flow creations and interactions to generate traffic data for training the NTT model
 
 
 #include <iostream>
