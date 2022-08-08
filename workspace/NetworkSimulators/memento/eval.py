@@ -9,7 +9,7 @@ import matplotlib as mpl
 from matplotlib.ticker import FormatStrFormatter
 
 BIG = False
-TEST = True
+TEST = True # Marked true for fine-tuning data with multiple bottlenecks
 val = sys.argv[1]
 
 sns.set_theme("paper", "whitegrid", font_scale=1.5)
@@ -31,7 +31,7 @@ mpl.rcParams.update({
 })
 
 if not TEST:
-    frame = pd.read_csv("small_test_no_disturbance{}.csv".format(val))
+    frame = pd.read_csv("small_test_no_disturbance_with_message_ids{}.csv".format(val))
 else:
     if not BIG:
         frame = pd.read_csv("small_test_one_disturbance_with_message_ids{}.csv".format(val))
