@@ -1,4 +1,19 @@
-Clone this repository to get started! 
+# Master Thesis of Siddhant Ray, ETH Zurich, 2022
 
-Download the latest thesis draft here.
-[Latest thesis draft](https://gitlab.ethz.ch/nsg/students/projects/2022/ma-2022_packet_transformer/-/jobs/artifacts/main/raw/report/thesis.pdf?job=compile_pdf)
+## Topic: 
+[`Advancing packet-level traffic predictions with Transformers`](https://nsg.ee.ethz.ch/fileadmin/user_upload/thesis_proposal_packet_transformer.pdf)
+
+## Lab: 
+[`Networked Systems Group, ETH Zurich`](https://nsg.ee.ethz.ch/home/)
+
+## Code and reproducing instructions:
+[`Linked here`](workspace/README.md)
+
+## Compiled thesis:
+[`Linked here`](report/README.md)
+
+## Literature: 
+[`Linked here`](literature/README.md)
+
+## Slides:
+[`Linked here`](presentation/README.md)
