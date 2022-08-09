@@ -85,3 +85,14 @@ Based on the fact that different aggregation schemes may be used in future versi
 \chapter{Fine-tuning on multi-path topologies}
 \label{app:c}
 
+We present further insights in this section, about the individual delay distributions seen on each end-to-end path (from sender sources to each individual receiver) as shown in Figure \ref{fig:topo_ft_big}. A-priori, we should not assume that increasing complexity in traffic flows on the network, changes the traffic distributions on each individual path. Our NTT learns dynamics only on a single path during pre-training. We hypothesise that this can generalize topologies with different paths and different dynamics with fine-tuning, and we should ensure that these delay dynamics on different paths (affected by queueing delay and link delay) are fundamentally different.
+
+\begin{figure*}[!h]
+  \begin{center}
+    \includegraphics[scale=0.8]{figures/delay_Receivers.pdf}
+    \caption{Comparing delay distributions across multiple paths}
+    \label{fig:multipatht}
+  \end{center}
+\end{figure*}
+
+
