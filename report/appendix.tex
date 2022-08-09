@@ -52,7 +52,7 @@ This corresponds to increasing the learning rate linearly for the first \emph{wa
 \chapter{Learning with multiple decoders}
 \label{app:b}
 
-In Section \ref{ssec:impptt}, we evaluated the idea of masking different positions in the input sequence, in order to improve the pre-training phase of the NTT.  During this, we realised that with a variable masking approach, it is not always feasible to have a single set of linear layers to effectively act a combined MLP decoder, across all levels of aggregation. We present some further results on using different instances of identical MLP decoders, for different levels of aggregation, which are due to selecting the packet delays to be masked in different ways for pre-training. We summarise our findings in Table \ref{app:table2}
+In Section \ref{ssec:impptt}, we evaluated the idea of masking different positions in the input sequence, in order to improve the pre-training phase of the NTT.  During this, we realised that with a variable masking approach, it is not always feasible to have a single set of linear layers to effectively act a combined MLP decoder, across all levels of aggregation. We present some further results on using different instances of identical MLP decoders, for different levels of aggregation, which are due to selecting the packet delays to be masked in different ways for pre-training. We summarise our findings in Table \ref{app:table2}.
 
 \begin{table}[htbp]
 \centering
@@ -82,17 +82,19 @@ When we choose from \emph{aggregation levels}, the situation is very different a
 
 Based on the fact that different aggregation schemes may be used in future version of the NTT, different numbers of MLP decoders will be needed. One can certainly be sure that, with increasing complexity and aggregation, more complexity will also be required in the decoder architecture, to learn newer kinds of information.
 
-\chapter{Fine-tuning on multi-path topologies}
+\chapter{Delay distributions on the multi-path topology}
 \label{app:c}
 
-We present further insights in this section, about the individual delay distributions seen on each end-to-end path (from sender sources to each individual receiver) as shown in Figure \ref{fig:topo_ft_big}. A-priori, we should not assume that increasing complexity in traffic flows on the network, changes the traffic distributions on each individual path. Our NTT learns dynamics only on a single path during pre-training. We hypothesise that this can generalize topologies with different paths and different dynamics with fine-tuning, and we should ensure that these delay dynamics on different paths (affected by queueing delay and link delay) are fundamentally different.
+We present further insights in this section, about the individual delay distributions seen on each end-to-end path (from sending sources to each individual receiver) as shown in Figure \ref{fig:topo_ft_big}. A-priori, we should not assume that increasing complexity in traffic flows on the network, changes the traffic distributions on each individual path. Our NTT learns dynamics only on a single path during pre-training. We hypothesise that this can generalize to topologies with different paths and different dynamics with fine-tuning. For this we should try to check for the case, when these delay dynamics on different paths (affected by queueing delay and link delay) are different.
 
 \begin{figure*}[!h]
   \begin{center}
     \includegraphics[scale=0.8]{figures/delay_Receivers.pdf}
-    \caption{Comparing delay distributions across multiple paths}
+    \caption{Comparing delay CDFs across multiple paths}
     \label{fig:multipatht}
   \end{center}
 \end{figure*}
+
+We can see in Figure \ref{fig:multipatht} that the network dynamics change considerably, as we increase the paths in the network. We observe that the dynamics change a lot from the path to Receiver 1 to the path to Receiver 2, but in our setup, not so much in the paths to Receiver 2 and Receiver 3. IWe can clearly see from the experimental results in the Section \ref{ssec:comptop}, that the pre-trained NTT generalizes to newer topologies with varying dynamics across different paths. However, for testing the NTT in a more robust manner, it is evident that we need to fine-tune on multiple topologies, with different path dynamics in order to check the true extent of generalization. For the purpose of this thesis, such evaluation is not in the current scope and we leave that to future experiments.
 
 

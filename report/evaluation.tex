@@ -114,7 +114,7 @@ With \emph{no aggregation}, the model has little history available; we observe t
 
 When we consider the NTT versions \emph{without packet size} and \emph{without delay} information (Table \ref{eval:table1}), we observe that neither generalizes well. Without the packet size, the model overfits the pre-training dataset and performs poorly on predicting delay for fine-tuning. This is not surprising as given only a single feature, the model cannot learn relational information well. Without delay information, the model does not produce any useful prediction related to packet delays or MCTs. This is also not surprising as we cannot expect to predict any useful information about the network dynamics, without using any data from it in the pre-training process.
 
-Based on the promising nature of our initial results, we now move to more robust evaluation, harder and more generic pre-training and fine-tuning objectives, in order to explore to what further extent can our NTT perform. We explore further methods to analyse and improve our NTT in the following Section \ref{eval:fres}
+Based on the promising nature of our initial results, we now move to more robust evaluation, harder and more generic pre-training and fine-tuning objectives, in order to explore to what further extent can our NTT perform. We explore further methods to analyse and improve our NTT in the following Section \ref{eval:fres}.
 
 
 \section{Further Results}
@@ -269,10 +269,10 @@ time completion over different pre-training masks}
 Finally, the NTT architecture for pre-training needs to be modified slightly, when we change the masking strategy for learning. For the cases of \emph{choosing from last $16$}, \emph{choosing from last $32$} or \emph{choosing from NTT encoded states}, we use the standard NTT model, with aggregation, followed by a Transformer encoder, followed by a set of linear layers. This method works well in all of the above cases, but does not work in the case of \emph{choosing from aggregation levels}. The most probable reason for this is, that due to equally choosing between the levels of aggregation, every $1/3^{rd}$ of the choices, a completely different type and number of delay values are masked. To handle this, we use three independent instances of the same set of linear layers, one for each kind of aggregation level, in order to effectively learn from each aggregation, and not have a single set of neurons ``pulled" in different directions for every type of masked value.\footnote{We move further studies on using multiple instances of linear layers to Appendix \ref{app:b}.}
 
 
-\subsection{Evaluation on bigger topologies}
+\subsection{Evaluation on multi-path topologies}
 \label{ssec:comptop}
 
-Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay} and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers over different paths. For evaluation, we generate $10$ runs of fine-tuning data, which corresponds to ${\sim}1.7$ million packets, following which we use the sequences generated from this data, to fine-tune on our NTT model. We have $20$ Mbps of cross traffic on the on each of the cross-traffic sources, creating altogether $4$ bottlenecks in the network setup , as shown in Figure \ref {fig:topo_ft_big}.
+Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay} and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers over different paths. For evaluation, we generate $10$ runs of fine-tuning data, which corresponds to ${\sim}1.7$ million packets, following which we use the sequences generated from this data, to fine-tune on our NTT model. We have $20$ Mbps of cross traffic on the on each of the cross-traffic sources, creating altogether $4$ bottlenecks in the network setup, as shown in Figure \ref {fig:topo_ft_big}.
 
 \begin{figure}[h]
   \begin{center}
@@ -289,13 +289,13 @@ As we now fine-tune on topologies with multiple paths and more complex traffic p
     \begin{subfigure}[h]{0.5\textwidth}
         \centering
         \includegraphics[scale=0.57]{figures/delay2.pdf}
-        \caption{Delay distribution, 2 bottlenecks, single run}
+        \caption{Delay CDF, 2 bottlenecks, single run}
     \end{subfigure}%
     ~ 
     \begin{subfigure}[h]{0.5\textwidth}
         \centering
         \includegraphics[scale=0.57]{figures/delay4.pdf}
-        \caption{Delay distribution, 4 bottlenecks, single run}
+        \caption{Delay CDF, 4 bottlenecks, single run}
     \end{subfigure}
     \caption{Comparing delay distributions across different fine-tuning topologies}
     \label{fig:multibottle}

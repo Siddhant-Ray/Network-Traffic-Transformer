@@ -19,14 +19,14 @@ For our task, we use the Network Simulator 3(ns3)\cite{ns3} to generate training
   \end{center}
 \end{figure}
 
-We begin with a simplified scenario of a single-link network topology which connects two hosts, via two switches as shown in Figure \ref{fig:topo}. For the pre-training dataset, each of $60$ senders generates $1Mbps$ of messages from the above mentioned distributions. They send messages over a bottleneck link with $30Mbps$ bandwidth and a queue size of $1000$ packets. We run $10$ simulations for $60$ seconds, each with randomized application start times in a $1-50$ second window. This also ensures none of the applications are too short to actually affect the overall dynamics of the network. The randomization of the start times ensures complex interactions between different flows, which lead to significant variation in dynamics of the network. This helps make the data for the pre-training capture a large, generic underlying distribution, which is hugely beneficial for fine-tuning on specific tasks later. This pre-training dataset contains about $1.2$ million packets. There is a possibility of introducing cross-traffic using a second source of disturbance on the second switch, however we turn it off for generating pre-training data, and try to learn general dynamics from a single bottleneck in the topology.
+We begin with a simplified scenario of a single-link network topology which connects two hosts, via two switches as shown in Figure \ref{fig:topo}, where we show the delay Cumulative Density Function (CDF) and the bottleneck queue behaviour. For the pre-training dataset, each of $60$ senders generates $1Mbps$ of messages from the above mentioned distributions. They send messages over a bottleneck link with $30Mbps$ bandwidth and a queue size of $1000$ packets. We run $10$ simulations for $60$ seconds, each with randomized application start times in a $1-50$ second window. This also ensures none of the applications are too short to actually affect the overall dynamics of the network. The randomization of the start times ensures complex interactions between different flows, which lead to significant variation in dynamics of the network. This helps make the data for the pre-training capture a large, generic underlying distribution, which is hugely beneficial for fine-tuning on specific tasks later. This pre-training dataset contains about $1.2$ million packets. There is a possibility of introducing cross-traffic using a second source of disturbance on the second switch, however we turn it off for generating pre-training data, and try to learn general dynamics from a single bottleneck in the topology.
 
 \begin{figure*}[h]
     \centering
     \begin{subfigure}[h]{0.5\textwidth}
         \centering
         \includegraphics[scale=0.65]{figures/delay.pdf}
-        \caption{Delay cum. distribution, single run}
+        \caption{Delay CDF, single run}
     \end{subfigure}%
     ~ 
     \begin{subfigure}[h]{0.5\textwidth}
@@ -58,7 +58,7 @@ We present our proof of concept Network Traffic Transformer(NTT) as a first Tran
 \begin{figure}[h]
   \begin{center}
     \includegraphics[scale=1]{figures/slidingwindow.pdf}
-    \caption{Sliding window for sequence selection}
+    \caption{Sliding window for sequence selection. Here P0, P1 etc. represent the features at the packet level used as input to the NTT.}
     \label{fig:sliding}
   \end{center}
 \end{figure}
