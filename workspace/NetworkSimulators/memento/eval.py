@@ -55,7 +55,7 @@ sbs = sns.displot(
     x='delay'
 )
 
-sbs.fig.suptitle('Delay plot with multiple senders')
+#sbs.fig.suptitle('Delay plot with multiple senders')
 sbs.set(xlabel='Delay (seconds)', ylabel='Fraction of packets')
 plt.xlim([0,0.5])
 plt.ylim(bottom=0)
@@ -119,8 +119,8 @@ for value in values:
         ci=None,
     )
 
-    scs.fig.suptitle('Bottleneck queue on switch {} '.format(dict_switches[value]))
-    scs.fig.suptitle('Queue on bottleneck switch')
+    #scs.fig.suptitle('Bottleneck queue on switch {} '.format(dict_switches[value]))
+    #scs.fig.suptitle('Queue on bottleneck switch')
     scs.set(xlabel='Simulation Time (seconds)', ylabel='Queue Size (packets)')
     plt.xlim([0,60])
     plt.ylim([0,1000])
@@ -133,31 +133,72 @@ dropframe = pd.read_csv("drops.csv", names=["source", "time", "packetsize"])
 
 print("Drop fraction:", len(dropframe) / (len(dropframe) + len(frame)))
 
-## Plot delay distribution for each receiver
-new_frame = pd.read_csv("large_test_disturbance_with_message_ids{}.csv".format(val))
-new_frame = new_frame[new_frame.columns[[1,7, 23, -8]]]
-new_frame.columns = ["t", "size", "dest ip", "delay"]
-print(new_frame.head())
+if BIG:
+    ## Plot delay distribution for each receiver
+    new_frame = pd.read_csv("large_test_disturbance_with_message_ids{}.csv".format(val))
+    new_frame = new_frame[new_frame.columns[[1,7, 23, -8]]]
+    new_frame.columns = ["t", "size", "dest ip", "delay"]
+    print(new_frame.head())
 
-gb = new_frame.groupby('dest ip')    
-groups = [gb.get_group(x) for x in gb.groups]
-print(groups)
+    gb = new_frame.groupby('dest ip')    
+    groups = [gb.get_group(x) for x in gb.groups]
+    print(groups)
 
-for idx, group in enumerate(groups):
-    print(idx, group.shape)
-    plt.figure(figsize=(5,5))
-    scs = sns.displot(
-            data=group,
-            kind='ecdf',
-            x='delay',
-            legend=False
-        )
+    for idx, group in enumerate(groups):
+        print(idx, group.shape)
+        plt.figure(figsize=(5,5))
+        scs = sns.displot(
+                data=group,
+                kind='ecdf',
+                x='delay',
+                legend=False
+            )
 
-    scs.fig.suptitle('Delay plot on receiver {} '.format(idx+1))
-    scs.set(xlabel='Delay', ylabel='Fraction of packets')
-    plt.xlim([0,0.5])
+        scs.fig.suptitle('Delay plot on receiver {} '.format(idx+1))
+        scs.set(xlabel='Delay', ylabel='Fraction of packets')
+        plt.xlim([0,0.5])
+        # Tight layout
+        scs.fig.tight_layout()
+        plt.savefig("delay_Receiver{}".format(idx)+".pdf")
+
+    fig, ax = plt.subplots(figsize=(5,5))
+    df0 = groups[0]
+    df1 = groups[1]
+    df2 = groups[2]
+
+    scs0 = sns.ecdfplot(
+                data=df0,
+                x='delay',
+                label="Receiver 1",
+                color="blue",
+                ax = ax
+            )
+    scs1 = sns.ecdfplot(
+                data=df1,
+                x='delay',
+                label="Receiver 2",
+                color="red",
+                ax = ax
+            )
+    scs2 = sns.ecdfplot(
+                data=df2,
+                x='delay',
+                label="Receiver 3",
+                color="green",
+                ax = ax
+            )
+
+    ax.set_xlabel("Delay", fontsize=12)
+    ax.set_ylabel("Fraction of packets",fontsize=12)
+    ax.axis(xmin=0,xmax=0.5)
+    ax.lines[0].set_linestyle("dotted")
+    ax.lines[1].set_linestyle("--")
+    ax.lines[2].set_linestyle("-.")
+    fig.legend(["Receiver 1","Receiver 2","Receiver 3"],loc = "lower right", bbox_to_anchor=(0.948, 0.125), ncol=1, fontsize=10)
+    #ax.get_legend().remove()
     # Tight layout
-    scs.fig.tight_layout()
-    plt.savefig("delay_Receiver{}".format(idx)+".pdf")
+    fig.tight_layout()
+    fig.savefig("delay_Receivers"+".pdf")
+
 
         
