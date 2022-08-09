@@ -43,7 +43,13 @@ def generate_sliding_windows(SLIDING_WINDOW_SIZE, WINDOW_BATCH_SIZE, num_feature
         if not TEST_ONLY_NEW:
 
             if NUM_BOTTLENECKS == 1:
-
+                # These are the pre-training data files
+                # These files were generated before the message ID feature was added, as that was not needed for pre-training.
+                # The new files generated have the message ID added, just that the particular feature is not used for pre-training.
+                # This is done to have simpler data generation, with all the features always for better consistency.
+                # Thus, if data is newly generated for pre-training, we must replace
+                # small_test_no_disturbance*_final.csv with small_test_no_disturbance_with_message_ids*_final.csv
+                # where * is the seed number used for generating the data.
                 files = ["small_test_no_disturbance1_final.csv", "small_test_no_disturbance2_final.csv", 
                         "small_test_no_disturbance3_final.csv", "small_test_no_disturbance4_final.csv",
                         "small_test_no_disturbance5_final.csv", "small_test_no_disturbance6_final.csv",

@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 import os
 import pandas as pd
 import numpy as np
@@ -45,11 +47,12 @@ def generate_senders_csv(path, n_senders):
     # files = ["topo_1.csv", "topo_2.csv", "topo_test_1.csv", "topo_test_2.csv"]
     #files = ["topo_more_data_1.csv", "topo_more_data_2.csv", "topo_more_data_3.csv", 
             #"topo_more_data_4.csv", "topo_more_data_5.csv", "topo_more_data_6.csv"]
-
-    '''files = ["small_test_no_disturbance1.csv", "small_test_no_disturbance2.csv", "small_test_no_disturbance3.csv",
-            "small_test_no_disturbance4.csv", "small_test_no_disturbance5.csv", "small_test_no_disturbance6.csv",
-            "small_test_no_disturbance7.csv", "small_test_no_disturbance8.csv", "small_test_no_disturbance9.csv",
-            "small_test_no_disturbance10.csv", "small_test_one_disturbance1.csv", "small_test_one_disturbance2.csv"]'''
+    
+    '''files = ["small_test_no_disturbance_with_message_ids1.csv", "small_test_no_disturbance_with_message_ids2.csv",
+                "small_test_no_disturbance_with_message_ids3.csv", "small_test_no_disturbance_with_message_ids4.csv",
+                "small_test_no_disturbance_with_message_ids5.csv", "small_test_no_disturbance_with_message_ids6.csv",
+                "small_test_no_disturbance_with_message_ids7.csv", "small_test_no_disturbance_with_message_ids8.csv",
+                "small_test_no_disturbance_with_message_ids9.csv", "small_test_no_disturbance_with_message_ids10.csv"]'''
 
     '''files = ["small_test_one_disturbance_with_message_ids1.csv", "small_test_one_disturbance_with_message_ids2.csv",
             "small_test_one_disturbance_with_message_ids3.csv", "small_test_one_disturbance_with_message_ids4.csv",
@@ -114,7 +117,7 @@ def main():
     print(args)
 
     if args.model == "memento":
-        path  = "/local/home/sidray/packet_transformer/outputs/results/"
+        path  = "results/"
     
     else:
         pass

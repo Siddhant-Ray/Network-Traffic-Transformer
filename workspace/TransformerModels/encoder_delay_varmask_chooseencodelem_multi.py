@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 from locale import normalize
 import random, os, pathlib
 from ipaddress import ip_address
@@ -612,6 +614,9 @@ def main():
     label = test_lbls[0]
     print(f"Feature: {feature}")
     print(f"Label: {label}")
+
+    # Make new dir for storing logs
+    os.system("mkdir -p encoder_delay_varmask_logs/")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_varmask_logs/")
         

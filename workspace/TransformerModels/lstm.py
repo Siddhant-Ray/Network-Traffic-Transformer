@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 from locale import normalize
 import random, os, pathlib
 from ipaddress import ip_address
@@ -529,7 +531,10 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")'''
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs2/")
+    # Create dir to store logs
+    os.system("mkdir -p lstm_logs/")
+
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="lstm_logs/")
         
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
@@ -544,13 +549,13 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf lstm_logs2/lightning_logs/")
+        os.system("rm -rf lstm_logs/lightning_logs/")
 
         trainer.fit(model, train_loader, val_loader)    
         print("Finished training at:")
         time = datetime.now()
         print(time)
-        trainer.save_checkpoint("lstm_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
+        trainer.save_checkpoint("lstm_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE))
 
     if SAVE_MODEL:
         pass 
@@ -558,7 +563,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "lstm_logs2/lightning_logs/version_0"
+        log_dir = "lstm_logs/lightning_logs/version_0"
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -581,7 +586,7 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders = test_loader)
         else:
-            cpath = "lstm_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+            cpath = "lstm_logs/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
             testmodel = LSTMEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                             loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                             delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,

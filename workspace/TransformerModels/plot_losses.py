@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 from tbparse import SummaryReader
 import seaborn as sns
 import matplotlib.pyplot as plt

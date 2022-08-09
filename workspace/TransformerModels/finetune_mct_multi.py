@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 from locale import normalize
 import random, os, pathlib
 from ipaddress import ip_address
@@ -300,7 +302,7 @@ class TransformerEncoder(pl.LightningModule):
         
         # Compute the loss 
         y = y.unsqueeze(1)
-        loss = self.loss_func(torch.exp(mct_pred), torch.exp(y))
+        loss = self.loss_func(mct_pred, y)
         self.log('Test loss', loss)
 
         predictions = mct_pred
@@ -355,7 +357,7 @@ def main():
 
     if PRETRAINED:
         ## Model definition with delay scaling params (from pretrained model)
-        cpath = "encoder_delay_varmask_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+        cpath = "checkpoints/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
         model = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                                 loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                                 delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
@@ -485,7 +487,7 @@ def main():
     print("Alpha 0.01", mse_001)
     print("Alpha 0.1", mse_01)
 
-    baseline_mse = np.mean(np.square(np.subtract(np.exp(targets), np.exp(predictions))))
+    baseline_mse = np.mean(np.square(np.subtract(targets, predictions)))
     print("MSE on previous MCT as prediction is", baseline_mse)
 
     train_dataset = MCTDataset(train_vectors, train_labels)
@@ -498,6 +500,8 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
     test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
 
+    # Make new dir for storing logs
+    os.system("mkdir -p finetune_mct_logs/")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_mct_logs/")
         

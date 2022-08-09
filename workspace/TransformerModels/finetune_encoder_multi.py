@@ -1,3 +1,5 @@
+# Orignal author: Siddhant Ray
+
 from locale import normalize
 import random, os, pathlib
 from ipaddress import ip_address
@@ -424,7 +426,7 @@ def main():
                                                                 NUM_BOTTLENECKS)
     if PRETRAINED:
         ## Model definition with delay scaling params (from pretrained model)
-        cpath = "encoder_delay_varmask_logs2/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
+        cpath = "checkpoints/finetune_nonpretrained_window{}.ckpt".format(SLIDING_WINDOW_SIZE)
         model = TransformerEncoder.load_from_checkpoint(input_size = input_size, target_size = output_size,
                                                                 loss_function = LOSSFUNCTION, delay_mean = mean_delay, 
                                                                 delay_std = std_delay, packets_per_embedding = PACKETS_PER_EMBEDDING,
@@ -512,6 +514,9 @@ def main():
     label = test_lbls[0]
     print(f"Feature: {feature}")
     print(f"Label: {label}")
+
+    # Make new dir for storing logs
+    os.system("mkdir -p finetune_encoder_logs/")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="finetune_encoder_logs/")
         
