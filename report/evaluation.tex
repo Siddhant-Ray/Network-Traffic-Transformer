@@ -272,7 +272,7 @@ Finally, the NTT architecture for pre-training needs to be modified slightly, wh
 \subsection{Evaluation on bigger topologies}
 \label{ssec:comptop}
 
-Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay} and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers over different paths. For evaluation, we generate $10$ runs of fine-tuning data, which corresponds to ${\sim}1.7$ million packets, following which we use the sequences generated from this data, to fine-tune on our NTT model. We always have $20$ Mbps of cross traffic, creating altogether $4$ bottlenecks in the network setup , as shown in Figure \ref {fig:topo_ft_big}.
+Till now, our experimental studies have been carried out on the single link topology as shown in Figure \ref{fig:topo_ft}. Our feature from the network state to learn the network dynamics is \emph{end-to-end delay}, which is the combination of the \emph{queuing delay} and the \emph{path delay}. As we had a single link topology for our evaluation, the \emph{path delay} was always constant and learning the dynamics was dominated by the queuing delay factor. We move to evaluation on a larger topology now, with different paths of multiple lengths, in order to also have more contribution from the path delay in our \emph{end-to-end delay} metric. Our method of traffic generation is similar to before, we have multiple applications sending traffic but we also have multiple receivers over different paths. For evaluation, we generate $10$ runs of fine-tuning data, which corresponds to ${\sim}1.7$ million packets, following which we use the sequences generated from this data, to fine-tune on our NTT model. We have $20$ Mbps of cross traffic on the on each of the cross-traffic sources, creating altogether $4$ bottlenecks in the network setup , as shown in Figure \ref {fig:topo_ft_big}.
 
 \begin{figure}[h]
   \begin{center}
@@ -281,6 +281,26 @@ Till now, our experimental studies have been carried out on the single link topo
     \label{fig:topo_ft_big}
   \end{center}
 \end{figure}
+
+As we now fine-tune on topologies with multiple paths and more complex traffic patterns, it is necessary to ensure that the distribution of the overall traffic (which represents the underlying dynamics) actually changes with the new topology. For this, we refer to Figure \ref{fig:multibottle} and compare the delay distributions between the topology in Figure \ref{fig:topo_ft} (on the left) and the topology in Figure \ref{fig:topo_ft_big} (on the right), to ensure that the overall behaviour of the data to be learnt, actually changes.\footnote{We move more details on individual path distributions to Appendix \ref{app:c}.} 
+
+\begin{figure*}[h]
+    \centering
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.55]{figures/delay2.pdf}
+        \caption{Delay distribution, 2 bottlenecks, single run}
+    \end{subfigure}%
+    ~ 
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.55]{figures/delay4.pdf}
+        \caption{Delay distribution, 4 bottlenecks, single run}
+    \end{subfigure}
+    \caption{Comparing delay distributions across different fine-tuning topologies}
+    \label{fig:multibottle}
+\end{figure*}
+
 
 Learning the network dynamics effectively from a single bottleneck, should be enough to generalise to similar dynamics on multiple bottlenecks , to a reasonable extent. Hence we will use our pre-trained NTT and fine-tune the model on the packet data from the new topology. For these experiments, we will use the base NTT, which is pre-trained on masking the \emph{last delay}. To effectively learn dynamics of packets to different receivers, we will need a feature to distinguish receivers, and for this we add a new feature to our input packet data, an integer to represent the \emph{Receiver ID}. We train the entire NTT architecture, given the complexity in the new data.
 
