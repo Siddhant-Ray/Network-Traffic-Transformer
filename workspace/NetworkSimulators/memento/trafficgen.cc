@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
     auto addrReceiver1 = addresses.GetAddress(0, 0);
     auto addrReceiver2 = addresses.GetAddress(2, 0);
     auto addrReceiver3 = addresses.GetAddress(4, 0);
-
+    
     NS_LOG_INFO("Create Traffic Applications.");
 
     // Send multi application data to receiver 1
@@ -598,12 +598,12 @@ int main(int argc, char *argv[])
         NS_LOG_INFO("Configure congestion app for receiver 2.");
         // Just blast UDP traffic from time to time
         Ptr<Application> congestion_sink = CreateObjectWithAttributes<PacketSink>(
-            "Local", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
+            "Local", AddressValue(InetSocketAddress(addrReceiver2, 2100)),
             "Protocol", UDP, "StartTime", simStart, "StopTime", simStop);
         receiver2->AddApplication(congestion_sink);
 
         Ptr<Application> congestion_source = CreateObjectWithAttributes<OnOffApplication>(
-            "Remote", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
+            "Remote", AddressValue(InetSocketAddress(addrReceiver2, 2100)),
             "Protocol", UDP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),
@@ -681,12 +681,12 @@ int main(int argc, char *argv[])
         NS_LOG_INFO("Configure congestion app for receiver 3.");
         // Just blast UDP traffic from time to time
         Ptr<Application> congestion_sink = CreateObjectWithAttributes<PacketSink>(
-            "Local", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
+            "Local", AddressValue(InetSocketAddress(addrReceiver3, 2100)),
             "Protocol", UDP, "StartTime", simStart, "StopTime", simStop);
         receiver3->AddApplication(congestion_sink);
 
         Ptr<Application> congestion_source = CreateObjectWithAttributes<OnOffApplication>(
-            "Remote", AddressValue(InetSocketAddress(addrReceiver1, 2100)),
+            "Remote", AddressValue(InetSocketAddress(addrReceiver3, 2100)),
             "Protocol", UDP,
             "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"),

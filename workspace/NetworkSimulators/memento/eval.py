@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import FormatStrFormatter
 
-BIG = False
+BIG = True
 TEST = True # Marked true for fine-tuning data with multiple bottlenecks
 val = sys.argv[1]
 
@@ -132,3 +132,32 @@ for value in values:
 dropframe = pd.read_csv("drops.csv", names=["source", "time", "packetsize"])
 
 print("Drop fraction:", len(dropframe) / (len(dropframe) + len(frame)))
+
+## Plot delay distribution for each receiver
+new_frame = pd.read_csv("large_test_disturbance_with_message_ids{}.csv".format(val))
+new_frame = new_frame[new_frame.columns[[1,7, 23, -8]]]
+new_frame.columns = ["t", "size", "dest ip", "delay"]
+print(new_frame.head())
+
+gb = new_frame.groupby('dest ip')    
+groups = [gb.get_group(x) for x in gb.groups]
+print(groups)
+
+for idx, group in enumerate(groups):
+    print(idx, group.shape)
+    plt.figure(figsize=(5,5))
+    scs = sns.displot(
+            data=group,
+            kind='ecdf',
+            x='delay',
+            legend=False
+        )
+
+    scs.fig.suptitle('Delay plot on receiver {} '.format(idx+1))
+    scs.set(xlabel='Delay', ylabel='Fraction of packets')
+    plt.xlim([0,0.5])
+    # Tight layout
+    scs.fig.tight_layout()
+    plt.savefig("delay_Receiver{}".format(idx)+".pdf")
+
+        

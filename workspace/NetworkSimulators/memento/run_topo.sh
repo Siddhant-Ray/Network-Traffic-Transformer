@@ -31,7 +31,7 @@
 
 mkdir -p results
 ./docker-run.sh waf --run "trafficgen 
-                    --topo=$2
+                    --topo=$1
                     --apps=20
                     --apprate=1Mbps
                     --startwindow=50 
