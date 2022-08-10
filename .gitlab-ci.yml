@@ -27,13 +27,29 @@ compile_pdf:
     paths: 
       - ./report/thesis.pdf  # instruct GitLab to keep the thesis.pdf file
 
+compile_slides:
+stage: build
+  image: texlive/texlive  
+  script: 
+        - cd presentation/
+        - rm -f *.dvi *.log *.aux *.bbl *.blg *.toc *.lof *.lot *.cb *.~ *.out *.fdb_latexmk *.fls *.nav *.snm 
+        - pdflatex slides
+        - pdflatex slides # build the pdf just as you would on your computer
+  artifacts:
+    paths: 
+      - ./presentation/slides.pdf  # instruct GitLab to keep the slides.pdf file
+
+
 pages:
   stage: deploy
   script:
     - mkdir test_report  # create a folder called public
     - cp report/thesis.pdf test_report  # copy the pdf file into the public folder
+    - mkdir test_slides
+    - cp presentation/test_slides test_slides
   artifacts:
     paths: 
       - test_report  # instruct GitLab to keep the public folder
+      - test_slides 
   only: 
     - main  # deploy the pdf only for commits made to the main branch 
