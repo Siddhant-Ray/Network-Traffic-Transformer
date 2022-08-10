@@ -28,7 +28,7 @@ compile_pdf:
       - ./report/thesis.pdf  # instruct GitLab to keep the thesis.pdf file
 
 compile_slides:
-stage: build
+  stage: build
   image: texlive/texlive  
   script: 
         - cd presentation/
