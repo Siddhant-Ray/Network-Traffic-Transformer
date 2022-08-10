@@ -4,13 +4,17 @@
 \usetheme{CambridgeUS}
 \usecolortheme{default}
 \usepackage{tikz}
+\usepackage{caption}
+\captionsetup{font=scriptsize,labelfont=normalsize}
+\captionsetup[figure]{labelformat=empty}
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
 
 %------------------------------------------------------------
 %This block of code defines the information to appear in the
 %Title page
 \title[Master Thesis] %optional
 {Advancing Packet-Level Predictions with Transformers}
-
+\date{September 1, 2022}
 \author[Siddhant Ray] % (optional)
 {Siddhant Ray}
 
@@ -20,7 +24,9 @@
   ETH Zürich
 }
 
-\date[September 2022] % (optional)
+
+
+%\date[September 2022] % (optional)
 
 \titlegraphic{
     \includegraphics[width=2cm]{figures/nsg_logo.pdf}
@@ -69,14 +75,34 @@
 \begin{frame}
 \frametitle{Why Transformers?}
 
-Show vision figure here.
-
 \begin{itemize}
-    \item<1-> Efficient learning with attention
-    \item<1-> Data availability
-    \item<2-> Re-use, don't re-train from scratch
-    \item<2-> Fine-tune for specific tasks
-    \end{itemize}
+    \item<1-> Efficient learning with attention mechanism
+    \item<1-> Large datasets available to learn from
+    \item<2-> State-of-art for sequence learning 
+     \item<2-> Network packet data is a sequence
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Why Transformers?}
+
+We present the Network Traffic Transformer(NTT):
+\pause
+
+ \begin{itemize}  
+    \item<1-> Pre-train on network packet data (few times)
+    \item<1-> Fine-tune for specific tasks (many times)
+\end{itemize}
+
+\begin{figure}[!hbt]
+  \begin{center}
+    \includegraphics[scale=0.8]{figures/vision.pdf}
+    \caption{Pre-train today, fine-tune and re-use tomrrow}
+    \label{fig:vision}
+  \end{center}
+\end{figure}
+    
+    
 \end{frame}
 
 %---------------------------------------------------------
@@ -85,9 +111,17 @@ Show vision figure here.
 %---------------------------------------------------------
 %Example of the \pause command
 \begin{frame}
-\frametitle{Success in CV and NLP}
-Show \pause
-examples.
+\frametitle{Success in NLP and CV}
+BERT:
+
+add small list
+\pause
+
+Vision Transformer:
+
+add small list
+
+
 \end{frame}
 %---------------------------------------------------------
 
@@ -95,35 +129,64 @@ examples.
 
 %---------------------------------------------------------
 %Highlighting text
+
 \begin{frame}
 \frametitle{NTT architecture}
-Show architecture. \pause
 
-\alert{highlight} stuff because it's important.
-Not too much. \pause 
+Feature selection for NTT's input data:
+\pause 
+\begin{itemize}
+    \item<1-> \alert{Relative timestamp:} To learn sequence order
+    \item<1-> \alert{End-to-end delay:} To learn network state information
+    \item<1-> \alert{Packet size:} To learn packet state information
+\end{itemize}
 
-\begin{block}{Remark}
-Use block if needed
-\end{block}
-\pause
-
-\begin{alertblock}{Important theorem}
-Alert probably not needed.
-\end{alertblock}
-\pause
-
-\begin{examples}
-Some examples?
-\end{examples}
 \end{frame}
+
+\begin{frame}
+\frametitle{NTT architecture}
+
+\begin{figure}[!hbt]
+  \begin{center}
+    \includegraphics[scale=0.8]{figures/architecture_ntt.pdf}
+    \caption{The Network Traffic Transformer (NTT) with
+        an embedding layer, % for feature extraction,
+        an aggregation layer, and
+        a transformer encoder.}
+    \label{fig:ntt}
+  \end{center}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{NTT architecture}
+
+NNT's learning strategies: 
+\pause 
+\begin{itemize}
+    \item<1-> \alert{Masking delays:} Reconstruct masked values to sequence structure
+    \item<1-> \alert{Variable masking:} Robust learning with multi-positional masks
+    \item<1-> \alert{Aggregating inputs} To learn and scale to larger sequences
+\end{itemize}
+\end{frame}
+
 
 
 \begin{frame}
 \frametitle{Pre-training setup}
 
-Show topology \pause
 
-Show plots on pre-training \pause
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[scale=0.8]{figures/simple_topo.pdf}
+    \caption{Initial topology for data generation}
+    \label{fig:topo}
+  \end{center}
+\end{figure}
+ 
+ \pause
+
+Show plots on pre-training?? \pause
 
 Show key insights.
 
