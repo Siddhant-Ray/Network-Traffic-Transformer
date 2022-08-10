@@ -46,7 +46,7 @@ pages:
     - mkdir test_report  # create a folder called public
     - cp report/thesis.pdf test_report  # copy the pdf file into the public folder
     - mkdir test_slides
-    - cp presentation/test_slides test_slides
+    - cp presentation/slides.pdf test_slides
   artifacts:
     paths: 
       - test_report  # instruct GitLab to keep the public folder
