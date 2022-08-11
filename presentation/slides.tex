@@ -109,6 +109,7 @@ We present the Network Traffic Transformer(NTT):
     \item<1-> Pre-train on network packet data (few times)
     \item<1-> Fine-tune for specific tasks (many times)
 \end{itemize}
+\pause
 
 \begin{figure}[!hbt]
   \begin{center}
@@ -128,6 +129,7 @@ We present the Network Traffic Transformer(NTT):
 %Example of the \pause command
 \begin{frame}
 \frametitle{Transformer success in NLP and CV}
+\pause
 
 BERT: Applications of fine-tuning 
 
@@ -216,6 +218,34 @@ NNT's learning strategies:
     \item<1-> Varied start times across sender application flows
     \item<1-> Ensure to have enough variance in pre-training data dynamics 
     \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Pre-training setup}
+
+
+\begin{figure}[h]
+     
+    \captionsetup[subfigure]{justification=centering}
+    \begin{subfigure}[h]{0.5\textwidth}
+    	\begin{center}
+        \centering
+        \includegraphics[scale=0.5]{figures/delay.pdf}
+        \caption{Delay CDF, single simulation run}
+        \end{center}
+    \end{subfigure}%
+    ~ 
+    \begin{subfigure}[h]{0.5\textwidth}
+    	\begin{center}
+        \centering
+        \includegraphics[scale=0.5]{figures/queue_profile_A.pdf}
+        \caption{Bottleneck queue profile on the single-path topology}
+        \end{center}    
+    \end{subfigure}
+    \caption{Distribution plots on pre-training data}
+    \label{fig:datadist}
+    \end{figure}
 
 \end{frame}
 
@@ -418,7 +448,7 @@ time completion over different pre-training masks}
 \begin{figure}[h]
   \begin{center}
     \includegraphics[scale=0.55]{figures/questions.pdf}
-    \label{fig:topo_ft_big}
+    \label{fig:questions}
   \end{center}
 \end{figure}
 
