@@ -7,7 +7,23 @@
 \usepackage{caption}
 \captionsetup{font=scriptsize,labelfont=normalsize}
 \captionsetup[figure]{labelformat=empty}
+\captionsetup[table]{labelformat=empty}
+\captionsetup[subfigure]{labelformat=empty}
 \setbeamertemplate{caption}{\raggedright\insertcaption\par}
+
+
+\newcommand{\smallindent}{\hphantom{N}}
+
+\usepackage{lmodern}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{etoolbox}
+
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{subcaption}
+
+
 
 %------------------------------------------------------------
 %This block of code defines the information to appear in the
@@ -78,7 +94,7 @@
 \begin{itemize}
     \item<1-> Efficient learning with attention mechanism
     \item<1-> Large datasets available to learn from
-    \item<2-> State-of-art for sequence learning 
+    \item<2-> State-of-art for sequence learning problems
      \item<2-> Network packet data is a sequence
 \end{itemize}
 \end{frame}
@@ -97,7 +113,7 @@ We present the Network Traffic Transformer(NTT):
 \begin{figure}[!hbt]
   \begin{center}
     \includegraphics[scale=0.8]{figures/vision.pdf}
-    \caption{Pre-train today, fine-tune and re-use tomrrow}
+    \caption{Pre-train today, fine-tune and re-use tomorrow}
     \label{fig:vision}
   \end{center}
 \end{figure}
@@ -111,15 +127,25 @@ We present the Network Traffic Transformer(NTT):
 %---------------------------------------------------------
 %Example of the \pause command
 \begin{frame}
-\frametitle{Success in NLP and CV}
-BERT:
+\frametitle{Transformer success in NLP and CV}
 
-add small list
+BERT: Applications of fine-tuning 
+
+\begin{itemize}  
+    \item<1-> Sentiment analysis
+    \item<1-> Question answering
+    \item<1-> Paraphrase detection
+\end{itemize}
 \pause
 
-Vision Transformer:
+Vision Transformer: Applications of fine-tuning 
 
-add small list
+\begin{itemize}  
+    \item<1-> Image classification
+    \item<1-> Object detection
+    \item<1-> Segmentation
+\end{itemize}
+
 
 
 \end{frame}
@@ -166,7 +192,7 @@ NNT's learning strategies:
 \begin{itemize}
     \item<1-> \alert{Masking delays:} Reconstruct masked values to learn sequences 
     \item<1-> \alert{Variable masking:} Robust learning with multi-positional masks
-    \item<1-> \alert{Aggregating inputs} To learn and scale to larger sequences
+    \item<1-> \alert{Aggregating inputs:} To learn and scale to larger sequences
 \end{itemize}
 \end{frame}
 
@@ -186,9 +212,10 @@ NNT's learning strategies:
  
  \pause
 
-Show plots on pre-training?? \pause
-
-Show key insights.
+\begin{itemize}
+    \item<1-> Varied start times across sender application flows
+    \item<1-> Ensure to have enough variance in pre-training data dynamics 
+    \end{itemize}
 
 \end{frame}
 
@@ -204,26 +231,172 @@ Show key insights.
 \frametitle{Understanding NTT's Performance}
 
 
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[scale=0.8]{figures/simple_topo_ft.pdf}
+    \caption{Fine-tuning data generation, single path topology}
+    \label{fig:topo_ft}
+  \end{center}
+\end{figure}
 
-\begin{columns}
-\column{0.5\textwidth}
-Use two columns 
-\column{0.5\textwidth}
-only if needed.
-\end{columns}
+\pause 
+
+\begin{itemize}
+    \item<1-> Two bottleneck dynamics to learn 
+    \item<1-> Packet-level fine-tuning task : Predict last delay
+    \item<1-> Flow-level fine-tuning task : Predict Message Completion Time (MCT)
+    \end{itemize}
+
 \end{frame}
 
 
 \begin{frame}
 \frametitle{Understanding NTT's Performance}
 
-Show tables from thesis \pause 
 
-Show plots thesis \pause
+\begin{table}[htbp]
+\footnotesize
+\centering
+\sisetup{detect-weight,mode=text}
+% for avoiding siunitx using bold extended
+\renewrobustcmd{\bfseries}{\fontseries{b}\selectfont}
+\renewrobustcmd{\boldmath}{}
+\newrobustcmd{\B}{\bfseries}
+\begin{tabular}{ l   c   c  c }
+\toprule
+\emph{all values $\times10^{-3}$} & Pre-training  & \multicolumn{2}{c}{Fine-tuning} \\
+\cmidrule{3-4}
+                                                       & {Delay}        & {Delay}                           & {log MCT} \\
+\midrule
+\em{NTT}                                                 &                &                                   &           \\
+    \smallindent Pre-trained                                 & \B 0.072          & \B 0.097                             & \B 65        \\
+    \smallindent From scratch                                & {-}            & 0.313                             & 117       \\
+    \noalign{\vskip 1mm}
+    \em{Baselines}                                                                                                                 \\
+    \smallindent ARMA                                            & 1.800        &  1.180                              &1412 \\
+    \smallindent Last observed                               & 0.142          & 0.121                             & 2189      \\
+    \smallindent EWMA                                        & 0.259          & 0.211                             & 1147      \\
+    \noalign{\vskip 1mm}
+    \em{NTT (Ablated)}                                                                                                        \\
+    \smallindent No aggregation                              & 0.258          & 0.430                             & 61        \\
+    \smallindent Fixed aggregation                           & 0.055          & 0.134                             & 115       \\[0.75mm]
 
-Write key insights.
+    \smallindent Without packet size                         & 0.001          & 8.688                             & 94        \\
+    \smallindent Without delay                               & 15.797         & 10.898                            & 802       \\
+     \bottomrule
+
+\end{tabular}
+\caption{Mean Squared Error (MSE) for all initial NTT models and tasks for the single path topology}
+\label{eval:table1}
+\end{table}
+\end{frame}
+
+\begin{frame}
+\frametitle{On variable masked pre-training}
+
+Variable masking strategies: For bi-directional learning
+\pause
+\begin{itemize}
+    \item<1-> Masking over last 16 delays, no mask over aggregates
+    \item<1-> Masking over last 32 delays, no mask over aggregates 
+    \pause
+    \item<2-> Choose mask over encoded states,  also mask over aggregates
+     \item<2-> Choose mask over aggregation levels,  also mask over aggregates
+\end{itemize}
+
 
 \end{frame}
+
+\begin{frame}
+\frametitle{On variable masked pre-training}
+
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.5]{figures/finetune_mct_loss_comparison.pdf}
+        \caption{Pre-train with no mask over aggregated delays}
+    \end{subfigure}%
+    ~ 
+    \begin{subfigure}[h]{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.5]{figures/finetune_mct_loss_comparison_agg.pdf}
+        \caption{Pre-train with also mask over aggregated delays}
+    \end{subfigure}
+    \caption{Mean-square error for prediction of message
+time completion over different pre-training masks}
+    \label{fig:mct_mask}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{NTT on multi-path topologies}
+
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[scale=0.55]{figures/complex_topo.pdf}
+    \caption{Fine-tuning data generation on multi-path topology}
+    \label{fig:topo_ft_big}
+  \end{center}
+\end{figure}
+
+\pause 
+
+\begin{itemize}
+    \item<1-> Different path delays due to different number of link 
+    \item<1-> Receiver ID needed as a new input feature to distinguish paths
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{NTT on multi-path topologies}
+
+
+\begin{table}[htbp]
+\scriptsize
+\centering
+\sisetup{detect-weight,mode=text}
+% for avoiding siunitx using bold extended
+\renewrobustcmd{\bfseries}{\fontseries{b}\selectfont}
+\renewrobustcmd{\boldmath}{}
+\newrobustcmd{\B}{\bfseries}
+
+\begin{tabular}{ l   c   c  }
+\toprule
+\emph{Model} &  MSE: Delay Prediction & \# of Epochs    \\
+			&		\emph{all values$\times10^{-3}$}  & trained 	\\ 
+			
+
+\midrule
+\em{NTT}                                                               &       \\                                      
+    \smallindent Pre-trained  +   Fine-tune (full)                                  & \B 0.004   &     \B 5    \\                  
+    \smallindent Pre-trained  +   Fine-tune ($10\%$)                                  & 0.035   & 12  \\                        
+    \smallindent From scratch  + Fine-tune (full)                                       & 5.2    &   10 \\                      
+     \smallindent From scratch  + Fine-tune ($10\%$)                                    & 8.2  & 15 \\                          
+ \em{Baselines} &       \\  
+    \smallindent ARMA  &       					4.2	& - \\  
+    \smallindent Last observed &     				11.2	& -  \\  
+    \smallindent  	EWMA &     					4.0	& -  \\  
+\em{NTT (Ablated)}           &       \\       
+     \smallindent Pre-trained  +   Fine-tune (full)  : No Receiver ID                              & 2.8   &     8    \\   
+      \smallindent From scratch  + Fine-tune (full) : No Receiver ID                                  & 2.7    & 15  \\         
+ 
+ \bottomrule
+
+\end{tabular}
+\caption{Fine-tuning NTT on the multi-path topology}
+\label{eval:table5}
+\end{table}
+
+\end{frame}
+
+
+
+
+
 
 %---------------------------------------------------------
 
@@ -241,7 +414,14 @@ Write key insights.
 
 \section{Comments}
 \begin{frame}
-\frametitle{Time for questions}
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[scale=0.55]{figures/questions.pdf}
+    \label{fig:topo_ft_big}
+  \end{center}
+\end{figure}
+
 
 \end{frame}
 
