@@ -91,7 +91,8 @@ information and argue that the selected features have enough information to mode
 \item \emph{packet size:} The packet size is used as a feature as it determines the fate of the packet from the packet state. The size of the packet affects the number of packets which can be accommodated in the queue buffer, \eg larger packets means less packets are present in the queue at the particular point in time. This helps in learning the dynamics of the fate of the packet which is directly affected by the state of other packets.
 \item \emph{end-to-end delay:} The end to end delay in our setup includes both the queueing delay of the packet, along with the path delay. This delay reflects the state of the network at any given point of time, as the delay is caused by the complex interaction between packets and also reflects effects of tangible networks conditions such as congestion, packet drops etc.
 \end{itemize}
-These enable learning embeddings with temporal(evolution of delays over time) and spatial(impact of packet size on the delay) patterns.We discuss the challenge of embedding more information in future section.
+
+These enable learning embeddings with temporal (evolution of delays over time) and spatial (impact of packet size on the delay) patterns. At this point, the clear hypothesis is that these $3$ features will be needed in some form at least, for the NTT to learn and generalize on the network dynamics. It may also happen that for future versions of the NTT, when fine-tuned on complex topologies, may require additional features to distinguish between differences in the data, in terms of path travelled, subnets they belong to etc. In Chapter \ref{cha:evaluation}, we will investigate need for such further features and discuss the challenge of embedding more such information in Chapter \ref{cha:outlook}. 
 
 \begin{figure}[!hbt]
   \begin{center}
@@ -118,7 +119,7 @@ Coming up with an aggregation scheme which works universally is hard. While comi
 , we argue that this is suboptimal for two reasons.
 \begin{itemize}
 \item First, it is not easy to choose such a fixed number, as this might be extremely dependent on the future tasks we want to use our NTT for.
-\item Secondly, we hypothesise that due to the nature of structure of packet data, it is more useful to have representation of both aggregated and individual packets.  A fixed aggregation size would mean giving up packet level details completely.\footnote{We do explore the results of fixed aggregation sizes in Chapter \ref{cha:evaluation}.}
+\item Secondly, we hypothesise that due to the nature of structure of packet data, it is more useful to have representation of both aggregated and individual packets.  A fixed aggregation size would mean giving up packet level details completely, which may cause loss in more fine-grained details.\footnote{We do explore the results of fixed aggregation sizes in Chapter \ref{cha:evaluation}.}
 \end{itemize}
  
 In order to achieve this, we keep the most recent packets without aggregation and the longer traffic is in the past, the more we aggregate, as packet-level details become less relevant to predict the current traffic dynamics. We do this on the argument that most recent information at the packet level is more useful for predict next element's behaviour, whereas individual packets much further in the past matter less and less depending on to which extent in the past they are present.
@@ -143,7 +144,7 @@ Most recent 32 & None & 16-48 \\
 \end{table}
 
 
-Our multi-timescale aggregation can easily be adapted to a larger sizes of past history without sacrificing recent packet details. The initial choice of numbers to map our initial sequence length to our aggregated sequence are slightly arbitrary and do not have a theoretical basis yet. However, we justify our choice of $48$ as a final sequence length, as given our infrastructure, the Transformer performed reasonably well on these numbers in reasonable training time.\footnote{We will discuss this in further detail in Chapter \ref{cha:evaluation}} Thus, we show that this aggregation is beneficial for both efficiency and performance, but it remains an open question which levels of aggregation generalize best.\footnote{We will revisit this in the Chapter \ref{cha:outlook}.}
+Our multi-timescale aggregation can easily be adapted to a larger sizes of past history without sacrificing recent packet details. The initial choice of numbers to map our initial sequence length to our aggregated sequence are slightly arbitrary and do not have a sound theoretical basis yet. We also do not know if matching the packet sequence size to the number of in-flight packets (from the current buffer sizes which give us $1024$ packets) is the best definition of sequence, but it is a logical start, as packets filling into the same buffer, should have closer interactions to an extent. We justify our choice of $48$ as a final sequence length, as given our infrastructure, the Transformer performed reasonably well on these numbers in reasonable training time.\footnote{We will discuss this in further detail in Chapter \ref{cha:evaluation}.} Thus, we show that this aggregation is beneficial for both efficiency and performance, but it remains an open question which levels of aggregation generalize best.\footnote{We will revisit this in the Chapter \ref{cha:outlook}.}
 
 
 \subsection{Training objectives}

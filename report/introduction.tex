@@ -22,7 +22,7 @@ As ML algorithms (especially certain deep learning architectures) have shown gen
 \section{Tasks, Goals and Challenges}
 \label{sec:task}
 
-We argue it is still possible to have learning and generalization in networking. Even if the networking contexts (topology, network configuration, traffic, etc.) can be very diverse, the underlying dynamics of networks remain essentially the same; \eg when buffers fill up, queuing disciplines delay or drop packets. These dynamics can be learned with ML and should generalize and it should not be required to re-learn this fundamental behaviour for training a new model every time. Building such a generic network model for network data is challenging, but this effort would benefit the entire community. Starting from such a model, one would only need to collect a small task-specific dataset to fine-tune it (Figure \ref{fig:vision}, bottom), assuming that the pre-trained model generalizes well. This could even allow modelling rare events (\eg drops after link failures) for which, by definition, only little data is available.
+Inspired by ML models which generalize on data in several other fields, it should be possible to design a similar model, in order to have learning and generalization in networking. Even if the networking contexts (topology, network configuration, traffic, etc.) can be very diverse, the underlying dynamics of networks remain essentially the same; \eg when buffers fill up, queuing disciplines delay or drop packets. These dynamics can be learned with ML and should generalize and it should not be required to re-learn this fundamental behaviour for training a new model every time. Building such a generic network model for network data is challenging, but this effort would benefit the entire community. Starting from such a model, one would only need to collect a small task-specific dataset to fine-tune it (Figure \ref{fig:vision}, bottom), assuming that the pre-trained model generalizes well. This could even allow modelling rare events (\eg drops after link failures) for which, across the real network traces today, only little data is available due to its less frequent occurrence.
 
 \begin{figure}
     \centering
@@ -45,6 +45,8 @@ Naively transposing NLP or CV transformers to networking fails, as the fundament
           How do we assemble a dataset large and diverse enough to allow useful generalization?
     \item
           Which pre-training task would allow the model to generalize, and how far can we push generalization?
+    \item 
+    	 How to we scale such a Transformer to arbitrarily large amounts of network data from extremely diverse environments?
 \end{itemize}
 
 \section{Overview}
@@ -54,11 +56,11 @@ We present in our thesis, a Network Traffic Transformer (NTT), which servers a f
 
 \begin{itemize}
 \item We present the required background on Transformers, which gives directions to our design, in Chapter \ref{cha:background}.
-\item We present the detailed design ideas behind our proof-of-concept NTT in Chapter \ref{cha:design}.
+\item We present the detailed architectural design ideas behind our proof-of-concept NTT in Chapter \ref{cha:design}.
 \item We present a detailed evaluation on pre-training and fine-tuning our first NTT models in Chapter \ref{cha:evaluation}.
 \item We present several future research directions which can be used to improve our NTT in Chapter \ref{cha:outlook}.
 \item We summarise our work and provide some concluding remarks in Chapter \ref{cha:summary}.
-\item Supplementary technical details and supporting results are presented in Appendix \ref{app:a} and \ref{app:b}. 
+\item Supplementary technical details and supporting results are presented in Appendix \ref{app:a}, \ref{app:b} and \ref{app:c}. 
 \end{itemize}
 
 A part of the work conducted during this thesis has been submitted as the following paper\cite{newhope} to HotNets '22, and hence, we have some parts of the thesis have been built upon work done in writing the paper.
