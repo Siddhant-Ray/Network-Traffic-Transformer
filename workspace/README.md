@@ -34,7 +34,7 @@ The files inside the [PandasScripts](PandasScripts) directory is as follows:
 * [`csv_gendelays.py`](PandasScripts/csv_gendelays.py) : Utility script to pre-process raw NS3 outputs to a format, which makes it easier to create the sliding windows and train the vanilla transformer.
 
 The structure inside the [NetworkSimulators](NetworkSimulators) is as follows:
-* [memento](NetworkSimulators/memento): Contains a working copy of ONLY the relevant code files for generating the pre-training and fine-tuning the NTT models. This cannot be run without the full setup, which is self contained in [`MementoDataforNTT`](MementoDataforNTT). Files inside this [memento](NetworkSimulators/memento) directory, should not be used anymore, except for quick reference.
+* [memento](NetworkSimulators/memento): Contains a working copy of ONLY the relevant code files for generating the pre-training and fine-tuning the NTT models. This cannot be run without the full setup, which is self contained in [`MementoDataforNTT`](https://gitlab.ethz.ch/sidray/memento-ns-3-for-ntt). Files inside this [memento](NetworkSimulators/memento) directory, should not be used anymore, except for quick reference.
 * [ns3](NetworkSimulators/ns3): This was used for initial insights only, and no results from it have been included in the thesis. 
     - Contains a working copy of the relevant code files for generating the pre-training for the vanilla NTT model, which is authored in [`transformer_delay.py`](TransformerModels/transformer_delay.py). To generate this data, you must install ns3 from scratch as mentioned [here](https://www.nsnam.org/docs/release/3.35/tutorial/singlehtml/index.html#prerequisites).Following which, all the `.cc` files in [ns3](NetworkSimulators/ns3) must be put in the `scratch/` directory. This can be tricky, so we will provide a quicker alternative setup.
     - Alternatively, you can run the script [dockerns3.sh](NetworkSimulators/ns3/dockerns3.sh), and use the files [cptodocker.sh](NetworkSimulators/ns3/cptodocker.sh) and [cpfromdocker.sh](NetworkSimulators/ns3/cpfromdocker.sh) to move the code files and results, in and out of the ns3 container.
@@ -71,7 +71,7 @@ Now, install the Python dependencies:
 
     $ pip install -r requirements.txt
 
-The folder (submodule) [`MementoDataforNTT`](MementoDataforNTT) contains instructions to generate the training data using NS3 simulations. The module is self contained and will generate a folder called ```results/```, which will contain the required data. To preprocess, copy the ```results/``` folder into the directory [`PandasScripts`](PandasScripts) and run the script (modify the filesnames inside [`csvhelper_memento.py`](PandasScripts/csvhelper_memento.py) if needed):
+The folder (submodule) [`MementoDataforNTT`](https://gitlab.ethz.ch/sidray/memento-ns-3-for-ntt) contains instructions to generate the training data using NS3 simulations. The module is self contained and will generate a folder called ```results/```, which will contain the required data. To preprocess, copy the ```results/``` folder into the directory [`PandasScripts`](PandasScripts) and run the script (modify the filesnames inside [`csvhelper_memento.py`](PandasScripts/csvhelper_memento.py) if needed):
 
     $ python csvhelper_memento.py --model memento
 
