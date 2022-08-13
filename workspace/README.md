@@ -30,8 +30,8 @@ The files inside the [TransformerModels](TransformerModels) directory is as foll
 * [`transformer_delay.py`](TransformerModels/transformer_delay.py) : A vanilla Transformer encoder-decoder architecture, naively trained on some packet data to predict delays. (this was only for initial insights)
 
 The files inside the [PandasScripts](PandasScripts) directory is as follows:
-* [`csvhelper_memento.py`](PandasScripts/csvhelper_memento.py) : Utility script to pre-process raw NS3 outputs to a format, which makes it easier to create the sliding windows and train the NTT.
-* [`csv_gendelays.py`](PandasScripts/csv_gendelays.py) : Utility script to pre-process raw NS3 outputs to a format, which makes it easier to create the sliding windows and train the vanilla transformer.
+* [`csvhelper_memento.py`](PandasScripts/csvhelper_memento.py) : Utility script to pre-process raw memento NS3 outputs to a format, which makes it easier to create the sliding windows and train the NTT. This is the actual script used.
+* [`csv_gendelays.py`](PandasScripts/csv_gendelays.py) : Utility script to pre-process raw NS3 outputs to a format, which makes it easier to create the sliding windows and train the vanilla transformer. This is NOT used, except for initial insights.
 
 The structure inside the [NetworkSimulators](NetworkSimulators) is as follows:
 * [memento](NetworkSimulators/memento): Contains a working copy of ONLY the relevant code files for generating the pre-training and fine-tuning the NTT models. This cannot be run without the full setup, which is self contained in [`MementoDataforNTT`](https://gitlab.ethz.ch/sidray/memento-ns-3-for-ntt). Files inside this [memento](NetworkSimulators/memento) directory, should not be used anymore, except for quick reference.
