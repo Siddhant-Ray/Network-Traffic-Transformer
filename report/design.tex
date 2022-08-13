@@ -58,7 +58,7 @@ We present our proof of concept Network Traffic Transformer(NTT) as a first Tran
 \begin{figure}[h]
   \begin{center}
     \includegraphics[scale=1]{figures/slidingwindow.pdf}
-    \caption{Sliding window for sequence selection. Here P0, P1 etc. represent the features at the packet level used as input to the NTT.}
+    \caption{Sliding window for sequence selection. Here P0, P1 etc. are packet-level features used as input to the NTT.}
     \label{fig:sliding}
   \end{center}
 \end{figure}
@@ -155,7 +155,15 @@ We aim to learn fundamental network dynamics, for which we need a pre-training t
 
 We take inspiration from masked language models\cite{closemask} in NLP used for training, and argue that masking certain values in a sequence, and reconstructing them, allows for effectively learning the structure in the sequence.
 
-For our initial experiments, we mask the delay of the most recent packet in the sequence to pre-train our NTT.  We used as a fixed mask, \emph{the number $0$}, to replace our actual value, exploiting the fact that the value $0$ never appears in our training data in either the delay or the size values. We can also extend this mask value to more complex data with more features, combining our domain knowledge in networks and shifting possible actual $0$ values by a given constant, using the argument that shifting all values by a constant doesn't change the structure in the data. After the packet is masked, the input sequence is passed through the embedding layer, the transformer encoder, and finally we use a multi-layer perceptron as a decoder to predict the actual delay. As in this pre-training method, we do not have to worry about any of the packets which are aggregated, as those packets are never masked.
+For our initial experiments, we mask the delay value of the most last packet in every input sequence to pre-train our NTT, as shown in Figure \ref{fig:mask}. We used as a fixed mask, \emph{the number $0$}, to replace our actual value, exploiting the fact that the value $0$ never appears in our training data in either the delay or the size values. We can also extend this mask value to more complex data with more features, combining our domain knowledge in networks and shifting possible actual $0$ values by a given constant, using the argument that shifting all values by a constant doesn't change the structure in the data. After the packet is masked, the input sequence is passed through the embedding layer, the transformer encoder, and finally we use a multi-layer perceptron as a decoder to predict the actual delay. As in this pre-training method, we do not have to worry about any of the packets which are aggregated, as those packets are never masked.
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[scale=1]{figures/mask.pdf}
+    \caption{P0-P1023  is our sequence of $1024$ packets each of which have 3 features namely timestamp (TS), size and delay. We mask the delay in the last packet in every sequence. }
+    \label{fig:mask}
+  \end{center}
+\end{figure}
 
 During pre-training, the NTT must learn which useful representation from the input features using the embedding layer, how to aggregate them over time using the aggregation layers, and how the aggregated elements influence each other using the transformer encoder layers. Following this, during the fine-tuning, we replace replace the decoder(Figure \ref{fig:ntt}) to adapt NTT to a new environment(\eg a different network) or to new tasks(\eg predicting message completion times).This is efficient as the knowledge accumulated by NTT during pre-training generalizes well to the new task.\footnote{We demonstrate the findings in Chapter \ref{cha:evaluation}.}
 
