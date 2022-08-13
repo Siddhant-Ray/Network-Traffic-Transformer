@@ -9,10 +9,10 @@
 ## Code and reproducing instructions:
 [`Linked here`](workspace/README.md)
 
-## Compiled thesis:
+## Thesis PDF:
 [`Linked here`](report/README.md)
 
-## Literature: 
+## Literature docs: 
 [`Linked here`](literature/README.md)
 
 ## Slides:
