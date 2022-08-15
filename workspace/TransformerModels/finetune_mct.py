@@ -418,9 +418,8 @@ def main():
     targets = MCTS[1:]  # No previous MCT for first one
     predictions = MCTS[:-1]
 
-    smoothed_001 = ewma(predictions , alpha=0.01)  # This should equal our current res. (updated!)
-    # Some extras I'd like to try.
-    smoothed_01 = ewma(predictions , alpha=0.1)
+    smoothed_001 = ewma(predictions , alpha=0.01)  # 0.01 smoothing
+    smoothed_01 = ewma(predictions , alpha=0.1) # 0.1 smoothing
 
     mse_001 = mse(targets, smoothed_001)
     mse_01 = mse(targets, smoothed_01)

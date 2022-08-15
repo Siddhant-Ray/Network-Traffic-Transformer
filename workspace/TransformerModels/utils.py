@@ -13,6 +13,7 @@ import pytorch_lightning as pl
 from tqdm import tqdm
 import copy
 
+# Dataset helper for PyTorch
 class PacketDataset(torch.utils.data.Dataset):
     def __init__(self, encodings, labels):
         self.encodings = encodings
@@ -26,6 +27,7 @@ class PacketDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
+# Dataset helper for PyTorch with features only
 class PacketDatasetEncoder(torch.utils.data.Dataset):
     def __init__(self, encodings):
         self.encodings = encodings
@@ -37,6 +39,7 @@ class PacketDatasetEncoder(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.encodings)
 
+# Dataset helper for MCT data
 class MCTDataset(torch.utils.data.Dataset):
     def __init__(self, encodings, labels):
         self.encodings = encodings
@@ -64,11 +67,13 @@ def convert_to_relative_timestamp(df):
     df['Timestamp'] = t_arr_abs
     return df
 
+# Convert IP address to integer
 def ipaddress_to_number(df):
     df['Source IP'] = df['Source IP'].apply(lambda s : int(ip_address(s.lstrip(" "))))
     df['Destination IP'] = df['Destination IP'].apply(lambda s : int(ip_address(s.lstrip(" "))))
     return df
 
+# Create feature vectors for input data
 def vectorize_features_to_numpy(data_frame):
     feature_frame = data_frame.drop(['Packet ID', 'Interface ID'], axis = 1)
     label_frame = data_frame['Delay']
@@ -83,8 +88,8 @@ def vectorize_features_to_numpy_masked(data_frame):
     feature_frame["IP ID"] = feature_frame["IP ID"] + np.int64(1) 
     feature_frame["ECN"] = feature_frame["ECN"] + np.int64(1) 
     feature_frame["DSCP"] = feature_frame["DSCP"] + np.int64(1) 
-    feature_frame["Delay"] = feature_frame["Delay"] # Scale to ms 
-    label_frame = data_frame['Delay'] # Scale to ms 
+    feature_frame["Delay"] = feature_frame["Delay"] # In seconds 
+    label_frame = data_frame['Delay'] # In seconds 
     # Scale the timestamp to milli sec, to prevent masked confusion scale]
     # feature_frame["Timestamp"] = feature_frame["Timestamp"]*1000
     feature_frame['Combined'] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
@@ -109,8 +114,8 @@ def vectorize_features_to_numpy_finetune(data_frame):
 
 def vectorize_features_to_numpy_memento(data_frame, reduced = False, normalize = True):
     feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
-    label_frame = data_frame['Delay'] # Scale to ms 
-    feature_frame["Delay"] = feature_frame['Delay'] # Scale to ms 
+    label_frame = data_frame['Delay'] # In seconds  
+    feature_frame["Delay"] = feature_frame['Delay'] # In seconds  
     ### Keep the ddelay, mask nth delay in batch during training
     
     # feature_frame.drop(['Delay'], axis = 1, inplace=True)
@@ -129,8 +134,8 @@ def vectorize_features_to_numpy_memento(data_frame, reduced = False, normalize =
 
 def vectorize_features_to_numpy_memento_with_receiver_IP_identifier(data_frame, reduced = False, normalize = True):
     feature_frame = data_frame.drop(['Packet ID','Workload ID', 'Application ID'], axis = 1)
-    label_frame = data_frame['Delay'] # Scale to ms 
-    feature_frame["Delay"] = feature_frame['Delay'] # Scale to ms 
+    label_frame = data_frame['Delay'] # In seconds  
+    feature_frame["Delay"] = feature_frame['Delay'] # In seconds  
     ### Keep the ddelay, mask nth delay in batch during training
 
     ## Convert the destination IP to single IDs
@@ -160,8 +165,8 @@ def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False, no
     feature_frame["IP ID"] = feature_frame["IP ID"] + np.int64(1) 
     feature_frame["ECN"] = feature_frame["ECN"] + np.int64(1) 
     feature_frame["DSCP"] = feature_frame["DSCP"] + np.int64(1) 
-    label_frame = data_frame['Delay'] # Scale to ms 
-    feature_frame["Delay"] = feature_frame['Delay'] # Scale to ms 
+    label_frame = data_frame['Delay'] # In seconds  
+    feature_frame["Delay"] = feature_frame['Delay'] # In seconds  
 
     ### Keep the ddelay, mask nth delay in batch during training
 
@@ -187,7 +192,7 @@ def vectorize_features_to_numpy_finetune_memento(data_frame, reduced = False, no
 # Features for message completion time (message size and MCT)
 def create_features_for_MCT(data_frame, reduced = True, normalize = True):
     feature_frame = data_frame
-    label_frame = data_frame['Delay'] # Scale to ms 
+    label_frame = data_frame['Delay'] # In seconds  
 
 
     feature_frame_reduced = feature_frame[["Timestamp", "Delay", "Packet Size", "Application ID", "Message ID"]]
@@ -256,7 +261,7 @@ def create_features_for_MCT(data_frame, reduced = True, normalize = True):
 
 # Features for ARIMA
 def vectorize_features_for_ARIMA(data_frame):
-    label_frame = data_frame['Delay'] # Scale to ms
+    label_frame = data_frame['Delay'] # In seconds 
     return label_frame
     
 def sliding_window_features(df_series, start, size, step):
