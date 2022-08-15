@@ -9,7 +9,7 @@ The files inside the [TransformerModels](TransformerModels) directory is as foll
 * [`encoder_delay.py`](TransformerModels/encoder_delay.py) : Pre-train the NTT by masking the <i> last delay </i> only.
 * [`encoder_delay_varmask_chooseencodelem.py`](TransformerModels/encoder_delay_varmask_chooseencodelem.py) : Pre-train the NTT by masking delays after choosing equally from the NTT's output encoded elements.
 * [`encoder_delay_varmask_chooseencodelem_multi.py`](TransformerModels/encoder_delay_varmask_chooseencodelem_multi.py) : Pre-train the NTT by masking delays after choosing equally from the NTT's output encoded elements and using multiple decoder instances.
-* [`encoder_delay_varmask_chooseagglevel.py`](TransformerModels/encoder_delay_varmask_chooseagglevel.py) : Pre-train the NTT by masking delays after choosing equally from the 3 levels of aggregation for the NTT.
+* [`encoder_delay_varmask_chooseagglevel_multi.py`](TransformerModels/encoder_delay_varmask_chooseagglevel_multi.py) : Pre-train the NTT by masking delays after choosing equally from the 3 levels of aggregation for the NTT and using multiple decoder instances.
 * [`finetune_encoder.py`](TransformerModels/finetune_encoder.py) : Fine-tune the NTT by masking the <i> last delay </i> only.
 * [`finetune_encoder_multi.py`](TransformerModels/finetune_encoder_multi.py) : Fine-tune the NTT by masking the <i> last delay </i> but initialize with multiple decoders to match the architecture when pre-trained with multiple decoders.
 * [`finetune_mct.py`](TransformerModels/finetune_mct.py) : Fine-tune the NTT to predict the MCT on the given data.

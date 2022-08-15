@@ -17,7 +17,7 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # NCCL_DEBUG=INFO; NCCL_DEBUG_SUBSYS=ALL python encoder_delay.py
-# NCCL_DEBUG=INFO; NCCL_DEBUG_SUBSYS=ALL python encoder_delay_varmask_chooseagglevel.py
+# NCCL_DEBUG=INFO; NCCL_DEBUG_SUBSYS=ALL python encoder_delay_varmask_chooseagglevel_multi.py
 # NCCL_DEBUG=INFO; NCCL_DEBUG_SUBSYS=ALL python encoder_delay_varmask_chooseencodelem.py
 # NCCL_DEBUG=INFO; NCCL_DEBUG_SUBSYS=ALL python encoder_delay_varmask_chooseencodelem_multi.py
 
