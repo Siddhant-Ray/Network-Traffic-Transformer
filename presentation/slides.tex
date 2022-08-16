@@ -90,10 +90,11 @@
 %Changing visivility of the text
 \begin{frame}
 \frametitle{Why Transformers?}
-
+\pause
 \begin{itemize}
     \item<1-> Efficient learning with attention mechanism
     \item<1-> Large datasets available to learn from
+    \pause
     \item<2-> State-of-art for sequence learning problems
      \item<2-> Network packet data is a sequence
 \end{itemize}
@@ -339,7 +340,7 @@ Variable masking strategies: For \emph{bi-directional} learning
 \end{frame}
 
 \begin{frame}
-\frametitle{On variable masked pre-training}
+\frametitle{Variable masked pre-training}
 
 
 \begin{figure}[h]
@@ -435,18 +436,20 @@ time completion over different pre-training masks}
 
 \begin{frame}
 \frametitle{Improve NTT}
-
+\pause
 \begin{itemize}
     \item<1-> NTT Scaling
     \begin{itemize}
     	\item<1-> Learn additional network features.
 	\item<1-> Learn on larger topologies.
     \end{itemize}
+    \pause
     \item<2-> Federated Learning
     \begin{itemize}
     	\item<2-> Share models, not data.
 	\item<2->Keep data private.
 	\end{itemize}
+    \pause
     \item<3-> Continual learning
     \begin{itemize}
     	\item<3->  Re-train with time, prevent forgetting.
