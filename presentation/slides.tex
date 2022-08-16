@@ -99,31 +99,6 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}
-\frametitle{Why Transformers?}
-
-We present the Network Traffic Transformer(NTT):
-\pause
-
- \begin{itemize}  
-    \item<1-> Pre-train on network packet data (few times)
-    \item<1-> Fine-tune for specific tasks (many times)
-\end{itemize}
-\pause
-
-\begin{figure}[!hbt]
-  \begin{center}
-    \includegraphics[scale=0.8]{figures/vision.pdf}
-    \caption{Pre-train today, fine-tune and re-use tomorrow}
-    \label{fig:vision}
-  \end{center}
-\end{figure}
-    
-    
-\end{frame}
-
-%---------------------------------------------------------
-
 
 %---------------------------------------------------------
 %Example of the \pause command
@@ -145,12 +120,38 @@ Vision Transformer: Applications of fine-tuning
 \begin{itemize}  
     \item<1-> Image classification
     \item<1-> Object detection
-    \item<1-> Segmentation
+    \item<1-> Image segmentation
 \end{itemize}
 
 
 
 \end{frame}
+%---------------------------------------------------------
+
+
+\begin{frame}
+\frametitle{Our Transformer}
+
+We present the Network Traffic Transformer(NTT):
+\pause
+
+ \begin{itemize}  
+    \item<1-> Pre-train on network packet data (few times)
+    \item<1-> Fine-tune for specific tasks (many times)
+\end{itemize}
+\pause
+
+\begin{figure}[!hbt]
+  \begin{center}
+    \includegraphics[scale=0.8]{figures/vision.pdf}
+    \caption{Pre-train today, fine-tune and re-use tomorrow}
+    \label{fig:vision}
+  \end{center}
+\end{figure}
+    
+    
+\end{frame}
+
 %---------------------------------------------------------
 
 \section{Design}
@@ -322,9 +323,9 @@ NNT's learning strategies:
 \end{frame}
 
 \begin{frame}
-\frametitle{On variable masked pre-training}
+\frametitle{Variable masked pre-training}
 
-Variable masking strategies: For bi-directional learning
+Variable masking strategies: For \emph{bi-directional} learning
 \pause
 \begin{itemize}
     \item<1-> Masking over last 16 delays, no mask over aggregates
@@ -375,8 +376,8 @@ time completion over different pre-training masks}
 \pause 
 
 \begin{itemize}
-    \item<1-> Different path delays due to different number of link 
-    \item<1-> Receiver ID needed as a new input feature to distinguish paths
+    \item<1-> Different path delays due to different number of links 
+    \item<1-> Receiver ID as additional input feature to distinguish paths
 \end{itemize}
 
 \end{frame}
@@ -436,9 +437,21 @@ time completion over different pre-training masks}
 \frametitle{Improve NTT}
 
 \begin{itemize}
-    \item<1-> Learn more features/ scale to more complexity
-    \item<2-> Federated learning/ sharing/ data privacy
-    \item<3-> Continual learning/ re-training
+    \item<1-> NTT Scaling
+    \begin{itemize}
+    	\item<1-> Learn additional network features.
+	\item<1-> Learn on larger topologies.
+    \end{itemize}
+    \item<2-> Federated Learning
+    \begin{itemize}
+    	\item<2-> Share models, not data.
+	\item<2->Keep data private.
+	\end{itemize}
+    \item<3-> Continual learning
+    \begin{itemize}
+    	\item<3->  Re-train with time, prevent forgetting.
+	\item<3->  Learn evolved dynamics.
+	\end{itemize}
 \end{itemize}
 \end{frame}
 
