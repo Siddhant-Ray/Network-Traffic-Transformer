@@ -6,7 +6,7 @@ Learning fundamental behaviour of network data from packet traces is an extremel
 \section{Motivation}
 \label{sec:motivation}
 
-Modelling network dynamics is a \emph{sequence modelling} problem. From a sequence of past packets, we want to estimate the current state of the network (\eg Is there congestion? Will the packet be dropped?), then predict the state's evolution and future traffic's fate --- or which action to take next. Due to the successes in the field of ML and learning from data, it is becoming increasing popular to use such algorithms for solving this modelling problem but the task is notoriously complex. There has been some success in using ML for specific applications in networks, including congestion control\cite{classic,jayDeepReinforcementLearning2019,dynamic,exmachina},
+Modelling network dynamics is a \emph{sequence modelling} problem. From a sequence of past packets, the goal is to estimate the current state of the network (\eg Is there congestion? Will the packet be dropped?), following which predict the state's evolution and future traffic's fate. Concretely, we can also decide on which action to take next \eg should the next packet be put on a different path? Due to the successes in the field of ML and learning from data, it is becoming increasing popular to use such algorithms for solving this modelling problem but the task is notoriously complex. There has been some success in using ML for specific applications in networks, including congestion control\cite{classic,jayDeepReinforcementLearning2019,dynamic,exmachina},
 video streaming\cite{oboe,maoNeuralAdaptiveVideo2017,puffer},
 traffic optimization\cite{auto},
 routing\cite{learnroute},

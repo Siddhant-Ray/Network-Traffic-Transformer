@@ -302,7 +302,7 @@ As we now fine-tune on topologies with multiple paths and more complex traffic p
 \end{figure*}
 
 
-Learning the network dynamics effectively from a single bottleneck, should be enough to generalise to similar dynamics on multiple bottlenecks , to a reasonable extent. Hence we will use our pre-trained NTT and fine-tune the model on the packet data from the new topology. For these experiments, we will use the base NTT, which is pre-trained on masking the \emph{last delay}. To effectively learn dynamics of packets to different receivers, we will need a feature to distinguish receivers, and for this we add a new feature to our input packet data, an integer to represent the \emph{Receiver ID}. We train the entire NTT architecture, given the complexity in the new data.
+Learning the network dynamics effectively from a single bottleneck, should be enough to generalise to similar dynamics on multiple bottlenecks , to a reasonable extent. Hence we will use our pre-trained NTT and fine-tune the model on the packet data from the new topology. For these experiments, we will use the base NTT, which is pre-trained on masking the \emph{last delay}. To effectively learn dynamics of packets to different receivers, we will need a feature to distinguish receivers, and for this we add a new feature to our input packet data, an integer to represent the \emph{Receiver ID}. We train the entire NTT architecture \ie all the layers, given the increased complexity in the new data.
 
 \begin{table}[htbp]
 \centering
