@@ -318,7 +318,7 @@ NNT's learning strategies:
      \bottomrule
 
 \end{tabular}
-\caption{Mean Squared Error (MSE) for all initial NTT models and tasks for the single path topology}
+\caption{Mean Squared Error (MSE) for all NTT models and tasks for the single path topology}
 \label{eval:table1}
 \end{table}
 \end{frame}
@@ -356,8 +356,7 @@ Variable masking strategies: For \emph{bi-directional} learning
         \includegraphics[scale=0.5]{figures/finetune_mct_loss_comparison_agg.pdf}
         \caption{Pre-train with also mask over aggregated delays}
     \end{subfigure}
-    \caption{Mean-square error for prediction of message
-time completion over different pre-training masks}
+    \caption{Mean-square error on MCT predictions with different pre-training masks}
     \label{fig:mct_mask}
 \end{figure}
 \end{frame}
@@ -435,7 +434,7 @@ time completion over different pre-training masks}
 \section{Future}
 
 \begin{frame}
-\frametitle{Improve NTT}
+\frametitle{Improving the NTT}
 \pause
 \begin{itemize}
     \item<1-> NTT Scaling
