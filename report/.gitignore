@@ -261,5 +261,5 @@ TSWLatexianTemp*
 # standalone packages
 *.sta
 
-# output pdf
-thesis.pdf
+# output pdf (now we put it in the directory)
+# thesis.pdf
