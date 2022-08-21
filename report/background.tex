@@ -54,7 +54,7 @@ The authors propose an architecture for translation tasks that contains:
 \item a \emph{transformer decoder} generating an output sequence based on the encoded input
 \end{itemize}
 
-Each transformer block alternates between attention and linear layers, ie between encoding context and refining features. The attention mechanism helps learn "context rich" representations of every element, mapping relevant information from the surrounding elements which surround it and the linear layers help map this learn information into a form useful for downstream prediction. Figure \ref{fig:transformer} shows details of the original Transformer architecture and the functions of its layers.
+Each transformer block alternates between attention and linear layers, ie between encoding context and refining features. The attention mechanism helps learn ``context rich" representations of every element, mapping relevant information from the surrounding elements which surround it and the linear layers help map this learn information into a form useful for downstream prediction. Figure \ref{fig:transformer} shows details of the original Transformer architecture and the functions of its layers.
 
 \begin{figure}[!hbt]
   \begin{center}
@@ -79,7 +79,7 @@ BERT is used to generate contextual encodings of, which is only possible due to 
 }
 
 \item In the second step, the unique pre-trained model can be fine-tuned to many different tasks by replacing the small decoder with task-specific ones, eg language understanding, question answering, or text generation.
-The fine-tuning process involves resumption of learning from the saved weights of the pre-training phase, but for a new task or learning in a new environment. The new model has already learned to encode a general language context and only needs to learn to extract the task-relevant information from this context.This requires far less data compared to starting from scratch and makes the pre-training process faster.
+The fine-tuning process involves resumption of learning from the saved weights of the pre-training phase, but for a new task or learning in a new environment. The new model has already learned to encode a general language context and only needs to learn to extract the task-relevant information from this context. This requires far less data compared to starting from scratch and makes the pre-training process faster.
 
 Furthermore, BERTs pre-training step is unsupervised/self-supervised, \ie it requires only ``cheap'' unlabelled data and no labelled signal from the data a target value. As procuring labelled data is harder, this problem is mitigated by having a pre-training phase on ``generic" data and then using 
 ``expensive'' labeled data, eg for text classification, during the fine-tuning phase. Figure \ref{fig:bert} shows the details of BERT's pre-training and fine-tuning phase.
