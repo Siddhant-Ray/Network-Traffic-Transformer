@@ -15,8 +15,7 @@ The process involves the scalar multiplication of the input feature matrix atten
 Computing attention is efficient as all elements in the sequence can be processed in parallel with matrix operations that are highly optimised on most hardware. These properties have made Transformer based neural networks the state-of-the-art solution for solving many sequence modelling tasks. We refer to an excellent illustrated guide to the Transformer here\cite{trans}.
 
 
-While attention originated as an improvement to Recurrent Neural Networks(RNNs), it was soon realised that the mechanism could replace them entirely.\cite{vaswaniAttentionAllYou2017}
-RNNs were the initial state-of-the art deep learning architectures in sequence modelling problems, however they suffer from several issues. Training RNNs is usually limited by one or all of the following problems:
+While attention originated as an improvement to Recurrent Neural Networks(RNNs), it was soon realised that the mechanism could replace them entirely\cite{vaswaniAttentionAllYou2017}. RNN models were the initial state-of-the art deep learning architectures in sequence modelling problems, however they suffer from several issues. Training RNNs is usually limited by one or all of the following problems:
 \begin{enumerate}
 \item RNNs are not computationally efficient for training long sequences, as they require $n$ sequential operations to learn a sequence, $n$ being the length of the given sequence. This makes the training process extremely slow.
 \item RNNs suffer from the problem of \emph{vanishing gradients} \ie as elements in the input need to be processed in a sequence over time, the gradients used by the optimiser\cite{Robbins2007ASA} for the elements at the end of very long sequences, become extremely small and numerically unstable to converge to the desired value.
@@ -72,7 +71,7 @@ called BERT\cite{devlinBERTPretrainingDeep2019}, one of the most widely used tra
 While the original Transformer had both an encoder and decoder with attention, BERT uses only the transformer encoder followed by a small and replaceable decoder. This decoder is usually a set of linear layers and acts as a multilayer perceptron (MLP); and is usually called the 'MLP head' in the deep learning community. The principle of transfer-learning works for BERT as follows:
 
 \begin{itemize}
-\item In the first step, BERT is \emph{pre-trained} with a task that requires learning the underlying language structure. Linguists' research has shown that a Masked Language Model is optimal for deep learning models for learning structure in natural languages.\cite{wettigShouldYouMask}
+\item In the first step, BERT is \emph{pre-trained} with a task that requires learning the underlying language structure. Linguists' research has shown that a Masked Language Model is optimal for deep learning models for learning structure in natural languages\cite{wettigShouldYouMask}.
 Concretely, a fraction of words in the input sequence is masked out (15\% in the original model), and the decoder is tasked to predict the original words from the encoded input sequence.
 BERT is used to generate contextual encodings of, which is only possible due to the bi-directionality of the attention mechanism in BERT. This allows the model to infer the context of the word from both sides in a given sentence, which was not possible earlier when elements in a sequence were only processed in a given order.\footnote{
     BERT is pre-trained from text corpora with several billion words and fine-tuned with $\sim$100 thousand examples per task.

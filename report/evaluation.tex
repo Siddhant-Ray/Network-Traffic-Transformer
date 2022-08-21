@@ -16,7 +16,7 @@ We have already discussed in detail the dataset used for pre-training in Section
   \end{center}
 \end{figure}
 
-The setup for the fine-tuning dataset is the same, except that we add a second bottleneck for sender traffic by introducing $20$ Mbps of TCP cross-traffic on the rightmost link. The dataset does \emph{not} explicitly contain the cross-traffic; we \emph{only} collect packets from the senders. However, the introduction of this cross traffic affects the dynamics of the overall network due to  congestion, which in turn affects the dynamics in the behaviour of the applications sending traffic. We demonstrate this setup in Figure \ref{fig:topo_ft}. For our initial evaluation, we generate one simulation run of fine-tuning data only and this dataset contains about 115 thousand packets, \ie roughly $1/10$\textsuperscript{th} of the pre-training dataset. To ensure our training is not affected by extremely large possible ranges of values, we normalise our input features of size and delay, over the mean and standard deviation of each feature over the entire data, individually.\cite{scaling} Based on the fine-tuning dataset generated, we have two fine-tuning tasks 
+The setup for the fine-tuning dataset is the same, except that we add a second bottleneck for sender traffic by introducing $20$ Mbps of TCP cross-traffic on the rightmost link. The dataset does \emph{not} explicitly contain the cross-traffic; we \emph{only} collect packets from the senders. However, the introduction of this cross traffic affects the dynamics of the overall network due to  congestion, which in turn affects the dynamics in the behaviour of the applications sending traffic. We demonstrate this setup in Figure \ref{fig:topo_ft}. For our initial evaluation, we generate one simulation run of fine-tuning data only and this dataset contains about 115 thousand packets, \ie roughly $1/10$\textsuperscript{th} of the pre-training dataset. To ensure our training is not affected by extremely large possible ranges of values, we normalise our input features of size and delay, over the mean and standard deviation of each feature over the entire data, individually\cite{scaling}. Based on the fine-tuning dataset generated, we have two fine-tuning tasks:  
 
 \begin{itemize}
 \item \emph{Fine-tuning on new environment:} In this fine-tuning task, we try to predict the last delay in the sequence, on data generated on a new topology with $2$ bottlenecks, as opposed to pre-training where we had $1$ bottleneck. Our pre-training process employs multiple kinds of masking over different delay positions, but for the fine-tuning task objective is prediction of the delay at the last position. The \emph{key idea} is to use the learn sequence structure in the during the pre-training and apply it to predict the last delay and make a decision on the final packet during the fine-tuning, following a change in network environment. We expect that if the pre-training is done robustly, fine-tuning in this new environment on a similar task will be both faster and require significantly less data.
@@ -94,7 +94,7 @@ This suggests that there is something to learn from the \emph{sequence dynamics}
   \begin{center}
     \includegraphics[scale=0.8]{figures/MCT_loss.pdf}
     \caption{Mean-square error for prediction of message
-time completion over training epochs}
+time completion over training epochs. }
     \label{fig:loss_mct}
   \end{center}
 \end{figure*}
@@ -103,7 +103,7 @@ time completion over training epochs}
 
 \paragraph*{NTT can generalize across environments and tasks:}
 
-We observe that pre-training is beneficial: on both fine-tuning tasks, the \emph{pre-trained} NTT outperforms the \emph{from scratch} version.The pre-training knowledge generalizes to a new environment \ie unobserved cross-traffic and to a new task \ie MCT prediction. In our current NTT variants, we pre-train and fine-tuning for delay prediction in the exact same way, by learning to predict the last delay in the sequence. Pre-training also improves the speed of the fine-tuning process, in addition to the overall performance. We see this in Figure \ref{fig:loss_mct} shows that pre-training allows faster learning on the fine-tuning dataset: the \emph{pre-trained} NTT reaches a lower error after a few (only 3) training epochs and finishes training, \ie no further improvement, after fewer epochs (17 vs 25), with a lower MSE on the test set in the end (Table \ref{eval:table1})
+We observe that pre-training is beneficial: on both fine-tuning tasks, the \emph{pre-trained} NTT outperforms the \emph{from scratch} version.The pre-training knowledge generalizes to a new environment \ie unobserved cross-traffic and to a new task \ie MCT prediction. In our current NTT variants, we pre-train and fine-tuning for delay prediction in the exact same way, by learning to predict the last delay in the sequence. Pre-training also improves the speed of the fine-tuning process, in addition to the overall performance. We see this in Figure \ref{fig:loss_mct} shows that pre-training allows faster learning on the fine-tuning dataset: the \emph{pre-trained} NTT reaches a lower error after a few (only 3) training epochs and finishes training, \ie no further improvement, after fewer epochs (17 vs 25), with a lower MSE on the test set in the end (Table \ref{eval:table1}).
 
 
 \paragraph*{NTT specific features help:}
@@ -144,7 +144,7 @@ We refer to the learnt behaviour by fitting ARIMA in Figure \ref{fig:arima} and 
         \includegraphics[scale=0.55]{figures/SE_trend_arima_30000.pdf}
         \caption{ARIMA on history upto past 30000}
     \end{subfigure}
-    \caption{Squared error on the predictions of the ARIMA models trained to predict on a one-step rolling forecast }
+    \caption{Squared error on the predictions of the ARIMA models trained to predict on a one-step rolling forecast. }
     \label{fig:arima}
 \end{figure*}
 
