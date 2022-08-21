@@ -22,21 +22,32 @@
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{subcaption}
+\usepackage{xcolor,colortbl}
+
+\definecolor{orange}{rgb}{0.8, 0.33, 0.0}
+\definecolor{cblue}{rgb}{0.74, 0.83, 0.9}
+
+\setbeamercolor{alerted text}{fg=orange}
+\setbeamercolor*{palette primary}{fg = orange}
+\setbeamercolor*{palette secondary}{fg = orange}
+\setbeamercolor*{palette tertiary}{bg=orange, fg = white}
+%\setbeamercolor*{palette quaternary}{bg=orange, fg = green}
 
 
+\newcommand{\mycomment}[1]{}
 
 %------------------------------------------------------------
 %This block of code defines the information to appear in the
 %Title page
 \title[Master Thesis] %optional
 {Advancing Packet-Level Predictions with Transformers}
-\date{September 1, 2022}
-\author[Siddhant Ray] % (optional)
+\date{\tiny September 1, 2022}
+\author[ Siddhant Ray] % (optional)
 {Siddhant Ray}
 
 \institute[ETH Zürich] % (optional)
 {
-  Dept. of Information Technology and Electrical Engineering(D-ITET) \\
+  D-ITET \\
   ETH Zürich
 }
 
@@ -45,9 +56,9 @@
 %\date[September 2022] % (optional)
 
 \titlegraphic{
-    \includegraphics[width=2cm]{figures/nsg_logo.pdf}
+    \includegraphics[width=3cm]{figures/nsg_logo.pdf}
     \hspace{2cm}
-     \includegraphics[width=2cm]{figures/eth_logo.pdf}
+     \includegraphics[width=3cm]{figures/eth_logo.pdf}
 }
 
 %End of title page configuration block
@@ -86,14 +97,28 @@
 
 \section{Motivation}
 
+\begin{frame}
+\frametitle{Machine learning methods we use in networks today}
+\pause
+\begin{itemize}
+    \item<1-> Some data
+    \item<1-> Some data++
+    \pause
+    \item<2-> More data 
+     \item<2-> More data++
+\end{itemize}
+\end{frame}
+
+
+
 %---------------------------------------------------------
 %Changing visivility of the text
 \begin{frame}
-\frametitle{Why Transformers?}
+\frametitle{Why use Transformers?}
 \pause
 \begin{itemize}
     \item<1-> Efficient learning with attention mechanism
-    \item<1-> Large datasets available to learn from
+    \item<1-> Generalizing using large datasets available
     \pause
     \item<2-> State-of-art for sequence learning problems
      \item<2-> Network packet data is a sequence
@@ -104,10 +129,10 @@
 %---------------------------------------------------------
 %Example of the \pause command
 \begin{frame}
-\frametitle{Transformer success in NLP and CV}
+\frametitle{Transformer's unprecendented successes in generalizing to tasks in NLP and CV}
 \pause
 
-BERT: Applications of fine-tuning 
+BERT: Generalizing to tasks in NLP
 
 \begin{itemize}  
     \item<1-> Sentiment analysis
@@ -116,7 +141,7 @@ BERT: Applications of fine-tuning
 \end{itemize}
 \pause
 
-Vision Transformer: Applications of fine-tuning 
+Vision Transformer: Generalizing to tasks in CV
 
 \begin{itemize}  
     \item<1-> Image classification
@@ -136,15 +161,9 @@ Vision Transformer: Applications of fine-tuning
 We present the Network Traffic Transformer(NTT):
 \pause
 
- \begin{itemize}  
-    \item<1-> Pre-train on network packet data (few times)
-    \item<1-> Fine-tune for specific tasks (many times)
-\end{itemize}
-\pause
-
 \begin{figure}[!hbt]
   \begin{center}
-    \includegraphics[scale=0.8]{figures/vision.pdf}
+    \includegraphics[scale=1]{figures/vision.pdf}
     \caption{Pre-train today, fine-tune and re-use tomorrow}
     \label{fig:vision}
   \end{center}
@@ -161,20 +180,8 @@ We present the Network Traffic Transformer(NTT):
 %Highlighting text
 
 \begin{frame}
-\frametitle{NTT architecture}
-
-Feature selection for NTT's input data:
-\pause 
-\begin{itemize}
-    \item<1-> \alert{Relative timestamp:} To learn sequence order
-    \item<1-> \alert{End-to-end delay:} To learn network state information
-    \item<1-> \alert{Packet size:} To learn packet state information
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}
-\frametitle{NTT architecture}
+\frametitle{Developing our NTT architecture}
+\pause
 
 \begin{figure}[!hbt]
   \begin{center}
@@ -189,7 +196,20 @@ Feature selection for NTT's input data:
 \end{frame}
 
 \begin{frame}
-\frametitle{NTT architecture}
+\frametitle{Developing our NTT architecture}
+
+Feature selection for NTT's input data:
+\pause 
+\begin{itemize}
+    \item<1-> \alert{Relative timestamp:} To learn sequence order
+    \item<1-> \alert{End-to-end delay:} To learn network state information
+    \item<1-> \alert{Packet size:} To learn packet state information
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Developing our NTT architecture}
 
 NNT's learning strategies: 
 \pause 
@@ -301,6 +321,7 @@ NNT's learning strategies:
                                                        & {Delay}        & {Delay}                           & {log MCT} \\
 \midrule
 \em{NTT}                                                 &                &                                   &           \\
+    \rowcolor{cblue}
     \smallindent Pre-trained                                 & \B 0.072          & \B 0.097                             & \B 65        \\
     \smallindent From scratch                                & {-}            & 0.313                             & 117       \\
     \noalign{\vskip 1mm}
@@ -402,9 +423,11 @@ Variable masking strategies: For \emph{bi-directional} learning
 			
 
 \midrule
-\em{NTT}                                                               &       \\                                      
-    \smallindent Pre-trained  +   Fine-tune (full)                                  & \B 0.004   &     \B 5    \\                  
-    \smallindent Pre-trained  +   Fine-tune ($10\%$)                                  & 0.035   & 12  \\                        
+\em{NTT}                                                               &       \\      
+    \rowcolor{cblue}                                
+    \smallindent Pre-trained  +   Fine-tune (full)                                  & \B 0.004   &     \B 5    \\          
+    \rowcolor{cblue}        
+    \smallindent Pre-trained  +   Fine-tune ($10\%$)                                  & \B 0.035   & \B 12  \\                        
     \smallindent From scratch  + Fine-tune (full)                                       & 5.2    &   10 \\                      
      \smallindent From scratch  + Fine-tune ($10\%$)                                    & 8.2  & 15 \\                          
  \em{Baselines} &       \\  
@@ -434,7 +457,7 @@ Variable masking strategies: For \emph{bi-directional} learning
 \section{Future}
 
 \begin{frame}
-\frametitle{Improving the NTT}
+\frametitle{How do we improve the NTT further?}
 \pause
 \begin{itemize}
     \item<1-> NTT Scaling
@@ -442,13 +465,16 @@ Variable masking strategies: For \emph{bi-directional} learning
     	\item<1-> Learn additional network features.
 	\item<1-> Learn on larger topologies.
     \end{itemize}
+    \vspace{0.2cm}
     \pause
     \item<2-> Federated Learning
     \begin{itemize}
     	\item<2-> Share models, not data.
 	\item<2->Keep data private.
 	\end{itemize}
+    \vspace{0.2cm}
     \pause
+    
     \item<3-> Continual learning
     \begin{itemize}
     	\item<3->  Re-train with time, prevent forgetting.
@@ -457,8 +483,11 @@ Variable masking strategies: For \emph{bi-directional} learning
 \end{itemize}
 \end{frame}
 
-\section{Comments}
+\section{Concluding remarks}
 \begin{frame}
+\frametitle{Recap: Our NTT architecture demonstrates that}
+\pause
+\mycomment{
 
 \begin{figure}[h]
   \begin{center}
@@ -466,8 +495,23 @@ Variable masking strategies: For \emph{bi-directional} learning
     \label{fig:questions}
   \end{center}
 \end{figure}
+}
 
-
+\begin{itemize}
+    \item<1-> Learning network dynamics is possible
+    \begin{itemize}
+    	\item<1-> NTT learns network dynamics from packet sequences
+	\item<1-> Pre-trained NTT can be re-used easily
+     \end{itemize}
+    \vspace{0.2cm}
+    \pause
+    \item<2-> Generalizing power of the NTT
+    \pause
+     \begin{itemize}
+    	\item<2->  Can generalize to new environments: Packet level 
+	\item<2-> Can generalize to new tasks: Flow level 
+	\end{itemize}
+\end{itemize}
 \end{frame}
 
 
