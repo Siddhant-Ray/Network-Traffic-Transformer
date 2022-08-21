@@ -103,11 +103,15 @@ The specific log folders generated after a pre-training or fine-tuning job, must
     - Reduce the ```num_workers``` argument in the DataLoader inside the given model's ```.py``` file from 4 to 1.
 * To switch to data from different topologies, you only need to change the ```NUM_BOTTLENECKS``` global variable in the respective model's ```.py``` you are running. Note that not all experiments are meant to be run on all topologies. For details on which topology is used for which experiment, refer to [`thesis.pdf`](../report/thesis.pdf) 
 * Checkpoints will automatically be saved in the respective log folders for every job (refer to the particular model's ```.py``` to see specific names). It is advisable to copy the ```.ckpt``` files into a new folder named ```checkpoints/```, in order to initialise from the trained weights and not lose any work. This relative path ```checkpoints/*.ckpt``` can replaced in the appropriate ```.py``` file. Every fine-tuning ```.py``` file has a global variable ```PRETRAINED``` which can be set to ```True``` if you want to initialize from the saved weights, or ```False``` if fine-tuning must be done <i> from scratch </i>.
+* Different models have different instances of linear layers, and if you want to initialize fine-tuning from a checkpoint, you must ensure that the pre-training process had the same model architecture, else PyTorch model loading will fail. After initialization with the same architecture, the layers can be changed as per required. As a quick map, 
+    - If pre-training is done with multiple linear layer instances in the model i.e. [`encoder_delay_varmask_chooseagglevel_multi.py`](TransformerModels/encoder_delay_varmask_chooseagglevel_multi.py) or [`encoder_delay_varmask_chooseencodelem_multi.py`](TransformerModels/encoder_delay_varmask_chooseencodelem_multi.py), then [`finetune_encoder_multi.py`](TransformerModels/finetune_encoder_multi.py) and [`finetune_mct_multi.py`](TransformerModels/finetune_mct_multi.py) should be used for fine-tuning.
+    - In other cases of single linear layer instances in  the model, [`finetune_encoder.py`](TransformerModels/finetune_encoder.py) and [`finetune_mct.py`](TransformerModels/finetune_mct.py) should be used for fine-tuning.
 * The ```TRAIN``` global variable in the ```.py``` files is used to decide whether to train on the training data, or just test on the testing data.
 * The ```trainer API``` from PyTorch lightning (present in the all of the Transformer ```.py``` files) is used to select multiple GPUs using the ```strategy``` argument. Possible options are 
     - `dp` : Data Parallel, this works always on the TIK SLURM cluster.
     - `ddp` : Distributed Data Parallel, this only works sometimes and we haven't used this. To run ddp jobs, modify the ```run.sh``` file, to include an `srun` command prior to the `python` command.
 * To save files, sometimes you might have to modify the directory and file names in the code, as needed on your machine. As this is not an end-to-end software, somtimes it is not possible to create a generic file saving system across multiple experiments.
+
 
 
 
