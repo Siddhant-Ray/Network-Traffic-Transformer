@@ -98,14 +98,15 @@
 \section{Motivation}
 
 \begin{frame}
-\frametitle{Machine learning methods we use in networks today}
+\frametitle{Machine learning methods in networks today}
 \pause
 \begin{itemize}
-    \item<1-> Some data
-    \item<1-> Some data++
+    \item<1-> \alert{No generalization: } Only work on specific task trained on
     \pause
-    \item<2-> More data 
-     \item<2-> More data++
+    \item<2-> \alert{Limited scope: } Models fail outside original training environment 
+    \pause
+    \item<3-> \alert{Resource intensive: } Always redoing training from scratch
+   
 \end{itemize}
 \end{frame}
 
@@ -129,10 +130,10 @@
 %---------------------------------------------------------
 %Example of the \pause command
 \begin{frame}
-\frametitle{Transformer's unprecendented successes in generalizing to tasks in NLP and CV}
+\frametitle{Transformer's unprecendented generalization in NLP \& CV}
 \pause
 
-BERT: Generalizing to tasks in NLP
+BERT: Generalizing to many tasks in NLP
 
 \begin{itemize}  
     \item<1-> Sentiment analysis
@@ -141,7 +142,7 @@ BERT: Generalizing to tasks in NLP
 \end{itemize}
 \pause
 
-Vision Transformer: Generalizing to tasks in CV
+Vision Transformer: Generalizing to many tasks in CV
 
 \begin{itemize}  
     \item<1-> Image classification
@@ -339,10 +340,12 @@ NNT's learning strategies:
      \bottomrule
 
 \end{tabular}
-\caption{Mean Squared Error (MSE) for all NTT models and tasks for the single path topology}
+\caption{Mean Squared Error (MSE) for all NTT models and tasks for the single path topology (lower is better)}
 \label{eval:table1}
 \end{table}
 \end{frame}
+
+%\mycomment{
 
 \begin{frame}
 \frametitle{Variable masked pre-training}
@@ -359,6 +362,7 @@ Variable masking strategies: For \emph{bi-directional} learning
 
 
 \end{frame}
+
 
 \begin{frame}
 \frametitle{Variable masked pre-training}
@@ -381,6 +385,8 @@ Variable masking strategies: For \emph{bi-directional} learning
     \label{fig:mct_mask}
 \end{figure}
 \end{frame}
+
+%}
 
 \begin{frame}
 \frametitle{NTT on multi-path topologies}
@@ -441,7 +447,7 @@ Variable masking strategies: For \emph{bi-directional} learning
  \bottomrule
 
 \end{tabular}
-\caption{Fine-tuning NTT on the multi-path topology}
+\caption{Fine-tuning NTT on the multi-path topology (lower is better)}
 \label{eval:table5}
 \end{table}
 
