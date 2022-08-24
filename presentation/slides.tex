@@ -101,11 +101,11 @@
 \frametitle{Machine learning methods in networks today}
 \pause
 \begin{itemize}
-    \item<1-> \alert{No generalization: } Only work on specific task trained on
+    \item<1-> \alert{No generalization: } Only work on specific tasks trained on
     \pause
     \item<2-> \alert{Limited scope: } Models fail outside original training environment 
     \pause
-    \item<3-> \alert{Resource intensive: } Always redoing training from scratch
+    \item<3-> \alert{Resource intensive: } Always re-doing training from scratch
    
 \end{itemize}
 \end{frame}
@@ -118,10 +118,10 @@
 \frametitle{Why use Transformers?}
 \pause
 \begin{itemize}
-    \item<1-> Efficient learning with attention mechanism
-    \item<1-> Generalizing using large datasets available
+    \item<1-> Efficient learning with \alert {\emph{attention}} mechanism
+    \item<1-> Generalizing using \alert{\emph{large datasets}} available
     \pause
-    \item<2-> State-of-art for sequence learning problems
+    \item<2-> State-of-art for \alert{\emph{sequence}} learning problems
      \item<2-> Network packet data is a sequence
 \end{itemize}
 \end{frame}
@@ -164,7 +164,7 @@ We present the Network Traffic Transformer(NTT):
 
 \begin{figure}[!hbt]
   \begin{center}
-    \includegraphics[scale=1]{figures/vision.pdf}
+    \includegraphics[scale=1.1]{figures/vision.pdf}
     \caption{Pre-train today, fine-tune and re-use tomorrow}
     \label{fig:vision}
   \end{center}
@@ -319,7 +319,7 @@ NNT's learning strategies:
 \toprule
 \emph{all values $\times10^{-3}$} & Pre-training  & \multicolumn{2}{c}{Fine-tuning} \\
 \cmidrule{3-4}
-                                                       & {Delay}        & {Delay}                           & {log MCT} \\
+                                                       & {Delay}        & {Delay}                           & {log (MCT)} \\
 \midrule
 \em{NTT}                                                 &                &                                   &           \\
     \rowcolor{cblue}
@@ -345,7 +345,7 @@ NNT's learning strategies:
 \end{table}
 \end{frame}
 
-%\mycomment{
+\mycomment{
 
 \begin{frame}
 \frametitle{Variable masked pre-training}
@@ -386,7 +386,7 @@ Variable masking strategies: For \emph{bi-directional} learning
 \end{figure}
 \end{frame}
 
-%}
+}
 
 \begin{frame}
 \frametitle{NTT on multi-path topologies}
@@ -394,14 +394,14 @@ Variable masking strategies: For \emph{bi-directional} learning
 
 \begin{figure}[h]
   \begin{center}
-    \includegraphics[scale=0.55]{figures/complex_topo.pdf}
+    \includegraphics[scale=0.58]{figures/complex_topo.pdf}
     \caption{Fine-tuning data generation on multi-path topology}
     \label{fig:topo_ft_big}
   \end{center}
 \end{figure}
 
 \pause 
-
+\vspace{-0.6cm}
 \begin{itemize}
     \item<1-> Different path delays due to different number of links 
     \item<1-> Receiver ID as additional input feature to distinguish paths
@@ -504,15 +504,15 @@ Variable masking strategies: For \emph{bi-directional} learning
 }
 
 \begin{itemize}
+   \pause
     \item<1-> Learning network dynamics is possible
-    \begin{itemize}
+      \begin{itemize}
     	\item<1-> NTT learns network dynamics from packet sequences
 	\item<1-> Pre-trained NTT can be re-used easily
      \end{itemize}
     \vspace{0.2cm}
     \pause
     \item<2-> Generalizing power of the NTT
-    \pause
      \begin{itemize}
     	\item<2->  Can generalize to new environments: Packet level 
 	\item<2-> Can generalize to new tasks: Flow level 
