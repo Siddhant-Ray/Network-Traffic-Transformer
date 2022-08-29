@@ -98,10 +98,10 @@
 \section{Motivation}
 
 \begin{frame}
-\frametitle{Machine learning methods in networks today}
+\frametitle{Problems with machine learning methods in networks today}
 \pause
 \begin{itemize}
-    \item<1-> \alert{No generalization: } Only work on specific tasks trained on
+    \item<1-> \alert{No generalization: } Only work on specific tasks trained on 
     \pause
     \item<2-> \alert{Limited scope: } Models fail outside original training environment 
     \pause
@@ -159,7 +159,7 @@ Vision Transformer: Generalizing to many tasks in CV
 \begin{frame}
 \frametitle{Our Transformer}
 
-We present the Network Traffic Transformer(NTT):
+We present our prototype Network Traffic Transformer (NTT):
 \pause
 
 \begin{figure}[!hbt]
@@ -189,8 +189,8 @@ We present the Network Traffic Transformer(NTT):
     \includegraphics[scale=0.8]{figures/architecture_ntt.pdf}
     \caption{The Network Traffic Transformer (NTT) with
         an embedding layer, % for feature extraction,
-        an aggregation layer, and
-        a transformer encoder.}
+        an aggregation layer,  a transformer encoder
+        and a task-specific replaceable decoder.}
     \label{fig:ntt}
   \end{center}
 \end{figure}
@@ -210,15 +210,15 @@ Feature selection for NTT's input data:
 \end{frame}
 
 \begin{frame}
-\frametitle{Developing our NTT architecture}
+\frametitle{Training objectives for the NTT architecture}
 
-NNT's learning strategies: 
+NTT's learning objectives: 
 \pause 
 \begin{itemize}
-    \item<1-> \alert{Masking delays:} Reconstruct masked values to learn sequences 
-    \item<1-> \alert{Variable masking:} Robust learning with multi-positional masks
-    \item<1-> \alert{Aggregating inputs:} To learn and scale to larger sequences
-\end{itemize}
+    \item<1-> \alert{Learn network dynamics:}  Reconstruct masked delay values
+    \pause
+    \item<1-> \alert{Scale to large sequences:}  Aggregate inputs
+    \end{itemize}
 \end{frame}
 
 
@@ -239,7 +239,7 @@ NNT's learning strategies:
 
 \begin{itemize}
     \item<1-> Varied start times across sender application flows
-    \item<1-> Ensure to have enough variance in pre-training data dynamics 
+    \item<1-> Enough variance in pre-training data dynamics 
     \end{itemize}
 
 \end{frame}
@@ -403,8 +403,8 @@ Variable masking strategies: For \emph{bi-directional} learning
 \pause 
 \vspace{-0.6cm}
 \begin{itemize}
-    \item<1-> Different path delays due to different number of links 
-    \item<1-> Receiver ID as additional input feature to distinguish paths
+    \item<1-> Path delays vary as per number of links 
+    \item<1-> Receiver ID as IP address proxy
 \end{itemize}
 
 \end{frame}
