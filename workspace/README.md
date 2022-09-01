@@ -47,15 +47,18 @@ The structure inside the [NetworkSimulators](NetworkSimulators) is as follows:
     - The files can now be added to [`transformer_delay.py`](TransformerModels/transformer_delay.py) and the job can be run.
 
 
-## To reproduce actual results in the thesis:
+## To reproduce results in the thesis:
 
 ### Setup
 
-To run on the ```TIK SLURM cluster```, you need to install ```pyenv```, details for which can be found here: [D-ITET Computing](https://computing.ee.ethz.ch/Programming/Languages/Python). On other clusters, it might be enough to just run 
+To run on the ```TIK SLURM cluster```, you need to install ```pyenv```, details for which can be found here: [D-ITET Computing](https://computing.ee.ethz.ch/Programming/Languages/Python). 
+
+On other clusters or standalone systems, you can use the system Python to create a new virtual environment.
 
     $ python -m venv venv
 
 After the environment has been created (created name is `venv` for simplicity):
+
 
 If it is a pyenv environment, run
 
@@ -63,7 +66,7 @@ If it is a pyenv environment, run
     $ eval "$(pyenv virtualenv-init -)"
     $ pyenv activate venv
 
-Else run
+Else for normal Python virtual environments, run
 
     $ source venv/bin/acvtivate
 
@@ -71,13 +74,25 @@ Now, install the Python dependencies:
 
     $ pip install -r requirements.txt
 
-The folder (submodule) [`MementoDataforNTT`](https://gitlab.ethz.ch/sidray/memento-ns-3-for-ntt) contains instructions to generate the training data using NS3 simulations. The module is self contained and will generate a folder called ```results/```, which will contain the required data. To preprocess, copy the ```results/``` folder into the directory [`PandasScripts`](PandasScripts) and run the script (modify the filesnames inside [`csvhelper_memento.py`](PandasScripts/csvhelper_memento.py) if needed):
+Alternatively, if installing environments and dependencies may not work on some systems (Eg. Windows), you can use our pre-built Docker image for setting up the same. The Docker image has a Python environment setup with the dependencies, along with the entire code packaged in it, for ease of use.
+
+To use the docker image, run 
+
+    $ ./docker-run.sh
+
+Or you can build your own Docker image locally. For this, run 
+
+    $ docker build --tag ntt-docker .
+
+The folder (submodule) [`memento-ns3-for-NTT`](https://github.com/Siddhant-Ray/memento-ns3-for-NTT) contains instructions to generate the training data using NS3 simulations. The module is self contained and will generate a folder called ```results/```, which will contain the required data. To preprocess, copy the ```results/``` folder into the directory [`PandasScripts`](PandasScripts) and run the script (modify the filesnames inside [`csvhelper_memento.py`](PandasScripts/csvhelper_memento.py) if needed):
 
     $ python csvhelper_memento.py --model memento
 
 This will generate the pre-processed files. The files maybe different, depending on the kind of data generated but all of them will end with ```_final.csv```. Copy all files with this ending, into a folder named ```memento_data/``` and move this folder to the [`TransformerModels`](TransformerModels) directory. 
 
 Copying ```results/``` and ```memento_data/```  to these destinations is needed, else the execution will fail. After copying the files, the training and fine-tuning phase is ready to be initiated.
+
+<b> NOTE: </b> If you are using the Docker image for NTT training, you will need to generate the pre-training data inside the Docker containers provided by `memento-ns3-for-NTT`. Following which, the ```results/``` folder must be copied inside the ```ntt-docker``` container, into the same directories as mentioned above. This can be done with ```docker cp```. Our Docker image doesn't support GPUs (yet), so feel free to modify the Dockerfile to include CUDA support, or run with CPUs for now.
 
 ### Training and fine-tuning:
 
