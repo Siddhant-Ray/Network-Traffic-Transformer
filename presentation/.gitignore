@@ -261,5 +261,3 @@ TSWLatexianTemp*
 # standalone packages
 *.sta
 
-# output pdf
-slides.pdf
