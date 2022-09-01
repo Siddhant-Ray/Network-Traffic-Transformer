@@ -1,19 +1,25 @@
-# Master Thesis of Siddhant Ray, ETH Zurich, 2022
+#  Network Traffic Transformer (NTT)
 
-## Topic: 
-[`Advancing packet-level traffic predictions with Transformers`](https://nsg.ee.ethz.ch/fileadmin/user_upload/thesis_proposal_packet_transformer.pdf)
+This work was undertaken as part of my master thesis at ETH Zurich, from Feb 2022 to Aug 2022, titled `Advancing packet-level traffic predictions with Transformers`. We present a new transformer-based architecture, to learn network dynamics from packet traces.
 
-## Lab: 
-[`Networked Systems Group, ETH Zurich`](https://nsg.ee.ethz.ch/home/)
+We design a `pre-training` phase, where we learn fundamental network dynamics. Following this, we have a `fine-tuning phase`, on different network tasks, and demonstrate that pre-training well leads to generalization to multiple fine-tuning tasks.
 
-## Code and reproducing instructions:
-[`Linked here`](workspace/README.md)
+### Original proposal: 
+* [`Project proposal`](https://nsg.ee.ethz.ch/fileadmin/user_upload/thesis_proposal_packet_transformer.pdf)
 
-## Thesis PDF:
-[`Linked here`](report/README.md)
+### Supervisors: 
+* [`Alexander Dietmüller`](mailto:adietmue@ethz.ch)<br>
+* [`Dr. Romain Jacob`](mailto:jacobr@ethz.ch)
 
-## Literature docs: 
-[`Linked here`](literature/README.md)
+### Research Lab: 
+* [`Networked Systems Group, ETH Zurich`](https://nsg.ee.ethz.ch/home/)
 
-## Slides:
-[`Linked here`](presentation/README.md)
+### We redirect you to the following sections for further details.
+
+* [`Code and reproducing instructions:`](workspace/README.md)
+
+* [`Thesis TeX and PDF files`](report/)
+
+* [`Literature files`](literature/)
+
+* [`Slides TeX and PDF files`](presentation/)
