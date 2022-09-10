@@ -25,7 +25,14 @@ We design a `pre-training` phase, where we learn fundamental network dynamics. F
 
 * [`Slides TeX and PDF files`](presentation/)
 
-<b>NOTE:</b> The experiments conducted in this project are very involved. Understanding and reproducing them from just the code and comments alone will be quite hard, inspite of the instructions mentioned in the given [`README`](workspace/README.md). For a mode detailed understanding, we invite you to read the thesis ([`direct link`](report/thesis.pdf)). You can also check out an overview on the presentation slides ([`direct link`](presentation/slides.pdf))
+### NOTE 1:
+The experiments conducted in this project are very involved. Understanding and reproducing them from just the code and comments alone will be quite hard, inspite of the instructions mentioned in the given [`README`](workspace/README.md). For a mode detailed understanding, we invite you to read the thesis ([`direct link`](report/thesis.pdf)). You can also check out an overview on the presentation slides ([`direct link`](presentation/slides.pdf))
 
-For any further questions or to discuss related research ideas, feel free to contact me by [`email.`](mailto:siddhant.r98@gmail.com)
+For any further questions or to discuss related research ideas, please feel free to contact me by [`email.`](mailto:siddhant.r98@gmail.com)
+
+### NOTE 2:
+Some results from the thesis have been written as a paper titled ```A new hope for network model generalization``` and the same has been accepted for presentation at [ACM HotNets 2022](https://conferences.sigcomm.org/hotnets/2022/). More details will follow and a link to the paper will be made available soon.
+
+### NOTE 3: 
+The thesis has now been published under the ETH Research collection, which is open access. It can be accessed from here ([`direct link`](https://www.research-collection.ethz.ch/handle/20.500.11850/569234))
 
