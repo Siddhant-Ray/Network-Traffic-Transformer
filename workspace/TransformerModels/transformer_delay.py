@@ -1,33 +1,36 @@
 # Orignal author: Siddhant Ray
 
-import random, os, pathlib
-from ipaddress import ip_address
-import pandas as pd, numpy as np
-import json, copy, math
-import yaml, time as t
-from datetime import datetime
-
 import argparse
-
-from tqdm import tqdm
-
-import torch
-from pytorch_lightning.callbacks import ProgressBar
-from torch import nn, optim, einsum
-from torch.utils.data import DataLoader
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-import pytorch_lightning as pl
-from torch.nn import functional as F
-from pytorch_lightning import loggers as pl_loggers
-
-from sklearn.model_selection import train_test_split
+import copy
+import json
+import math
+import os
+import pathlib
+import random
+import time as t
+from datetime import datetime
+from ipaddress import ip_address
 
 import matplotlib.pyplot as plt
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-
-from utils import get_data_from_csv, convert_to_relative_timestamp, ipaddress_to_number, vectorize_features_to_numpy
-from utils import sliding_window_features, sliding_window_delay
-from utils import PacketDataset
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+import yaml
+from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks import ProgressBar
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from sklearn.model_selection import train_test_split
+from tensorboard.backend.event_processing.event_accumulator import \
+    EventAccumulator
+from torch import einsum, nn, optim
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+from utils import (PacketDataset, convert_to_relative_timestamp,
+                   get_data_from_csv, ipaddress_to_number,
+                   sliding_window_delay, sliding_window_features,
+                   vectorize_features_to_numpy)
 
 random.seed(0)
 np.random.seed(0)
@@ -37,28 +40,28 @@ torch.set_default_dtype(torch.float64)
 
 # Hyper parameters from config file
 
-with open('configs/config-transformer.yaml') as f:
+with open("configs/config-transformer.yaml") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-WEIGHTDECAY = float(config['weight_decay'])      
-LEARNINGRATE = float(config['learning_rate'])         
-DROPOUT = float(config['dropout'])                      
-NHEAD = int(config['num_heads'])    
-LAYERS = int(config['num_layers'])             
-EPOCHS = int(config['epochs'])  
-BATCHSIZE = int(config['batch_size'])  
-LINEARSIZE = int(config['linear_size'])
+WEIGHTDECAY = float(config["weight_decay"])
+LEARNINGRATE = float(config["learning_rate"])
+DROPOUT = float(config["dropout"])
+NHEAD = int(config["num_heads"])
+LAYERS = int(config["num_layers"])
+EPOCHS = int(config["epochs"])
+BATCHSIZE = int(config["batch_size"])
+LINEARSIZE = int(config["linear_size"])
 LOSSFUNCTION = nn.MSELoss()
 
-if 'loss_function' in config.keys():
-    if config['loss_function'] == "huber":
+if "loss_function" in config.keys():
+    if config["loss_function"] == "huber":
         LOSSFUNCTION = nn.HuberLoss()
-    if config['loss_function'] == "smoothl1":
+    if config["loss_function"] == "smoothl1":
         LOSSFUNCTION = nn.SmoothL1Loss()
-    if config['loss_function'] == "kldiv":
+    if config["loss_function"] == "kldiv":
         LOSSFUNCTION = nn.KLDivLoss()
 
-# Params for the sliding window on the packet data 
+# Params for the sliding window on the packet data
 SLIDING_WINDOW_START = 0
 SLIDING_WINDOW_STEP = 1
 SLIDING_WINDOW_SIZE = 10
@@ -72,7 +75,7 @@ if torch.cuda.is_available():
     print("Number of GPUS: {}".format(NUM_GPUS))
 else:
     print("ERROR: NO CUDA DEVICE FOUND")
-    NUM_GPUS = 0 
+    NUM_GPUS = 0
 
 # DO NOT USE (AS OF NOW)
 class AbsPosEmb1DAISummer(nn.Module):
@@ -90,34 +93,36 @@ class AbsPosEmb1DAISummer(nn.Module):
             dim_head: the size of the last dimension of q
         """
         super().__init__()
-        scale = dim_head ** -0.5
+        scale = dim_head**-0.5
         self.abs_pos_emb = nn.Parameter(torch.randn(tokens, dim_head) * scale)
 
     def forward(self, q):
-        return einsum('b h i d, j d -> b h i j', q, self.abs_pos_emb)
+        return einsum("b h i d, j d -> b h i j", q, self.abs_pos_emb)
+
 
 # DO NOT USE (AS OF NOW)
 class PositionalEncoding(nn.Module):
-
     def __init__(self, d_model, dropout=DROPOUT, max_len=5000):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
+        x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
+
 
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class BaseTransformer(pl.LightningModule):
-
-    def __init__(self,input_size, target_size, loss_function):
+    def __init__(self, input_size, target_size, loss_function):
         super(BaseTransformer, self).__init__()
 
         self.step = [0]
@@ -125,30 +130,57 @@ class BaseTransformer(pl.LightningModule):
 
         # create the model with its layers
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
-        self.decoder_layer = nn.TransformerDecoderLayer(d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT)
+        self.encoder_layer = nn.TransformerEncoderLayer(
+            d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT
+        )
+        self.decoder_layer = nn.TransformerDecoderLayer(
+            d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT
+        )
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
         self.decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=LAYERS)
         self.encoderin = nn.Linear(input_size, LINEARSIZE)
         self.decoderin = nn.Linear(target_size, LINEARSIZE)
-        self.decoderpred= nn.Linear(LINEARSIZE, target_size)
-        self.model = nn.ModuleList([self.encoder, self.decoder, self.encoderin, self.decoderin, self.decoderpred])
+        self.decoderpred = nn.Linear(LINEARSIZE, target_size)
+        self.model = nn.ModuleList(
+            [
+                self.encoder,
+                self.decoder,
+                self.encoderin,
+                self.decoderin,
+                self.decoderpred,
+            ]
+        )
 
         self.loss_func = loss_function
-        parameters = {"WEIGHTDECAY": WEIGHTDECAY, "LEARNINGRATE": LEARNINGRATE, "EPOCHS": EPOCHS, "BATCHSIZE": BATCHSIZE,
-                         "LINEARSIZE": LINEARSIZE, "NHEAD": NHEAD, "LAYERS": LAYERS}
+        parameters = {
+            "WEIGHTDECAY": WEIGHTDECAY,
+            "LEARNINGRATE": LEARNINGRATE,
+            "EPOCHS": EPOCHS,
+            "BATCHSIZE": BATCHSIZE,
+            "LINEARSIZE": LINEARSIZE,
+            "NHEAD": NHEAD,
+            "LAYERS": LAYERS,
+        }
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
 
     def configure_optimizers(self):
-        self.optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        self.optimizer = optim.Adam(
+            self.model.parameters(),
+            betas=(0.9, 0.98),
+            eps=1e-9,
+            lr=LEARNINGRATE,
+            weight_decay=WEIGHTDECAY,
+        )
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
         self.step[0] += 1
-        learning_rate = LINEARSIZE ** (-0.5) * min(self.step[0] ** (-0.5), self.step[0] * self.warmup_steps ** (-1.5))
+        learning_rate = LINEARSIZE ** (-0.5) * min(
+            self.step[0] ** (-0.5), self.step[0] * self.warmup_steps ** (-1.5)
+        )
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = learning_rate
+            param_group["lr"] = learning_rate
 
     def forward(self, input, target):
         # used for the forward pass of the model
@@ -163,21 +195,21 @@ class BaseTransformer(pl.LightningModule):
         self.lr_update()
         prediction = self.forward(X, y)
         loss = self.loss_func(prediction, y)
-        self.log('Train loss', loss)
+        self.log("Train loss", loss)
         return loss
 
     def validation_step(self, val_batch, val_idx):
         X, y = val_batch
         prediction = self.forward(X, y)
         loss = self.loss_func(prediction, y)
-        self.log('Val loss', loss, sync_dist=True)
+        self.log("Val loss", loss, sync_dist=True)
         return loss
 
     def test_step(self, test_batch, test_idx):
         X, y = test_batch
         prediction = self.forward(X, y)
         loss = self.loss_func(prediction, y)
-        self.log('Test loss', loss, sync_dist=True)
+        self.log("Test loss", loss, sync_dist=True)
         return loss
 
     def predict_step(self, test_batch, test_idx, dataloader_idx=0):
@@ -185,16 +217,26 @@ class BaseTransformer(pl.LightningModule):
         prediction = self.forward(X, y)
         return prediction
 
-    def training_epoch_end(self,outputs):
-        loss_tensor_list = [item['loss'].to('cpu').numpy() for item in outputs]
+    def training_epoch_end(self, outputs):
+        loss_tensor_list = [item["loss"].to("cpu").numpy() for item in outputs]
         # print(loss_tensor_list, len(loss_tensor_list))
-        self.log('Avg loss per epoch', np.mean(np.array(loss_tensor_list)), on_step=False, on_epoch=True)
+        self.log(
+            "Avg loss per epoch",
+            np.mean(np.array(loss_tensor_list)),
+            on_step=False,
+            on_epoch=True,
+        )
 
 
 def main():
     path = "congestion_1/"
-    files = ["endtoenddelay500s_1.csv", "endtoenddelay500s_2.csv", "endtoenddelay500s_3.csv",
-            "endtoenddelay500s_4.csv", "endtoenddelay500s_5.csv"]
+    files = [
+        "endtoenddelay500s_1.csv",
+        "endtoenddelay500s_2.csv",
+        "endtoenddelay500s_3.csv",
+        "endtoenddelay500s_4.csv",
+        "endtoenddelay500s_5.csv",
+    ]
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
@@ -212,30 +254,36 @@ def main():
     for file in files:
         print(os.getcwd())
 
-        df = get_data_from_csv(path+file)
+        df = get_data_from_csv(path + file)
         df = convert_to_relative_timestamp(df)
-        
+
         df = ipaddress_to_number(df)
         feature_df, label_df = vectorize_features_to_numpy(df)
 
         print(feature_df.head(), feature_df.shape)
         print(label_df.head())
-        
-        feature_arr = sliding_window_features(feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift)
-        target_arr = sliding_window_delay(label_df, sl_win_start, sl_win_size, sl_win_shift)
+
+        feature_arr = sliding_window_features(
+            feature_df.Combined, sl_win_start, sl_win_size, sl_win_shift
+        )
+        target_arr = sliding_window_delay(
+            label_df, sl_win_start, sl_win_size, sl_win_shift
+        )
         print(len(feature_arr), len(target_arr))
         full_feature_arr = full_feature_arr + feature_arr
         full_target_arr = full_target_arr + target_arr
 
     print(len(full_feature_arr), len(full_target_arr))
-    
-    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(full_feature_arr, full_target_arr, test_size = 0.05,
-                                                            shuffle = True, random_state=42)
+
+    full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(
+        full_feature_arr, full_target_arr, test_size=0.05, shuffle=True, random_state=42
+    )
     # print(len(full_train_vectors), len(full_train_labels))
     # print(len(test_vectors), len(test_labels))
 
-    train_vectors, val_vectors, train_labels, val_labels = train_test_split(full_train_vectors, full_train_labels, test_size = 0.1,
-                                                            shuffle = False)
+    train_vectors, val_vectors, train_labels, val_labels = train_test_split(
+        full_train_vectors, full_train_labels, test_size=0.1, shuffle=False
+    )
     # print(len(train_vectors), len(train_labels))
     # print(len(val_vectors), len(val_labels))
 
@@ -247,9 +295,15 @@ def main():
     test_dataset = PacketDataset(test_vectors, test_labels)
     # print(train_dataset.__getitem__(0))
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers = 4)
-    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
-    test_loader = DataLoader(test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers = 4)
+    train_loader = DataLoader(
+        train_dataset, batch_size=BATCHSIZE, shuffle=True, num_workers=4
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers=4
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers=4
+    )
 
     # print one dataloader item!!!!
     train_features, train_lbls = next(iter(train_loader))
@@ -284,21 +338,33 @@ def main():
     os.system("rm -rf transformer_delay_logs/lightning_logs/")
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="transformer_delay_logs/")
-    
-    if NUM_GPUS >= 1:
-        trainer = pl.Trainer(precision=16, gpus=-1, strategy="dp", max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
-    else:
-        trainer = pl.Trainer(gpus=None, max_epochs=EPOCHS, check_val_every_n_epoch=1,
-                        logger = tb_logger, callbacks=[EarlyStopping(monitor="Val loss", patience=5)])
 
-    trainer.fit(model, train_loader, val_loader)    
+    if NUM_GPUS >= 1:
+        trainer = pl.Trainer(
+            precision=16,
+            gpus=-1,
+            strategy="dp",
+            max_epochs=EPOCHS,
+            check_val_every_n_epoch=1,
+            logger=tb_logger,
+            callbacks=[EarlyStopping(monitor="Val loss", patience=5)],
+        )
+    else:
+        trainer = pl.Trainer(
+            gpus=None,
+            max_epochs=EPOCHS,
+            check_val_every_n_epoch=1,
+            logger=tb_logger,
+            callbacks=[EarlyStopping(monitor="Val loss", patience=5)],
+        )
+
+    trainer.fit(model, train_loader, val_loader)
     print("Finished training at:")
     time = datetime.now()
     print(time)
 
     if SAVE_MODEL:
-        name = config['name']
+        name = config["name"]
         torch.save(model.model, f"./trained_transformer_{name}")
 
     if not MAKE_EPOCH_PLOT:
@@ -315,19 +381,16 @@ def main():
 
         x = list(range(len(steps)))
         y = [x.value for x in event_accumulator.Scalars(y_key) if x.step in steps]
-        
+
         fig, ax = plt.subplots()
         ax.plot(epoch_vals, y)
         ax.set_xlabel("epoch")
         ax.set_ylabel(y_key)
         fig.savefig("lossplot_perepoch.png")
 
-    if TEST: 
-        trainer.test(model, dataloaders = test_loader)
+    if TEST:
+        trainer.test(model, dataloaders=test_loader)
 
 
-if __name__== '__main__':
+if __name__ == "__main__":
     main()
-
-
-
