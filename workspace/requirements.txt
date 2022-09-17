@@ -26,6 +26,7 @@ grpcio==1.44.0
 h5py==3.7.0
 idna==3.3
 importlib-metadata==4.11.3
+isort==5.10.1
 joblib==1.1.0
 keras==2.9.0
 Keras-Preprocessing==1.1.2
