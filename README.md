@@ -26,7 +26,7 @@ We design a `pre-training` phase, where we learn fundamental network dynamics. F
 * [`Slides TeX and PDF files`](presentation/)
 
 ### NOTE 1:
-The experiments conducted in this project are very involved. Understanding and reproducing them from just the code and comments alone will be quite hard, inspite of the instructions mentioned in the given [`README`](workspace/README.md). For a mode detailed understanding, we invite you to read the thesis ([`direct link`](report/thesis.pdf)). You can also check out an overview on the presentation slides ([`direct link`](presentation/slides.pdf))
+The experiments conducted in this project are very involved. Understanding and reproducing them from just the code and comments alone will be quite hard, inspite of the instructions mentioned in the given [`README`](workspace/README.md). For more detailed understanding, we invite you to read the thesis ([`direct link`](report/thesis.pdf)). You can also check out an overview on the presentation slides ([`direct link`](presentation/slides.pdf))
 
 For any further questions or to discuss related research ideas, please feel free to contact me by [`email.`](mailto:siddhant.r98@gmail.com)
 
