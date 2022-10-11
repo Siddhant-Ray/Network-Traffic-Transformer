@@ -18,16 +18,6 @@ authors:
     affiliation: ETH Zurich
     orcid: 'https://orcid.org/0000-0003-3769-3958'
     email: adietmue@ethz.ch
-  - given-names: Romain
-    family-names: Jacob
-    affiliation: ETH Zurich
-    orcid: 'https://orcid.org/0000-0002-2218-5750'
-    email: jacobr@ethz.ch
-  - given-names: Laurent
-    family-names: Vanbever
-    affiliation: ETH Zurich
-    orcid: 'https://orcid.org/0000-0003-1455-4381'
-    email: lvanbever@ethz.ch
 keywords:
   - Transformer
   - Packet-level modelling
