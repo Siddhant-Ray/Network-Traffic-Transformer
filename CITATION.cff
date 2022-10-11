@@ -1,0 +1,35 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Network Traffic Transformer
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Siddhant
+    family-names: Ray
+    affiliation: ETH Zurich
+    orcid: 'https://orcid.org/0000-0003-0265-2144'
+    email: siddhant.r98@gmail.com
+  - given-names: Alexander
+    family-names: Dietmüller
+    affiliation: ETH Zurich
+    orcid: 'https://orcid.org/0000-0003-3769-3958'
+    email: adietmue@ethz.ch
+  - given-names: Romain
+    family-names: Jacob
+    affiliation: ETH Zurich
+    orcid: 'https://orcid.org/0000-0002-2218-5750'
+    email: jacobr@ethz.ch
+  - given-names: Laurent
+    family-names: Vanbever
+    affiliation: ETH Zurich
+    orcid: 'https://orcid.org/0000-0003-1455-4381'
+    email: lvanbever@ethz.ch
+keywords:
+  - Transformer
+  - Packet-level modelling
+license: MIT
+version: '1.0'
