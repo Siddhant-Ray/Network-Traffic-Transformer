@@ -31,7 +31,8 @@ The experiments conducted in this project are very involved. Understanding and r
 For any further questions or to discuss related research ideas, please feel free to contact me by [`email.`](mailto:siddhant.r98@gmail.com)
 
 ### NOTE 2:
-Some results from the thesis have been written as a paper titled ```A new hope for network model generalization``` and the same has been accepted for presentation at [ACM HotNets 2022](https://conferences.sigcomm.org/hotnets/2022/). More details will follow and a link to the paper will be made available soon.
+Some results from the thesis have been written as a paper titled ```A new hope for network model generalization``` and the same has been accepted for presentation at [ACM HotNets 2022](https://conferences.sigcomm.org/hotnets/2022/). The paper is now online and open-access, it can be accessed via the ACM 
+Digital Library via this [link](https://dl.acm.org/doi/abs/10.1145/3563766.3564104), DOI is: 10.1145/3563766.3564104.
 
 ### NOTE 3: 
 The thesis has now been published under the ETH Research collection, which is open access. It can be accessed from here ([`direct link`](https://www.research-collection.ethz.ch/handle/20.500.11850/569234))
