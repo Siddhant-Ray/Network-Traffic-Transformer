@@ -25,17 +25,23 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ProgressBar
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from sklearn.model_selection import train_test_split
-from tensorboard.backend.event_processing.event_accumulator import \
-    EventAccumulator
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from torch import einsum, nn, optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from utils import (PacketDataset, PacketDatasetEncoder,
-                   convert_to_relative_timestamp, gelu, get_data_from_csv,
-                   ipaddress_to_number, sliding_window_delay,
-                   sliding_window_features, vectorize_features_to_numpy,
-                   vectorize_features_to_numpy_memento)
+from utils import (
+    PacketDataset,
+    PacketDatasetEncoder,
+    convert_to_relative_timestamp,
+    gelu,
+    get_data_from_csv,
+    ipaddress_to_number,
+    sliding_window_delay,
+    sliding_window_features,
+    vectorize_features_to_numpy,
+    vectorize_features_to_numpy_memento,
+)
 
 random.seed(0)
 np.random.seed(0)
@@ -43,49 +49,6 @@ torch.manual_seed(0)
 
 torch.set_default_dtype(torch.float64)
 
-# Hyper parameters from config file
-
-with open("configs/config-encoder-test.yaml") as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
-
-WEIGHTDECAY = float(config["weight_decay"])
-LEARNINGRATE = float(config["learning_rate"])
-DROPOUT = float(config["dropout"])
-NHEAD = int(config["num_heads"])
-LAYERS = int(config["num_layers"])
-EPOCHS = int(config["epochs"])
-BATCHSIZE = int(config["batch_size"])
-LINEARSIZE = int(config["linear_size"])
-LOSSFUNCTION = nn.MSELoss()
-
-if "loss_function" in config.keys():
-    if config["loss_function"] == "huber":
-        LOSSFUNCTION = nn.HuberLoss()
-    if config["loss_function"] == "smoothl1":
-        LOSSFUNCTION = nn.SmoothL1Loss()
-    if config["loss_function"] == "kldiv":
-        LOSSFUNCTION = nn.KLDivLoss()
-
-# Params for the sliding window on the packet data
-SLIDING_WINDOW_START = 0
-SLIDING_WINDOW_STEP = 1
-SLIDING_WINDOW_SIZE = 1024
-WINDOW_BATCH_SIZE = 5000
-PACKETS_PER_EMBEDDING = 21
-NUM_BOTTLENECKS = 4
-
-TRAIN = True
-SAVE_MODEL = True
-MAKE_EPOCH_PLOT = False
-TEST = True
-TEST_ONLY_NEW = False
-
-if torch.cuda.is_available():
-    NUM_GPUS = torch.cuda.device_count()
-    print("Number of GPUS: {}".format(NUM_GPUS))
-else:
-    print("ERROR: NO CUDA DEVICE FOUND")
-    NUM_GPUS = 0
 
 # TRANSFOMER CLASS TO PREDICT DELAYS
 class TransformerEncoder(pl.LightningModule):
@@ -93,10 +56,24 @@ class TransformerEncoder(pl.LightningModule):
         self,
         input_size,
         target_size,
-        loss_function,
+        loss_function1,
+        loss_function2,
         delay_mean,
         delay_std,
         packets_per_embedding,
+        layers,
+        num_heads,
+        dropout,
+        weight_decay,
+        learning_rate,
+        epochs,
+        batch_size,
+        linear_size,
+        sliding_window_size,
+        dual_loss,
+        mask_all_sizes,
+        mask_all_delays,
+        use_hierarchical_aggregation=True,
         pool=False,
     ):
         super(TransformerEncoder, self).__init__()
@@ -104,75 +81,104 @@ class TransformerEncoder(pl.LightningModule):
         self.step = [0]
         self.warmup_steps = 4000
 
-        # create the model with its layers
+        self.layers = layers
+        self.num_heads = num_heads
+        self.dropout = dropout
+        self.weight_decay = weight_decay
+        self.learning_rate = learning_rate
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.linear_size = linear_size
+        self.sliding_window_size = sliding_window_size
+        self.dual_loss = dual_loss
+        self.mask_all_sizes = mask_all_sizes
+        self.mask_all_delays = mask_all_delays
+        self.use_hierarchical_aggregation = use_hierarchical_aggregation
 
+        # create the model with its layers
         # These are our transformer layers (stay the same)
         self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=LINEARSIZE, nhead=NHEAD, batch_first=True, dropout=DROPOUT
+            d_model=self.linear_size,
+            nhead=self.num_heads,
+            batch_first=True,
+            dropout=self.dropout,
         )
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=LAYERS)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.layers)
 
         # This is our prediction layer, change for finetuning as needed
-
-        self.norm1 = nn.LayerNorm(LINEARSIZE)
-        self.linear1 = nn.Linear(LINEARSIZE, LINEARSIZE * 4)
+        self.norm1 = nn.LayerNorm(self.linear_size)
+        self.linear1 = nn.Linear(self.linear_size, self.linear_size * 4)
         self.activ1 = nn.Tanh()
-        self.norm2 = nn.LayerNorm(LINEARSIZE * 4)
-        self.linear2 = nn.Linear(LINEARSIZE * 4, LINEARSIZE)
+        self.norm2 = nn.LayerNorm(self.linear_size * 4)
+        self.linear2 = nn.Linear(self.linear_size * 4, self.linear_size)
         self.activ2 = nn.GELU()
-        self.encoderpred1 = nn.Linear(LINEARSIZE, input_size // 8)
+        self.encoderpred1 = nn.Linear(self.linear_size, input_size // 8)
         self.activ3 = nn.ReLU()
         self.encoderpred2 = nn.Linear(input_size // 8, target_size)
 
-        self.loss_func = loss_function
+        self.loss_func1 = loss_function1
+        self.loss_func2 = loss_function2
+
         parameters = {
-            "WEIGHTDECAY": WEIGHTDECAY,
-            "LEARNINGRATE": LEARNINGRATE,
-            "EPOCHS": EPOCHS,
-            "BATCHSIZE": BATCHSIZE,
-            "LINEARSIZE": LINEARSIZE,
-            "NHEAD": NHEAD,
-            "LAYERS": LAYERS,
+            "WEIGHTDECAY": self.weight_decay,
+            "LEARNINGRATE": self.learning_rate,
+            "EPOCHS": self.epochs,
+            "BATCHSIZE": self.batch_size,
+            "LINEARSIZE": self.linear_size,
+            "NHEAD": self.num_heads,
+            "LAYERS": self.layers,
         }
         self.df = pd.DataFrame()
         self.df["parameters"] = [json.dumps(parameters)]
 
         ## Mask out the nth delay in every input sequence (do it at run time)
         self.input_size = input_size
-        self.packet_size = int(self.input_size / SLIDING_WINDOW_SIZE)
+        self.packet_size = int(self.input_size / self.sliding_window_size)
         self.packets_per_embedding = packets_per_embedding
 
-        # Change into hierarchical embedding for the encoder
-        self.feature_transform1 = nn.Sequential(
-            Rearrange(
-                "b (seq feat) -> b seq feat",
-                seq=SLIDING_WINDOW_SIZE,
-                feat=self.packet_size,
-            ),  # Make 1000
-            nn.Linear(self.packet_size, LINEARSIZE),
-            nn.LayerNorm(LINEARSIZE),  # pre-normalization
-        )
-        """self.feature_transform1 =  nn.Sequential(Rearrange('b (seq feat) -> b seq feat',
-                            seq=SLIDING_WINDOW_SIZE // self.packets_per_embedding,
-                                            feat=self.packet_size * self.packets_per_embedding), # Make 1008 size sequences to 48,                                
-                            nn.Linear(self.packet_size  * self.packets_per_embedding, LINEARSIZE), # each embedding now has 21 packets
-                            nn.LayerNorm(LINEARSIZE), # pre-normalization
-                            )"""
+        ## Use multi-level hierarchical aggregation
+        if self.use_hierarchical_aggregation:
+            # Change into hierarchical embedding for the encoder
+            self.feature_transform1 = nn.Sequential(
+                Rearrange(
+                    "b (seq feat) -> b seq feat",
+                    seq=self.sliding_window_size,
+                    feat=self.packet_size,
+                ),  # Make 1000
+                nn.Linear(self.packet_size, self.linear_size),
+                nn.LayerNorm(self.linear_size),  # pre-normalization
+            )
+            self.remaining_packets1 = self.sliding_window_size - 32
 
-        self.remaining_packets1 = SLIDING_WINDOW_SIZE - 32
-        self.feature_transform2 = nn.Sequential(
-            Rearrange("b (seq n) feat  -> b seq (feat n)", n=32),
-            nn.Linear(LINEARSIZE * 32, LINEARSIZE),
-            nn.LayerNorm(LINEARSIZE),  # pre-normalization
-        )
-        # self.feature_transform2 = nn.Identity()
-        self.remaining_packets2 = (self.remaining_packets1 // 32) - 15
-        self.feature_transform3 = nn.Sequential(
-            Rearrange("b (seq n) feat -> b seq (feat n)", n=16),
-            nn.Linear(LINEARSIZE * 16, LINEARSIZE),
-            nn.LayerNorm(LINEARSIZE),  # pre-normalization
-        )
-        # self.feature_transform3 = nn.Identity()
+            self.feature_transform2 = nn.Sequential(
+                Rearrange("b (seq n) feat  -> b seq (feat n)", n=32),
+                nn.Linear(self.linear_size * 32, self.linear_size),
+                nn.LayerNorm(self.linear_size),  # pre-normalization
+            )
+            self.remaining_packets2 = (self.remaining_packets1 // 32) - 15
+
+            self.feature_transform3 = nn.Sequential(
+                Rearrange("b (seq n) feat -> b seq (feat n)", n=16),
+                nn.Linear(self.linear_size * 16, self.linear_size),
+                nn.LayerNorm(self.linear_size),  # pre-normalization
+            )
+
+        ## Use common size aggregation
+        else:
+            self.feature_transform1 = nn.Sequential(
+                Rearrange(
+                    "b (seq feat) -> b seq feat",
+                    seq=self.sliding_window_size // self.packets_per_embedding,
+                    feat=self.packet_size * self.packets_per_embedding,
+                ),  # Make 1008 size sequences to 48,
+                nn.Linear(
+                    self.packet_size * self.packets_per_embedding, self.linear_size
+                ),  # each embedding now has 21 packets
+                nn.LayerNorm(self.linear_size),  # pre-normalization
+            )
+
+            self.feature_transform2 = nn.Identity()
+            self.feature_transform3 = nn.Identity()
 
         # Choose mean pooling
         self.pool = pool
@@ -182,8 +188,10 @@ class TransformerEncoder(pl.LightningModule):
         self.delay_std = delay_std
 
     def configure_optimizers(self):
-        # self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98), eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
-        # Regularise only the weights, not the biases (regularisation of biases is not recommended)
+        # self.optimizer = optim.Adam(self.parameters(), betas=(0.9, 0.98),
+        # eps=1e-9, lr=LEARNINGRATE, weight_decay=WEIGHTDECAY)
+        # Regularise only the weights, not the biases (regularisation of biases
+        # is not recommended)
         weights_parameters = (
             p for name, p in self.named_parameters() if "bias" not in name
         )
@@ -191,18 +199,18 @@ class TransformerEncoder(pl.LightningModule):
 
         self.optimizer = optim.Adam(
             [
-                {"params": weights_parameters, "weight_decay": WEIGHTDECAY},
+                {"params": weights_parameters, "weight_decay": self.weight_decay},
                 {"params": bias_parameters},
             ],
             betas=(0.9, 0.98),
             eps=1e-9,
-            lr=LEARNINGRATE,
+            lr=self.learning_rate,
         )
         return {"optimizer": self.optimizer}
 
     def lr_update(self):
         self.step[0] += 1
-        learning_rate = LINEARSIZE ** (-0.5) * min(
+        learning_rate = self.linear_size ** (-0.5) * min(
             self.step[0] ** (-0.5), self.step[0] * self.warmup_steps ** (-1.5)
         )
         for param_group in self.optimizer.param_groups:
@@ -268,7 +276,6 @@ class TransformerEncoder(pl.LightningModule):
         batch_mask = batch_mask.double()
 
         ## For ablation study, mask out all delays and all sizes
-
         batch_all_size_masks_index = np.arange(1, self.input_size, 3)
         batch_all_size_masks = torch.zeros(
             self.input_size // 3,
@@ -288,10 +295,13 @@ class TransformerEncoder(pl.LightningModule):
         batch_all_delay_masks = batch_all_delay_masks.double()
 
         X[:, [batch_mask_index]] = batch_mask
-        ## Mask out all sizes
-        # X[:, batch_all_size_masks_index] = batch_all_size_masks
-        ## Mask out all delays
-        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
+
+        if self.mask_all_sizes:
+            ## Mask out all sizes
+            X[:, batch_all_size_masks_index] = batch_all_size_masks
+        if self.mask_all_delays:
+            ## Mask out all delays
+            X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
         # Every packet separately into the transformer (project to linear if needed)
         prediction = self.forward(X)
@@ -299,7 +309,15 @@ class TransformerEncoder(pl.LightningModule):
         ## Un-normalize the delay prediction
         prediction = prediction * self.delay_std + self.delay_mean
 
-        loss = self.loss_func(prediction, y[:, [SLIDING_WINDOW_SIZE - 1]])
+        ## Loss over both the loss functions
+        loss_recnstr = self.loss_func1(prediction, y[:, [self.sliding_window_size - 1]])
+        if self.dual_loss:
+            loss_entropy = self.loss_func2(
+                prediction, y[:, [self.sliding_window_size - 1]]
+            )
+            loss = loss_recnstr + loss_entropy
+        else:
+            loss = loss_recnstr
         self.log("Train loss", loss)
         return loss
 
@@ -313,7 +331,6 @@ class TransformerEncoder(pl.LightningModule):
         batch_mask = batch_mask.double()
 
         ## For ablation study, mask out all delays and all sizes
-
         batch_all_size_masks_index = np.arange(1, self.input_size, 3)
         batch_all_size_masks = torch.zeros(
             self.input_size // 3,
@@ -333,17 +350,28 @@ class TransformerEncoder(pl.LightningModule):
         batch_all_delay_masks = batch_all_delay_masks.double()
 
         X[:, [batch_mask_index]] = batch_mask
-        ## Mask out all sizes
-        # X[:, batch_all_size_masks_index] = batch_all_size_masks
-        ## Mask out all delays
-        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
+
+        if self.mask_all_sizes:
+            ## Mask out all sizes
+            X[:, batch_all_size_masks_index] = batch_all_size_masks
+        if self.mask_all_delays:
+            ## Mask out all delays
+            X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
         prediction = self.forward(X)
 
         ## Un-normalize the delay prediction
         prediction = prediction * self.delay_std + self.delay_mean
 
-        loss = self.loss_func(prediction, y[:, [SLIDING_WINDOW_SIZE - 1]])
+        ## Loss over both the loss functions
+        loss_recnstr = self.loss_func1(prediction, y[:, [self.sliding_window_size - 1]])
+        if self.dual_loss:
+            loss_entropy = self.loss_func2(
+                prediction, y[:, [self.sliding_window_size - 1]]
+            )
+            loss = loss_recnstr + loss_entropy
+        else:
+            loss = loss_recnstr
         self.log("Val loss", loss, sync_dist=True)
         return loss
 
@@ -357,7 +385,6 @@ class TransformerEncoder(pl.LightningModule):
         batch_mask = batch_mask.double()
 
         ## For ablation study, mask out all delays and all sizes
-
         batch_all_size_masks_index = np.arange(1, self.input_size, 3)
         batch_all_size_masks = torch.zeros(
             self.input_size // 3,
@@ -377,20 +404,31 @@ class TransformerEncoder(pl.LightningModule):
         batch_all_delay_masks = batch_all_delay_masks.double()
 
         X[:, [batch_mask_index]] = batch_mask
-        ## Mask out all sizes
-        # X[:, batch_all_size_masks_index] = batch_all_size_masks
-        ## Mask out all delays
-        # X[:, batch_all_delay_masks_index] = batch_all_delay_masks
+
+        if self.mask_all_sizes:
+            ## Mask out all sizes
+            X[:, batch_all_size_masks_index] = batch_all_size_masks
+        if self.mask_all_delays:
+            ## Mask out all delays
+            X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
         prediction = self.forward(X)
 
         ## Un-normalize the delay prediction
         prediction = prediction * self.delay_std + self.delay_mean
 
-        loss = self.loss_func(prediction, y[:, [SLIDING_WINDOW_SIZE - 1]])
+        ## Loss over both the loss functions
+        loss_recnstr = self.loss_func1(prediction, y[:, [self.sliding_window_size - 1]])
+        if self.dual_loss:
+            loss_entropy = self.loss_func2(
+                prediction, y[:, [self.sliding_window_size - 1]]
+            )
+            loss = loss_recnstr + loss_entropy
+        else:
+            loss = loss_recnstr
 
         mse_loss = nn.MSELoss()
-        target_size = SLIDING_WINDOW_SIZE
+        target_size = self.sliding_window_size
         last_delay_pos = target_size - 1
 
         last_actual_delay = y[:, [last_delay_pos]]
@@ -408,7 +446,7 @@ class TransformerEncoder(pl.LightningModule):
         ewm_data = torch.clone(y)
         ewm_data = ewm_data.cpu().numpy()
 
-        weights = 0.99 ** np.arange(SLIDING_WINDOW_SIZE - 1)[::-1]
+        weights = 0.99 ** np.arange(self.sliding_window_size - 1)[::-1]
 
         ewm_prediction = np.ma.average(ewm_data[:, :-1], axis=1, weights=weights)
         ewm_prediction = np.expand_dims(ewm_prediction, 1)
@@ -461,7 +499,7 @@ class TransformerEncoder(pl.LightningModule):
 
         for output in outputs:
             last_packet_losses = list(
-                output["last_delay_loss"].cpu().detach().numpy()
+                np.expand_dims(output["last_delay_loss"].cpu().detach().numpy(), 0)
             )  # Losses on last delay only
             preds = list(
                 output["last_predicted_delay"].cpu().detach().numpy()
@@ -567,39 +605,95 @@ class TransformerEncoder(pl.LightningModule):
             np.quantile(median_losses_array, 0.99),
         )
 
-        save_path = "plot_values_extra/3features/"
+        if self.dual_loss:
+            os.system("mkdir -p plot_values_dualloss/")
+            save_path = "plot_values_dualloss/"
+        else:
+            os.system("mkdir -p plot_values/")
+            save_path = "plot_values/"
         np.save(
             save_path
-            + "transformer_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE),
+            + "transformer_last_delay_window_size_{}.npy".format(
+                self.sliding_window_size
+            ),
             np.array(last_predicted_delay),
         )
         np.save(
             save_path
-            + "arma_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE),
+            + "arma_last_delay_window_size_{}.npy".format(self.sliding_window_size),
             np.array(fake_last_delay),
         )
         np.save(
             save_path
-            + "penultimate_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE),
+            + "penultimate_last_delay_window_size_{}.npy".format(
+                self.sliding_window_size
+            ),
             np.array(penultimate_predicted_delay),
         )
         np.save(
-            save_path + "ewm_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE),
+            save_path + "ewm_delay_window_size_{}.npy".format(self.sliding_window_size),
             np.array(ewm_predicted_delay),
         )
         np.save(
             save_path
-            + "actual_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE),
+            + "actual_last_delay_window_size_{}.npy".format(self.sliding_window_size),
             np.array(last_actual_delay),
         )
         np.save(
             save_path
-            + "median_last_delay_window_size_{}.npy".format(SLIDING_WINDOW_SIZE),
+            + "median_last_delay_window_size_{}.npy".format(self.sliding_window_size),
             np.array(median_predicted_delay),
         )
 
 
+# Setup and run the transformer encoder model
 def main():
+    # Hyper parameters from config file
+    with open("configs/config-encoder-test.yaml") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
+    WEIGHTDECAY = float(config["weight_decay"])
+    LEARNINGRATE = float(config["learning_rate"])
+    DROPOUT = float(config["dropout"])
+    NHEAD = int(config["num_heads"])
+    LAYERS = int(config["num_layers"])
+    EPOCHS = int(config["epochs"])
+    BATCHSIZE = int(config["batch_size"])
+    LINEARSIZE = int(config["linear_size"])
+    LOSSFUNCTION_1 = nn.MSELoss()
+    LOSSFUNCTION_2 = nn.CrossEntropyLoss()
+
+    if "loss_function" in config.keys():
+        if config["loss_function"] == "huber":
+            LOSSFUNCTION = nn.HuberLoss()
+        if config["loss_function"] == "smoothl1":
+            LOSSFUNCTION = nn.SmoothL1Loss()
+        if config["loss_function"] == "kldiv":
+            LOSSFUNCTION = nn.KLDivLoss()
+
+    # Params for the sliding window on the packet data
+    SLIDING_WINDOW_START = 0
+    SLIDING_WINDOW_STEP = 1
+    SLIDING_WINDOW_SIZE = 1024
+    WINDOW_BATCH_SIZE = 5000
+    PACKETS_PER_EMBEDDING = 21
+    NUM_BOTTLENECKS = 1
+
+    TRAIN = False
+    SAVE_MODEL = True
+    MAKE_EPOCH_PLOT = False
+    TEST = True
+    TEST_ONLY_NEW = False
+
+    ## Dual loss (reconstruction + entropy)
+    DUAL_LOSS = False
+
+    if torch.cuda.is_available():
+        NUM_GPUS = torch.cuda.device_count()
+        print("Number of GPUS: {}".format(NUM_GPUS))
+    else:
+        print("ERROR: NO CUDA DEVICE FOUND")
+        NUM_GPUS = 0
 
     sl_win_start = SLIDING_WINDOW_START
     sl_win_size = SLIDING_WINDOW_SIZE
@@ -608,7 +702,7 @@ def main():
     if NUM_BOTTLENECKS == 1 or NUM_BOTTLENECKS == 2:
         num_features = 3  # If only timestamp, packet size and delay, else 16
     elif NUM_BOTTLENECKS == 4:
-        num_features = 4  # Using receiver IP identifier
+        num_features = 4  # Using receiver IP identifier (and full packet 16+3)
     input_size = sl_win_size * num_features
     output_size = 1
 
@@ -622,16 +716,31 @@ def main():
         num_features,
         TEST_ONLY_NEW,
         NUM_BOTTLENECKS,
+        reduce_type=True,
     )
 
     ## Model definition with delay scaling params
     model = TransformerEncoder(
-        input_size,
-        output_size,
-        LOSSFUNCTION,
-        mean_delay,
-        std_delay,
-        PACKETS_PER_EMBEDDING,
+        input_size=input_size,
+        target_size=output_size,
+        loss_function1=LOSSFUNCTION_1,
+        loss_function2=LOSSFUNCTION_2,
+        delay_mean=mean_delay,
+        delay_std=std_delay,
+        packets_per_embedding=PACKETS_PER_EMBEDDING,
+        layers=LAYERS,
+        num_heads=NHEAD,
+        dropout=DROPOUT,
+        weight_decay=WEIGHTDECAY,
+        learning_rate=LEARNINGRATE,
+        epochs=EPOCHS,
+        batch_size=BATCHSIZE,
+        linear_size=LINEARSIZE,
+        sliding_window_size=SLIDING_WINDOW_SIZE,
+        dual_loss=DUAL_LOSS,
+        mask_all_sizes=False,
+        mask_all_delays=False,
+        use_hierarchical_aggregation=True,
         pool=False,
     )
 
@@ -694,16 +803,23 @@ def main():
     print(f"Feature: {feature}")
     print(f"Label: {label}")
 
+    # Save path as per single or dual loss
     # Make new dir for storing logs
-    os.system("mkdir -p encoder_delay_logs/")
+    if DUAL_LOSS:
+        os.system("mkdir -p encoder_delay_logs_dualloss/")
+        save_path = "encoder_delay_logs_dualloss/"
+    else:
+        os.system("mkdir -p encoder_delay_logs/")
+        save_path = "encoder_delay_logs/"
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="encoder_delay_logs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir=save_path)
 
     if NUM_GPUS >= 1:
         trainer = pl.Trainer(
             precision=16,
-            gpus=-1,
-            strategy="dp",
+            accelerator="gpu",
+            devices=1,
+            strategy="ddp",
             max_epochs=EPOCHS,
             check_val_every_n_epoch=1,
             logger=tb_logger,
@@ -724,15 +840,15 @@ def main():
         print(time)
 
         print("Removing old logs:")
-        os.system("rm -rf encoder_delay_logs/lightning_logs/")
+        os.system("rm -rf {}/lightning_logs/".format(save_path))
 
         trainer.fit(model, train_loader, val_loader)
         print("Finished training at:")
         time = datetime.now()
         print(time)
         trainer.save_checkpoint(
-            "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(
-                SLIDING_WINDOW_SIZE
+            "{}/finetune_nonpretrained_window{}.ckpt".format(
+                save_path, SLIDING_WINDOW_SIZE
             )
         )
 
@@ -742,7 +858,7 @@ def main():
 
     if MAKE_EPOCH_PLOT:
         t.sleep(5)
-        log_dir = "encoder_delay_logs/lightning_logs/version_0"
+        log_dir = "{}/lightning_logs/version_0".format(save_path)
         y_key = "Avg loss per epoch"
 
         event_accumulator = EventAccumulator(log_dir)
@@ -765,16 +881,31 @@ def main():
         if TRAIN:
             trainer.test(model, dataloaders=test_loader)
         else:
-            cpath = "encoder_delay_logs/finetune_nonpretrained_window{}.ckpt".format(
-                SLIDING_WINDOW_SIZE
+            print("Loading checkpoint")
+            cpath = "{}/finetune_nonpretrained_window{}.ckpt".format(
+                save_path, SLIDING_WINDOW_SIZE
             )
             testmodel = TransformerEncoder.load_from_checkpoint(
                 input_size=input_size,
                 target_size=output_size,
-                loss_function=LOSSFUNCTION,
+                loss_function1=LOSSFUNCTION_1,
+                loss_function2=LOSSFUNCTION_2,
                 delay_mean=mean_delay,
                 delay_std=std_delay,
                 packets_per_embedding=PACKETS_PER_EMBEDDING,
+                layers=LAYERS,
+                num_heads=NHEAD,
+                dropout=DROPOUT,
+                weight_decay=WEIGHTDECAY,
+                learning_rate=LEARNINGRATE,
+                epochs=EPOCHS,
+                batch_size=BATCHSIZE,
+                linear_size=LINEARSIZE,
+                sliding_window_size=SLIDING_WINDOW_SIZE,
+                dual_loss=DUAL_LOSS,
+                mask_all_sizes=False,
+                mask_all_delays=False,
+                use_hierarchical_aggregation=True,
                 pool=False,
                 checkpoint_path=cpath,
                 strict=True,
@@ -782,7 +913,6 @@ def main():
             testmodel.eval()
 
             if TEST_ONLY_NEW:
-
                 new_test_dataset = PacketDataset(full_feature_arr, full_target_arr)
                 new_test_loader = DataLoader(
                     new_test_dataset, batch_size=BATCHSIZE, shuffle=False, num_workers=4
