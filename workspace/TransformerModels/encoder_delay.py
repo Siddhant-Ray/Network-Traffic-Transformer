@@ -515,10 +515,10 @@ class TransformerEncoder(pl.LightningModule):
             )  # predicted penultimate delays
             ewm_preds = list(
                 output["ewm_predicted_delay"].cpu().detach().numpy()
-            )  # predicted penultimate delays
+            )  # predicted ewm delays
             median_preds = list(
                 output["median_predicted_delay"].cpu().detach().numpy()
-            )  # predicted penultimate delays
+            )  # predicted median delays
 
             last_delay_losses.extend(last_packet_losses)
             last_predicted_delay.extend(preds)
@@ -646,47 +646,254 @@ class TransformerEncoder(pl.LightningModule):
         )
 
 
-# Setup and run the transformer encoder model
-def main():
+# Argument parser for the model and return
+def get_args():
     # Hyper parameters from config file
     with open("configs/config-encoder-test.yaml") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    WEIGHTDECAY = float(config["weight_decay"])
-    LEARNINGRATE = float(config["learning_rate"])
-    DROPOUT = float(config["dropout"])
-    NHEAD = int(config["num_heads"])
-    LAYERS = int(config["num_layers"])
-    EPOCHS = int(config["epochs"])
-    BATCHSIZE = int(config["batch_size"])
-    LINEARSIZE = int(config["linear_size"])
-    LOSSFUNCTION_1 = nn.MSELoss()
-    LOSSFUNCTION_2 = nn.CrossEntropyLoss()
+    # Add default arguments from the config file
+    parser = argparse.ArgumentParser(
+        description="Transformer Encoder for delay prediction"
+    )
+
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=float(config["weight_decay"]),
+        help="Weight decay for the Adam optimizer",
+    )
+
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=float(config["learning_rate"]),
+        help="Learning rate for the Adam optimizer",
+    )
+
+    parser.add_argument(
+        "--dropout",
+        type=float,
+        default=float(config["dropout"]),
+        help="Dropout for the transformer encoder",
+    )
+
+    parser.add_argument(
+        "--num_heads",
+        type=int,
+        default=int(config["num_heads"]),
+        help="Number of heads for the transformer encoder",
+    )
+
+    parser.add_argument(
+        "--num_layers",
+        type=int,
+        default=int(config["num_layers"]),
+        help="Number of layers for the transformer encoder",
+    )
+
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=int(config["epochs"]),
+        help="Number of epochs for training",
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=int(config["batch_size"]),
+        help="Batch size for training",
+    )
+
+    parser.add_argument(
+        "--linear_size",
+        type=int,
+        default=int(config["linear_size"]),
+        help="Linear size for the transformer encoder",
+    )
+
+    parser.add_argument(
+        "--loss_function1",
+        default=nn.MSELoss(),
+        help="Loss function for the transformer encoder",
+    )
+
+    parser.add_argument(
+        "--loss_function2",
+        default=nn.CrossEntropyLoss(),
+        help="Loss function for the transformer encoder",
+    )
 
     if "loss_function" in config.keys():
         if config["loss_function"] == "huber":
-            LOSSFUNCTION = nn.HuberLoss()
+            parser.add_argument(
+                "--loss_function_huber",
+                default=nn.SmoothL1Loss(),
+                help="Loss function for the transformer encoder",
+            )
         if config["loss_function"] == "smoothl1":
-            LOSSFUNCTION = nn.SmoothL1Loss()
+            parser.add_argument(
+                "--loss_function_smoothl1",
+                default=nn.SmoothL1Loss(),
+                help="Loss function for the transformer encoder",
+            )
         if config["loss_function"] == "kldiv":
-            LOSSFUNCTION = nn.KLDivLoss()
+            parser.add_argument(
+                "--loss_function_kldiv",
+                default=nn.KLDivLoss(),
+                help="Loss function for the transformer encoder",
+            )
+
+    parser.add_argument(
+        "--sliding_window_start",
+        type=int,
+        default=0,
+        help="Start postition of the sliding window",
+    )
+
+    parser.add_argument(
+        "--sliding_window_step",
+        type=int,
+        default=1,
+        help="Shift length of the sliding window",
+    )
+
+    parser.add_argument(
+        "--sliding_window_size",
+        type=int,
+        default=1024,
+        help="Size of the sliding window",
+    )
+
+    parser.add_argument(
+        "--window_batch_size",
+        type=int,
+        default=5000,
+        help="Batch size for constructing the sliding window",
+    )
+
+    parser.add_argument(
+        "--packets_per_embedding",
+        type=int,
+        default=21,
+        help="Number of packets per embedding if fixed size aggregation",
+    )
+
+    parser.add_argument(
+        "--num_bottlenecks",
+        type=int,
+        default=1,
+        help="Number of bottlenecks in the topology",
+    )
+
+    parser.add_argument(
+        "--train",
+        type=bool,
+        default=False,
+        help="Train the model",
+    )
+
+    parser.add_argument(
+        "--save_model",
+        type=bool,
+        default=True,
+        help="Save the model",
+    )
+
+    parser.add_argument(
+        "--make_epoch_plot",
+        type=bool,
+        default=False,
+        help="Make the loss plot per epoch",
+    )
+
+    parser.add_argument(
+        "--test",
+        type=bool,
+        default=True,
+        help="Test the model on test fraction of data",
+    )
+
+    parser.add_argument(
+        "--test_only_new",
+        type=bool,
+        default=False,
+        help="Test only on new data",
+    )
+
+    parser.add_argument(
+        "--use_dual_loss",
+        type=bool,
+        default=False,
+        help="Train with reconstruction loss and enropy minimization",
+    )
+
+    parser.add_argument(
+        "--mask_all_sizes",
+        type=bool,
+        default=False,
+        help="Mask out all packet sizes",
+    )
+
+    parser.add_argument(
+        "--mask_all_delays",
+        type=bool,
+        default=False,
+        help="Mask out all packet delays",
+    )
+
+    parser.add_argument(
+        "--use_hierarchical_aggregation",
+        type=bool,
+        default=True,
+        help="Use hierarchical aggregation",
+    )
+
+    parser.add_argument(
+        "--pool",
+        type=bool,
+        default=False,
+        help="Use mean pooling",
+    )
+
+    args = parser.parse_args()
+
+    return args
+
+
+# Setup and run the transformer encoder model
+def main():
+    # Arguments
+    args = get_args()
+
+    WEIGHTDECAY = args.weight_decay
+    LEARNINGRATE = args.learning_rate
+    DROPOUT = args.dropout
+    NHEAD = args.num_heads
+    LAYERS = args.num_layers
+    EPOCHS = args.epochs
+    BATCHSIZE = args.batch_size
+    LINEARSIZE = args.linear_size
+    LOSSFUNCTION_1 = args.loss_function1
+    LOSSFUNCTION_2 = args.loss_function2
 
     # Params for the sliding window on the packet data
-    SLIDING_WINDOW_START = 0
-    SLIDING_WINDOW_STEP = 1
-    SLIDING_WINDOW_SIZE = 1024
-    WINDOW_BATCH_SIZE = 5000
-    PACKETS_PER_EMBEDDING = 21
-    NUM_BOTTLENECKS = 1
+    SLIDING_WINDOW_START = args.sliding_window_start
+    SLIDING_WINDOW_STEP = args.sliding_window_step
+    SLIDING_WINDOW_SIZE = args.sliding_window_size
+    WINDOW_BATCH_SIZE = args.window_batch_size
+    PACKETS_PER_EMBEDDING = args.packets_per_embedding
+    NUM_BOTTLENECKS = args.num_bottlenecks
 
-    TRAIN = False
-    SAVE_MODEL = True
-    MAKE_EPOCH_PLOT = False
-    TEST = True
-    TEST_ONLY_NEW = False
+    TRAIN = args.train
+    SAVE_MODEL = args.save_model
+    MAKE_EPOCH_PLOT = args.make_epoch_plot
+    TEST = args.test
+    TEST_ONLY_NEW = args.test_only_new
 
     ## Dual loss (reconstruction + entropy)
-    DUAL_LOSS = False
+    DUAL_LOSS = args.use_dual_loss
 
     if torch.cuda.is_available():
         NUM_GPUS = torch.cuda.device_count()
@@ -695,15 +902,11 @@ def main():
         print("ERROR: NO CUDA DEVICE FOUND")
         NUM_GPUS = 0
 
-    sl_win_start = SLIDING_WINDOW_START
-    sl_win_size = SLIDING_WINDOW_SIZE
-    sl_win_shift = SLIDING_WINDOW_STEP
-
     if NUM_BOTTLENECKS == 1 or NUM_BOTTLENECKS == 2:
         num_features = 3  # If only timestamp, packet size and delay, else 16
     elif NUM_BOTTLENECKS == 4:
         num_features = 4  # Using receiver IP identifier (and full packet 16+3)
-    input_size = sl_win_size * num_features
+    input_size = SLIDING_WINDOW_SIZE * num_features
     output_size = 1
 
     full_feature_arr = []
@@ -711,11 +914,11 @@ def main():
 
     ## Get the data
     full_feature_arr, full_target_arr, mean_delay, std_delay = generate_sliding_windows(
-        SLIDING_WINDOW_SIZE,
-        WINDOW_BATCH_SIZE,
+        args.sliding_window_size,
+        args.window_batch_size,
         num_features,
-        TEST_ONLY_NEW,
-        NUM_BOTTLENECKS,
+        args.test_only_new,
+        args.num_bottlenecks,
         reduce_type=True,
     )
 
@@ -738,10 +941,10 @@ def main():
         linear_size=LINEARSIZE,
         sliding_window_size=SLIDING_WINDOW_SIZE,
         dual_loss=DUAL_LOSS,
-        mask_all_sizes=False,
-        mask_all_delays=False,
-        use_hierarchical_aggregation=True,
-        pool=False,
+        mask_all_sizes=args.mask_all_sizes,
+        mask_all_delays=args.mask_all_delays,
+        use_hierarchical_aggregation=args.use_hierarchical_aggregation,
+        pool=args.pool,
     )
 
     full_train_vectors, test_vectors, full_train_labels, test_labels = train_test_split(
