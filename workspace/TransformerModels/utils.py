@@ -155,6 +155,34 @@ def vectorize_features_to_numpy_memento(data_frame, reduced=False, normalize=Tru
     return feature_frame, label_frame
 
 
+def vectorize_features_to_numpy_memento_iat_label(
+    data_frame, reduced=False, normalize=True
+):
+    feature_frame = data_frame.drop(
+        ["Packet ID", "Workload ID", "Application ID"], axis=1
+    )
+    label_frame = data_frame["IAT"]  # In seconds
+    feature_frame["IAT"] = feature_frame["IAT"]  # In seconds
+    ### Keep the ddelay, mask nth delay in batch during training
+
+    # feature_frame.drop(['Delay'], axis = 1, inplace=True)
+    feature_frame["Combined"] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
+
+    ## Only keep packet size and delay
+    if normalize:
+        feature_frame_reduced = feature_frame[
+            ["Timestamp", "Normalised Packet Size", "Normalised IAT"]
+        ]
+    else:
+        feature_frame_reduced = feature_frame[["Timestamp", "Packet Size", "IAT"]]
+    feature_frame_reduced["Combined"] = feature_frame_reduced.apply(
+        lambda row: row.to_numpy(), axis=1
+    )
+    if reduced:
+        return feature_frame_reduced, label_frame
+    return feature_frame, label_frame
+
+
 def vectorize_features_to_numpy_memento_with_receiver_IP_identifier(
     data_frame, reduced=False, normalize=True
 ):
@@ -175,6 +203,11 @@ def vectorize_features_to_numpy_memento_with_receiver_IP_identifier(
     feature_frame["Destination IP"] = (
         feature_frame["Destination IP"] - mean_ip
     ) / std_ip
+
+    # Normalise IP ID with mean and std
+    mean_ip_id = np.mean(feature_frame["IP ID"])
+    std_ip_id = np.std(feature_frame["IP ID"])
+    feature_frame["IP ID"] = (feature_frame["IP ID"] - mean_ip_id) / std_ip_id
 
     # feature_frame.drop(['Delay'], axis = 1, inplace=True)
     feature_frame["Combined"] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)

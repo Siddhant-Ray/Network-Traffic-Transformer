@@ -4,7 +4,7 @@ import argparse
 import copy
 import json
 import math
-import os
+import os, pickle
 import pathlib
 import random
 import time as t
@@ -205,6 +205,7 @@ class TransformerEncoder(pl.LightningModule):
             betas=(0.9, 0.98),
             eps=1e-9,
             lr=self.learning_rate,
+            foreach=False,
         )
         return {"optimizer": self.optimizer}
 
@@ -912,15 +913,29 @@ def main():
     full_feature_arr = []
     full_target_arr = []
 
-    ## Get the data
-    full_feature_arr, full_target_arr, mean_delay, std_delay = generate_sliding_windows(
-        args.sliding_window_size,
-        args.window_batch_size,
-        num_features,
-        args.test_only_new,
-        args.num_bottlenecks,
-        reduce_type=True,
-    )
+    # If data exists in ../results in .pkl file, load it
+    if not os.path.exists("../results/"):
+        print("Loading data from ../results/")
+        full_feature_arr = pickle.load(open("../results/full_feature_arr.pkl", "rb"))
+        full_target_arr = pickle.load(open("../results/full_target_arr.pkl", "rb"))
+        mean_delay = pickle.load(open("../results/mean_iat.pkl", "rb"))
+        std_delay = pickle.load(open("../results/std_iat.pkl", "rb"))
+    else:
+        ## Get the data
+        (
+            full_feature_arr,
+            full_target_arr,
+            mean_delay,
+            std_delay,
+            all_values,
+        ) = generate_sliding_windows(
+            args.sliding_window_size,
+            args.window_batch_size,
+            num_features,
+            args.test_only_new,
+            args.num_bottlenecks,
+            reduce_type=True,
+        )
 
     ## Model definition with delay scaling params
     model = TransformerEncoder(
@@ -1021,8 +1036,8 @@ def main():
         trainer = pl.Trainer(
             precision=16,
             accelerator="gpu",
-            devices=1,
-            strategy="ddp",
+            devices=[1],
+            # strategy="ddp",
             max_epochs=EPOCHS,
             check_val_every_n_epoch=1,
             logger=tb_logger,
@@ -1050,7 +1065,7 @@ def main():
         time = datetime.now()
         print(time)
         trainer.save_checkpoint(
-            "{}/finetune_nonpretrained_window{}.ckpt".format(
+            "{}/iat_pred_nonpretrained_window{}.ckpt".format(
                 save_path, SLIDING_WINDOW_SIZE
             )
         )
