@@ -400,10 +400,71 @@ def create_features_for_MCT(data_frame, reduced=True, normalize=True):
 
     return final_df, mean_mct, std_mct, mean_size, std_size
 
+def vectorize_features_to_numpy_bursty_datacentre(
+    data_frame, normalize=True
+):
+    
+    feature_frame = data_frame.drop(
+        ["timestamp"]
+        , axis=1
+    )
+    label_frame = data_frame["iat"]  # In seconds
+    # Convert to micro seconds
+    feature_frame["iat"] = feature_frame["iat"]
+    label_frame = label_frame
+    
+    feature_frame["Combined"] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
+
+    ## Rename the relative_timestamp to timestamp
+    feature_frame.rename(columns={"relative_timestamp": "timestamp"}, inplace=True)
+    
+    if normalize:
+        feature_frame_normalised = feature_frame[
+            ["timestamp", "normalised_size", "normalised_iat"]
+        ]
+    else:
+        feature_frame_normalised = feature_frame[["timestamp", "size", "iat"]]
+
+    feature_frame_normalised["Combined"] = feature_frame_normalised.apply(
+        lambda row: row.to_numpy(), axis=1
+    )
+
+    return feature_frame_normalised, label_frame
+
+def vectorize_features_to_numpy_rtt_wifinetwork(
+    data_frame, normalize=True
+):
+    feature_frame = data_frame.drop(
+        ["timestamp"]
+        , axis=1
+    )   
+    label_frame = data_frame["rtt"]  # In seconds
+
+    feature_frame["Combined"] = feature_frame.apply(lambda row: row.to_numpy(), axis=1)
+
+    ## Rename the relative_timestamp to timestamp
+    feature_frame.rename(columns={"relative_timestamp": "timestamp"}, inplace=True)
+
+    if normalize:
+        feature_frame_normalised = feature_frame[
+            ["timestamp", "normalised_size", "normalised_rtt"]
+        ]
+    else:
+        feature_frame_normalised = feature_frame[["timestamp", "size", "rtt"]]
+
+    feature_frame_normalised["Combined"] = feature_frame_normalised.apply(
+        lambda row: row.to_numpy(), axis=1
+    )
+    return feature_frame_normalised, label_frame
+
 
 # Features for ARIMA
 def vectorize_features_for_ARIMA(data_frame):
     label_frame = data_frame["Delay"]  # In seconds
+    return label_frame
+
+def vectorize_features_for_ARIMA_rtt_wifinetwork(data_frame):
+    label_frame = data_frame["rtt"]  # In seconds
     return label_frame
 
 

@@ -1,6 +1,6 @@
 # Orignal author: Siddhant Ray
 
-import argparse
+import argparse,os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,13 +27,14 @@ def mse(seq_a, seq_b):
 def main():
     parser = argparse.ArgumentParser(description="Plot predictions")
     parser.add_argument("--path", type=str, help="Path to predictions files")
-    parser.add_argument("--num_features", type=str, help="Number of input features")
+    parser.add_argument("--num_features", type=str, help="Number of input features", default="3features")
     parser.add_argument("--window_size", type=str, help="Window size")
 
     args = parser.parse_args()
 
     if args.num_features == "16features" or args.num_features == "3features":
-        path = args.path + "/" + args.num_features + "/"
+        print("Plotting for {} features".format(args.num_features))
+        path = args.path + "/"
     else:
         print("Choose valid number of features and path")
         exit()
@@ -89,15 +90,6 @@ def main():
     )
 
     print(
-        "Mean loss on last delay from penultimate is : ",
-        np.mean(np.array(penultimate_squared_losses)),
-    )
-    print(
-        "99%%ile loss on last delay from penultimate is : ",
-        np.percentile(np.array(penultimate_squared_losses), 99),
-    )
-
-    print(
         "Mean loss on last delay from ewma is : ", np.mean(np.array(ewm_squared_losses))
     )
     print(
@@ -124,63 +116,526 @@ def main():
             np.percentile(np.array(median_squared_losses), 99),
         )
 
+    # ## Print 20 values of each with high precision
+    np.set_printoptions(precision=32)
+    print("Actual values are : ", actual_values[:20])
+    print("Transformer predictions are : ", transformer_predictions[:20])
+    print("ARMA predictions are : ", arma_predictions[:20])
+    print("EWM predictions are : ", ewm_predictions[:20])
+
     ## Save path
-    save_path = "plots/" + path
-
-    # Plot the actual delay vs transformer predictions
-    """plt.figure()
-    plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays",  alpha = 0.4)
-    plt.hist(transformer_predictions, bins=np.linspace(0, 0.5, 101), label = "Transformer predictions",  alpha = 0.6, histtype='step', color = 'blue')
+    if not os.path.exists(path + "plots/"):
+        os.makedirs(path + "plots/")
+    save_path = path + "plots/"
     
-    plt.legend()
-    plt.title("Actual delay vs transformer predicted delay distribution")
-    # plt.savefig(save_path + "transformer_vs_actual_predictions.png")
+    # Reshape into 1D arrays for seaborn plots
+    actual_values = actual_values.reshape(-1)
+    transformer_predictions = transformer_predictions.reshape(-1)
+    arma_predictions = arma_predictions.reshape(-1)
+    penultimate_predictions = penultimate_predictions.reshape(-1)
+    ewm_predictions = ewm_predictions.reshape(-1)
 
-    # Plot the actual delay vs arma predictions
-    plt.figure()
-    plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays", alpha = 0.4)
-    plt.hist(arma_predictions, bins=np.linspace(0, 0.5, 101), label = "ARMA predictions", alpha = 0.6, histtype='step', color = 'blue')
-    
-    plt.legend()
-    plt.title("Actual delay vs arma predicted delay distribution")
-    # plt.savefig(save_path + "arma_vs_actual_predictions.png")"""
+    # Print 100 values of each with high precision
+    np.set_printoptions(precision=32)
+    # print("Actual values are : ", actual_values[:100])
+    # print("Transformer predictions are : ", transformer_predictions[:100])
+    # print("ARMA predictions are : ", arma_predictions[:100])
+    # print("EWM predictions are : ", ewm_predictions[:100])
 
+    # Plot actual IAT vs transformer predicted delay
+    # # Plot first 1000 values
+    # plt.figure()
+    # sns.lineplot(
+    #     x=np.arange(1000),
+    #     y=actual_values[:1000],
+    #     label="Actual delay",
+    #     color="blue",
+    # )
+    # sns.lineplot(
+    #     x=np.arange(1000),
+    #     y=transformer_predictions[:1000],
+    #     label="Transformer predictions",
+    #     color="orange",
+    # )
+    # plt.legend()
+    # #plt.ylim(2e-6, 4e-6)
+    # plt.title("Actual delay vs transformer predicted delay")
+    # plt.savefig(save_path + "transformer_vs_actual_predictions.pdf")
+
+    # Make a subplot of delay vs transformer predictions 
+    # with first 10, 50, 100, 200, 500, 1000 predictions
+    # Don't show legend for each subplot
+
+    # Calculate entropy of the actual values distribution
+    # use scipy.stats.entropy
+    # https://stackoverflow.com/questions/15450192/fastest-way-to-compute-entropy-in-python
+
+    # from scipy.stats import entropy
+    # entropy = entropy(actual_values)
+    # print("Entropy of actual values is : ", entropy)
+
+    target = args.path.split("_")[-1]
+
+    # Plot actual values vs transformer predictions
     plt.figure()
-    # plt.hist(actual_values, bins=np.linspace(0, 0.5, 101), label = "Actual delays",  alpha = 0.8, histtype='step', color = 'blue', linewidth=2)
-    plt.hist(
-        transformer_predictions,
-        bins=np.linspace(0, 0.5, 101),
+    plt.subplot(3, 3, 1)
+    sns.lineplot(
+        x=np.arange(10),
+        y=actual_values[:10],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(len(transformer_predictions)),
+        y=transformer_predictions,
         label="Transformer predictions",
-        alpha=0.6,
         color="orange",
     )
-    plt.hist(
-        ewm_predictions,
-        bins=np.linspace(0, 0.5, 101),
-        label="EWMA predictions",
-        alpha=0.2,
-        color="green",
+    plt.legend()
+    plt.title("10 predictions")
+
+    plt.subplot(3, 3, 2)
+    sns.lineplot(
+        x=np.arange(25),
+        y=actual_values[:25],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(25),
+        y=transformer_predictions[:25],
+        label="Transformer predictions",
+        color="orange",
     )
     plt.legend()
-    plt.title("Transformer vs baselines predicted delay distribution")
-    plt.savefig(save_path + "transformer_vs_baseline_predictions.png")
+    plt.title(f"25 predictions")
 
-    # Plot histograms of transformer and arma squared losses
-    plt.figure()
-    ax = sns.histplot(transformer_squared_losses, color="blue")
-    ax.set(xlabel="Transformer Losses", ylabel="Frequency")
-    plt.legend([], [], frameon=False)
-    plt.title("Squared loss from transformer vs actual distribution")
-    plt.xlim(0, 0.0005)
-    plt.savefig(save_path + "histogram_squared_losses_transformer.png")
+    plt.subplot(3, 3, 3)
+    sns.lineplot(
+        x=np.arange(50),
+        y=actual_values[:50],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(50),
+        y=transformer_predictions[:50],
+        label="Transformer predictions",
+        color="orange",
+    )
+    plt.legend()
+    plt.title(f"50 predictions")
+
+
+    plt.subplot(3, 3, 4)
+    sns.lineplot(
+        x=np.arange(75),
+        y=actual_values[:75],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(75),
+        y=transformer_predictions[:75],
+        label="Transformer predictions",
+        color="orange",
+    )
+    plt.legend()
+    plt.title(f"75 predictions")
+
+    plt.subplot(3, 3, 5)
+    sns.lineplot(
+        x=np.arange(100),
+        y=actual_values[:100],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(100),
+        y=transformer_predictions[:100],
+        label="Transformer predictions",
+        color="orange",
+    )
+    plt.legend()
+    plt.title(f"100 predictions")
+
+    plt.subplot(3, 3, 6)
+    sns.lineplot(
+        x=np.arange(200),
+        y=actual_values[:200],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(200),
+        y=transformer_predictions[:200],
+        label="Transformer predictions",
+        color="orange",
+    )
+    plt.legend()
+
+    plt.title(f"200 predictions")
+
+    plt.subplot(3, 3, 7)
+    sns.lineplot(
+        x=np.arange(300),
+        y=actual_values[:300],
+        label=f"Actual {target}",
+        color="blue",
+    )
+
+    sns.lineplot(
+        x=np.arange(300),
+        y=transformer_predictions[:300],
+        label="Transformer predictions",
+        color="orange",
+    )
+
+    plt.legend()
+    plt.title(f"300 predictions")
+
+    plt.subplot(3, 3, 8)
+    sns.lineplot(
+        x=np.arange(500),
+        y=actual_values[:500],
+        label=f"Actual {target}",
+        color="blue",
+    )
+
+    sns.lineplot(
+        x=np.arange(500),
+        y=transformer_predictions[:500],
+        label="Transformer predictions",
+        color="orange",
+    )
+
+    plt.legend()
+
+    plt.title(f"500 predictions")
+
+    # Remove legend for each subplot
+    for ax in plt.gcf().axes:
+        try:
+            ax.legend_.remove()
+        except:
+            pass
+
+    plt.suptitle(f"Actual {target} vs transformer predicted {target}", fontsize=8)
+    # Add only one legend for the entire figure
+    # set line colors for legend as blue and orange
+    # Match the legend labels to the line colors from the subplots
+
+    plt.figlegend(
+        labels=["Actual delay", "Transformer predictions"],
+        loc="lower center",
+        ncol=2,
+        fontsize=8,
+        labelcolor=["blue", "orange"],
+    )
+    
+    plt.tight_layout()
+
+    plt.savefig(save_path + f"transformer_vs_actual_predictions_{target}.pdf")
+    exit()
 
     plt.figure()
-    ax = sns.histplot(arma_squared_losses, color="red")
-    ax.set(xlabel="ARMA Losses", ylabel="Frequency")
-    plt.legend([], [], frameon=False)
-    plt.title("Squared loss from ARMA vs actual distribution")
-    plt.xlim(0, 0.0005)
-    plt.savefig(save_path + "histogram_squared_losses_arma.png")
+    # Make figure share y axis
+    # plt.subplots(sharey=True, figsize=(10, 10))
+    plt.subplot(3, 3, 1)
+    sns.lineplot(
+        x=np.arange(10),
+        y=actual_values[:10],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(10),
+        y=transformer_predictions[:10],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 10)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("10 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 2)
+    sns.lineplot(
+        x=np.arange(25),
+        y=actual_values[:25],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(25),
+        y=transformer_predictions[:25],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 25)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("25 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 3)
+    sns.lineplot(
+        x=np.arange(50),
+        y=actual_values[:50],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(50),
+        y=transformer_predictions[:50],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 50)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("50 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 4)
+    sns.lineplot(
+        x=np.arange(75),
+        y=actual_values[:75],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(75),
+        y=transformer_predictions[:75],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 75)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("75 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 5)
+    sns.lineplot(
+        x=np.arange(100),
+        y=actual_values[:100],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(100),
+        y=transformer_predictions[:100],
+        label="Transformer predictions",
+        color="orange",
+    )
+    plt.legend(fontsize=6, loc="upper right")
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 100)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.title("100 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 6)
+    sns.lineplot(
+        x=np.arange(200),
+        y=actual_values[:200],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(200),
+        y=transformer_predictions[:200],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 200)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("200 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 7)
+    sns.lineplot(
+        x=np.arange(300),
+        y=actual_values[:300],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(300),
+        y=transformer_predictions[:300],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 300)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("300 predictions", fontsize=6)
+
+    plt.subplot(3, 3, 8)
+    sns.lineplot(
+        x=np.arange(500),
+        y=actual_values[:500],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(500),
+        y=transformer_predictions[:500],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 500)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("500 predictions", fontsize=6)
+    
+    plt.subplot(3, 3, 9)
+    sns.lineplot(
+        x=np.arange(1000),
+        y=actual_values[:1000],
+        label=f"Actual {target}",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(1000),
+        y=transformer_predictions[:1000],
+        label="Transformer predictions",
+        color="orange",
+    )
+    #plt.ylim(0, 0.4)
+    plt.xlim(0, 1000)
+    plt.yticks(fontsize=6)
+    plt.xticks(fontsize=6)
+    plt.legend(fontsize=6, loc="upper right")
+    plt.title("1000 predictions", fontsize=6)
+    
+    # Remove legend for each subplot
+    for ax in plt.gcf().axes:
+        try:
+            ax.legend_.remove()
+        except:
+            pass
+
+    plt.suptitle(f"Actual {target} vs transformer predicted {target}", fontsize=8)
+    # Add only one legend for the entire figure
+    # set line colors for legend as blue and orange
+    # Match the legend labels to the line colors from the subplots
+
+    plt.figlegend(
+        labels=["Actual delay", "Transformer predictions"],
+        loc="lower center",
+        ncol=2,
+        fontsize=8,
+        labelcolor=["blue", "orange"],
+    )
+    
+    plt.tight_layout()
+    plt.savefig(save_path + f"transformer_vs_actual_predictions_subplots_{target}.pdf")
+    
+    # Plot actual IAT vs EWM predicted delay
+    # Plot first 1000 values
+    plt.figure()
+    sns.lineplot(
+        x=np.arange(1000),
+        y=actual_values[:1000],
+        label="Actual delay",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(1000),
+        y=ewm_predictions[:1000],
+        label="EWM predictions",
+        color="orange",
+    )
+    plt.legend()
+    plt.title("Actual delay vs EWM predicted delay")
+    plt.savefig(save_path + "ewm_vs_actual_predictions.pdf")
+
+    # Plot histogram of actual delay values vs transformer predicted 
+    # delay values
+    plt.figure()
+    plt.hist(actual_values, bins=np.linspace(0, 0.5, 101),
+                label = "Actual delays",  alpha = 0.4)
+    plt.hist(transformer_predictions, bins=np.linspace(0, 0.5, 101),
+                label = "Transformer predictions",  alpha = 0.6, 
+                histtype='step', color = 'blue')
+
+    plt.legend()
+    plt.title("Actual delay vs transformer predicted delay distribution")
+    plt.savefig(save_path + "histogram_transformer_vs_actual_predictions.pdf")
+
+    # Plot histogram of actual delay values vs ewm predicted
+    # delay values
+    plt.figure()
+    plt.hist(actual_values, bins=np.linspace(0, 0.5, 101),
+                label = "Actual delays",  alpha = 0.4)
+    plt.hist(ewm_predictions, bins=np.linspace(0, 0.5, 101),
+                label = "EWM predictions",  alpha = 0.6, 
+                histtype='step', color = 'blue')
+    
+    plt.legend()
+    plt.title("Actual delay vs EWM predicted delay distribution")
+    plt.savefig(save_path + "histogram_ewm_vs_actual_predictions.pdf")
+
+    print()
+    print()
+
+    # print 99%ile values for each
+    print("99%ile actual delay value is : ", np.percentile(actual_values, 99))
+    print(
+        "99%ile transformer predicted delay value is : ",
+        np.percentile(transformer_predictions, 99),
+    )
+    print(
+        "99%ile arma predicted delay value is : ",
+        np.percentile(arma_predictions, 99),
+    )
+    print(
+        "99%ile ewm predicted delay value is : ",
+        np.percentile(ewm_predictions, 99),
+    )
+
+    # Get mean of all delay values
+    mean_delay = np.mean(actual_values)
+    median_delay = np.median(actual_values)
+
+    print("Mean delay is : ", mean_delay)
+    print("Median delay is : ", median_delay)
+
+    # Print minimum and maximum values
+    print("Minimum delay is : ", np.min(actual_values))
+    print("Maximum delay is : ", np.max(actual_values))
+
+    exit()
+
+    plt.figure()
+    sns.lineplot(
+        x=np.arange(len(actual_values)),
+        y=actual_values,
+        label="Actual delay",
+        color="blue",
+    )
+    sns.lineplot(
+        x=np.arange(len(transformer_predictions)),
+        y=transformer_predictions,
+        label="Transformer predictions",
+        color="orange",
+    )
+    plt.legend()
+    plt.title("Actual IAT vs transformer predicted IAT")
+    plt.savefig(save_path + "transformer_vs_actual_predictions.pdf")
 
     input_seq = actual_values
     target = input_seq[1:]

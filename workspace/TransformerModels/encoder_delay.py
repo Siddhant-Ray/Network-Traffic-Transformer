@@ -304,6 +304,14 @@ class TransformerEncoder(pl.LightningModule):
             ## Mask out all delays
             X[:, batch_all_delay_masks_index] = batch_all_delay_masks
 
+        # Add Gaussian noise to the input X for training
+        # mean of noise is drawn from uniform distribution between
+        # input range of X, std is 1e-5
+        noise_mean = (torch.max(X) - torch.min(X)) / 2
+        noise_std = 1e-5
+        noise = torch.randn(X.size(), device=self.device) * noise_std + noise_mean
+        # X = X + noise
+
         # Every packet separately into the transformer (project to linear if needed)
         prediction = self.forward(X)
 
@@ -935,6 +943,12 @@ def main():
             args.test_only_new,
             args.num_bottlenecks,
             reduce_type=True,
+            MEMENTO=True,
+            IAT_LABEL=False,
+            DATACENTER_BURSTS=False,
+            LAPTOP_ON_WIFI=False,
+            RTT_LABEL=False,
+            RTT_WIFI_NETWORK=False,
         )
 
     ## Model definition with delay scaling params
@@ -1053,6 +1067,45 @@ def main():
         )
 
     if TRAIN:
+        # Load checkpoint if exists
+        if os.path.exists(
+            "{}/iat_pred_nonpretrained_window{}.ckpt".format(
+                save_path, SLIDING_WINDOW_SIZE
+            )
+        ):
+            print("Loading checkpoint")
+            cpath = "{}/iat_pred_nonpretrained_window{}.ckpt".format(
+                save_path, SLIDING_WINDOW_SIZE
+            )
+            model = TransformerEncoder.load_from_checkpoint(
+                input_size=input_size,
+                target_size=output_size,
+                loss_function1=LOSSFUNCTION_1,
+                loss_function2=LOSSFUNCTION_2,
+                delay_mean=mean_delay,
+                delay_std=std_delay,
+                packets_per_embedding=PACKETS_PER_EMBEDDING,
+                layers=LAYERS,
+                num_heads=NHEAD,
+                dropout=DROPOUT,
+                weight_decay=WEIGHTDECAY,
+                learning_rate=LEARNINGRATE,
+                epochs=EPOCHS,
+                batch_size=BATCHSIZE,
+                linear_size=LINEARSIZE,
+                sliding_window_size=SLIDING_WINDOW_SIZE,
+                dual_loss=DUAL_LOSS,
+                mask_all_sizes=False,
+                mask_all_delays=False,
+                use_hierarchical_aggregation=True,
+                pool=False,
+                checkpoint_path=cpath,
+                strict=True,
+            )
+            model.train()
+        else:
+            print("No checkpoint found, training from scratch")
+            model.train()
         print("Started training at:")
         time = datetime.now()
         print(time)
@@ -1100,7 +1153,7 @@ def main():
             trainer.test(model, dataloaders=test_loader)
         else:
             print("Loading checkpoint")
-            cpath = "{}/finetune_nonpretrained_window{}.ckpt".format(
+            cpath = "{}iat_pred_nonpretrained_window{}.ckpt".format(
                 save_path, SLIDING_WINDOW_SIZE
             )
             testmodel = TransformerEncoder.load_from_checkpoint(
